@@ -557,18 +557,18 @@ class TesterApp {
   }
 
   registerGlobalShortcuts() {
-    // ALT+L: Input only the first word
-    globalShortcut.register('Alt+L', () => {
+    // CTRL+SHIFT+L: Input only the first word
+    globalShortcut.register('Ctrl+Shift+L', () => {
       this.inputWordByWord();
     });
 
-    // ALT+K: Input only the first line
-    globalShortcut.register('Alt+K', () => {
+    // CTRL+SHIFT+K: Input only the first line
+    globalShortcut.register('Ctrl+Shift+K', () => {
       this.inputLineByLine();
     });
 
-    // ALT+C: Copy clipboard to temp data
-    globalShortcut.register('Alt+C', () => {
+    // CTRL+SHIFT+C: Copy clipboard to temp data
+    globalShortcut.register('Ctrl+Shift+C', () => {
       this.copyClipboardToTemp();
     });
   }
@@ -820,7 +820,7 @@ class TesterApp {
         
         // Notify user that answer is ready for hotkey input
         this.mainWindow.webContents.send('answer-received', {
-          message: 'Answer saved! Use Alt+L (one word) or Alt+K (one line) to input.',
+          message: 'Answer saved! Use Ctrl+Shift+L (one word) or Ctrl+Shift+K (one line) to input.',
           answer: data.data
         });
       } else {
