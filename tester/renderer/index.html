@@ -200,6 +200,60 @@
             background: rgba(255, 107, 107, 0.3);
         }
 
+        .chat-message.system {
+            background: rgba(52, 152, 219, 0.3);
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Answer Notification */
+        .answer-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .notification-content {
+            text-align: center;
+        }
+
+        .notification-content strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .notification-content small {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .notification-content kbd {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         .chat-input-area {
             display: flex;
             gap: 8px;
@@ -391,8 +445,8 @@
             <div class="tab-header">
                 <button class="tab-button active" data-tab="chat">💬 Chat</button>
                 <button class="tab-button" data-tab="settings">⚙️ Settings</button>
-            </div>
-            
+        </div>
+
             <!-- Chat Tab -->
             <div class="tab-content active" id="chatTab">
                 <div class="chat-messages" id="chatMessages">
@@ -452,7 +506,7 @@
                         <input type="checkbox" id="trayNotifications" checked>
                         <label for="trayNotifications">Tray Notifications</label>
                     </div>
-                </div>
+            </div>
             </div>
         </div>
     </div>
@@ -544,6 +598,28 @@
 
         ipcRenderer.on('chat-message', (event, data) => {
             addChatMessage(data.message, data.sender);
+        });
+
+        ipcRenderer.on('answer-received', (event, data) => {
+            addChatMessage(data.message, 'system');
+            
+            // Show a temporary notification
+            const notification = document.createElement('div');
+            notification.className = 'answer-notification';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <strong>📝 Answer Ready!</strong><br>
+                    <small>Use <kbd>Alt+L</kbd> (word by word) or <kbd>Alt+K</kbd> (line by line)</small>
+                </div>
+            `;
+            document.body.appendChild(notification);
+            
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 5000);
         });
 
         // Functions

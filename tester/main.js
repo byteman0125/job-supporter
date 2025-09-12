@@ -571,17 +571,125 @@ class TesterApp {
   }
 
   async inputWordByWord() {
-    if (!this.tempData) return;
+    if (!this.tempData) {
+      console.log('No answer data available to input');
+      return;
+    }
     
-    // TODO: Implement with robotjs when compatibility is fixed
-    console.log('Input word by word:', this.tempData);
+    console.log('Inputting word by word:', this.tempData);
+    
+    // Split into words and input each word with a small delay
+    const words = this.tempData.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      if (word.trim()) {
+        await this.typeText(word + (i < words.length - 1 ? ' ' : ''));
+        await this.delay(200); // 200ms delay between words
+      }
+    }
   }
 
   async inputLineByLine() {
-    if (!this.tempData) return;
+    if (!this.tempData) {
+      console.log('No answer data available to input');
+      return;
+    }
     
-    // TODO: Implement with robotjs when compatibility is fixed
-    console.log('Input line by line:', this.tempData);
+    console.log('Inputting line by line:', this.tempData);
+    
+    // Split into lines and input each line
+    const lines = this.tempData.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.trim()) {
+        await this.typeText(line);
+        if (i < lines.length - 1) {
+          await this.pressKey('Enter');
+          await this.delay(100); // Small delay between lines
+        }
+      }
+    }
+  }
+
+  async typeText(text) {
+    const { exec } = require('child_process');
+    
+    if (process.platform === 'win32') {
+      // Windows: Use PowerShell to send text
+      const escapedText = text.replace(/"/g, '""');
+      return new Promise((resolve) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedText}')"`, (error) => {
+          if (error) console.error('Error typing text:', error);
+          resolve();
+        });
+      });
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool
+      return new Promise((resolve) => {
+        exec(`echo "${text}" | xclip -selection clipboard && xdotool key ctrl+v`, (error) => {
+          if (error) {
+            // Fallback: try xte
+            exec(`echo "${text}" | xclip -selection clipboard && xte 'key ctrl+v'`, (error2) => {
+              if (error2) console.error('Error typing text:', error2);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      });
+    } else if (process.platform === 'darwin') {
+      // macOS: Use osascript
+      const escapedText = text.replace(/"/g, '\\"');
+      return new Promise((resolve) => {
+        exec(`osascript -e 'tell application "System Events" to keystroke "${escapedText}"'`, (error) => {
+          if (error) console.error('Error typing text:', error);
+          resolve();
+        });
+      });
+    }
+  }
+
+  async pressKey(key) {
+    const { exec } = require('child_process');
+    
+    if (process.platform === 'win32') {
+      return new Promise((resolve) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{${key}}')"`, (error) => {
+          if (error) console.error('Error pressing key:', error);
+          resolve();
+        });
+      });
+    } else if (process.platform === 'linux') {
+      return new Promise((resolve) => {
+        exec(`xdotool key ${key}`, (error) => {
+          if (error) console.error('Error pressing key:', error);
+          resolve();
+        });
+      });
+    } else if (process.platform === 'darwin') {
+      return new Promise((resolve) => {
+        exec(`osascript -e 'tell application "System Events" to key code ${this.getKeyCode(key)}'`, (error) => {
+          if (error) console.error('Error pressing key:', error);
+          resolve();
+        });
+      });
+    }
+  }
+
+  getKeyCode(key) {
+    const keyCodes = {
+      'Enter': 36,
+      'Return': 36,
+      'Tab': 48,
+      'Space': 49,
+      'Escape': 53
+    };
+    return keyCodes[key] || 36; // Default to Enter
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   copyClipboardToTemp() {
@@ -634,10 +742,10 @@ class TesterApp {
   // Handle supporter events
   handleSupporterEvents(socket) {
     socket.on('receiveData', (data) => {
-      this.tempData = data;
-      
-      // If it's an answer, display it in the chat
+      // If it's an answer, save the answer text and display it in chat
       if (data.type === 'answer') {
+        this.tempData = data.data; // Save the actual answer text
+        
         this.chatMessages.push({
           type: 'supporter',
           message: `📝 Answer: ${data.data}`,
@@ -649,6 +757,17 @@ class TesterApp {
           message: `📝 Answer: ${data.data}`,
           sender: 'supporter'
         });
+        
+        console.log('📝 Answer received and saved:', data.data);
+        
+        // Notify user that answer is ready for hotkey input
+        this.mainWindow.webContents.send('answer-received', {
+          message: 'Answer saved! Use Alt+L (word by word) or Alt+K (line by line) to input.',
+          answer: data.data
+        });
+      } else {
+        // For other data types, save the entire data object
+      this.tempData = data;
       }
     });
 
@@ -661,7 +780,7 @@ class TesterApp {
       
       // Send to main window chat
       this.mainWindow.webContents.send('chat-message', {
-        message: message,
+          message: message,
         sender: 'supporter'
       });
       
