@@ -1,0 +1,20 @@
+---
+description:
+I have to make code supporter app (tester and supporter) using javascript. and I have to compile this app to exe file that can run on (window) support can run on (ubuntu and windows) we have to use TCP/IP protocal
+tester should share their screen to supporter and client should show that screen and can control their mouse and keyboard.
+tester should be shared if connection is complete and that process should be hired to tray icon. because interviewer see my entire screen. 
+supporter can access to tester through ip. supporter can control when his mouse is on the tester's screen view area.
+and supporter can set view mode or control mode. difault is view mode and if supporter set control mode he can control tester's mouse and keyboard.
+supporter should grab tester's screen, if he click capture button, image should be savid to image dir.
+supporter can copy data via answer area on their screen and he can click send button.
+if he send answer, client have to receive and he save he's cache or temp data aire.
+if tester click ALT+L, should input One word at a time from temp data. and when input should look like typing by human, you have to provide professional speed.
+if click Alt+K, have to input one line at a time like professional programmer speed.
+OR, tester can copy any text to clipboard and if he click Alt+C, copied data should be to tester's temp data
+When supporter access or send data to tester, tester can sound shortly 
+supporter should listen tester's desktop and voice sound. and he can say to tester using mic. on screen, he can select device
+tester can send voice to supporter and he can listen supporter's voice. he can set device on setting window. if I click tray icon, he can see setting window.
+To reduce risk, the tester app's window should operate in a way that makes it invisible when sharing the screen. only tester can see his window(tester app)
+globs:
+alwaysApply: true
+---

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Supporter - Tester</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: #2d2d2d;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #404040;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        /* Main Container */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            overflow: hidden;
+            min-height: 0; /* Important for flex child to shrink */
+        }
+
+        /* Server Status Bar */
+        .server-status-bar {
+            background: #2d2d2d;
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0; /* Don't shrink the status bar */
+        }
+
+        .server-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffa502;
+        }
+
+        .server-dot.running {
+            background: #2ed573;
+        }
+
+        .server-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .server-title {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .server-details {
+            font-size: 11px;
+            color: #ccc;
+        }
+
+        /* Quality Selector */
+        .quality-select {
+            padding: 4px 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 11px;
+            min-width: 120px;
+        }
+
+        /* Chat Panel - Main Area */
+        .chat-panel {
+            flex: 1;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Important for flex child to shrink */
+        }
+
+        .chat-panel h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #fff;
+            flex-shrink: 0; /* Don't shrink the header */
+        }
+
+        .chat-messages {
+            flex: 1;
+            background: #1a1a1a;
+            border-radius: 6px;
+            padding: 12px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            font-size: 13px;
+            min-height: 0; /* Allow shrinking */
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            max-width: 80%;
+            word-wrap: break-word;
+            font-size: 13px;
+        }
+
+        .chat-message.tester {
+            background: rgba(46, 213, 115, 0.3);
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .chat-message.supporter {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0; /* Don't shrink the input area */
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 13px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #26d065;
+        }
+
+        .btn-primary:disabled {
+            background: #404040;
+            cursor: not-allowed;
+        }
+
+        /* Shortcuts */
+        .shortcuts-card {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .shortcuts-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .shortcut-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: #1a1a1a;
+            border-radius: 4px;
+            border: 1px solid #404040;
+        }
+
+        .shortcut-desc {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .shortcut-key {
+            background: #404040;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            background: #2d2d2d;
+            padding: 8px 20px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #404040;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Code Supporter - Tester</h1>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Waiting for Supporter</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Server Status Bar -->
+        <div class="server-status-bar">
+            <div class="server-dot" id="serverDot"></div>
+            <div class="server-info">
+                <div class="server-title">Server</div>
+                <div class="server-details" id="serverDetails">Starting...</div>
+            </div>
+            <select class="quality-select" id="qualitySelect">
+                <option value="high">High Quality</option>
+                <option value="medium" selected>Medium Quality</option>
+                <option value="low">Low Quality</option>
+            </select>
+        </div>
+
+        <!-- Chat Panel - Main Area -->
+        <div class="chat-panel">
+            <h3>💬 Chat</h3>
+            <div class="chat-messages" id="chatMessages">
+                <div class="no-messages" style="color: #666; text-align: center; padding: 20px;">No messages yet</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="Type message..." maxlength="500">
+                <button class="btn btn-primary" id="sendChatBtn" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Server auto-starts on launch • Right-click tray icon for options</p>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let isConnected = false;
+        
+        // Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const serverDot = document.getElementById('serverDot');
+        const serverDetails = document.getElementById('serverDetails');
+        const qualitySelect = document.getElementById('qualitySelect');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+
+        // IPC Event Handlers
+        ipcRenderer.on('connection-status', (event, status) => {
+            isConnected = status.connected;
+            updateConnectionStatus();
+        });
+
+        // Removed temp-data-updated handler since we don't show received data anymore
+
+        // Chat functionality
+        sendChatBtn.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (message && isConnected) {
+                ipcRenderer.invoke('send-chat-message', message);
+                addChatMessage(message, 'tester');
+                chatInput.value = '';
+            }
+        }
+
+        function addChatMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.textContent = message;
+            
+            // Remove "no messages" if it exists
+            const noMessages = chatMessages.querySelector('.no-messages');
+            if (noMessages) {
+                noMessages.remove();
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        ipcRenderer.on('server-started', (event, port) => {
+            serverDot.classList.add('running');
+            serverDetails.textContent = `Running on port ${port}`;
+            statusText.textContent = 'Waiting for Supporter';
+        });
+
+        ipcRenderer.on('chat-message', (event, data) => {
+            addChatMessage(data.message, data.sender);
+        });
+
+        // Functions
+        function updateConnectionStatus() {
+            if (isConnected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Supporter Connected';
+                sendChatBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Waiting for Supporter';
+                sendChatBtn.disabled = true;
+            }
+        }
+
+        // Quality change handler
+        qualitySelect.addEventListener('change', () => {
+            const quality = qualitySelect.value;
+            // Send quality change to main process
+            ipcRenderer.send('change-quality', quality);
+        });
+
+        // Initialize
+        updateConnectionStatus();
+    </script>
+</body>
+</html>

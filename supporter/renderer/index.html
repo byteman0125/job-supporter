@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Supporter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: #2d2d2d;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #404040;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        /* Main Layout */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 16px;
+            overflow: hidden;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .connection-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connection-group input {
+            padding: 6px 10px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 12px;
+            width: 140px;
+        }
+
+        .connection-group input[type="number"] {
+            width: 60px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #26d065;
+        }
+
+        .btn-primary:disabled {
+            background: #404040;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #404040;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a4a4a;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        /* Screen Area */
+        .screen-container {
+            flex: 1;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+
+        .screen-viewer {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screen-image {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+
+        .no-screen {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .cursor-info {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+
+        /* Bottom Panel */
+        .bottom-panel {
+            display: flex;
+            gap: 16px;
+            height: 180px;
+        }
+
+        .panel {
+            flex: 1;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel h3 {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        /* Chat Panel */
+        .chat-messages {
+            flex: 1;
+            background: #1a1a1a;
+            border-radius: 4px;
+            padding: 8px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+            font-size: 11px;
+        }
+
+        .chat-message {
+            margin-bottom: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+
+        .chat-message.tester {
+            background: rgba(46, 213, 115, 0.2);
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .chat-message.supporter {
+            background: rgba(255, 107, 107, 0.2);
+        }
+
+        .chat-input-area {
+            display: flex;
+            gap: 6px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 11px;
+        }
+
+        /* Answer Panel */
+        .answer-textarea {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 11px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            resize: none;
+            margin-bottom: 8px;
+        }
+
+        .answer-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn.active {
+            background: #ff6b6b;
+        }
+
+        .btn.active:hover {
+            background: #ff5252;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .connection-group input[type="text"] {
+                width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>Code Supporter</h1>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="connection-group">
+                <input type="text" id="testerIP" placeholder="Tester IP" value="">
+                <input type="number" id="testerPort" placeholder="8080" value="8080">
+                <button class="btn btn-primary" id="connectBtn">Connect</button>
+                <button class="btn btn-secondary" id="disconnectBtn" disabled>Disconnect</button>
+            </div>
+            
+            <div class="controls">
+                <div class="mode-toggle">
+                    <button class="btn btn-small btn-primary active" id="viewModeBtn">View</button>
+                    <button class="btn btn-small btn-secondary" id="controlModeBtn">Control</button>
+                </div>
+                <button class="btn btn-small btn-secondary" id="captureBtn" disabled>📷</button>
+            </div>
+        </div>
+
+        <!-- Screen Area -->
+        <div class="screen-container">
+            <div class="screen-viewer" id="screenViewer">
+                <div class="no-screen">
+                    <h3>No Screen Shared</h3>
+                    <p>Connect to tester to view their screen</p>
+                </div>
+                <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
+            </div>
+        </div>
+
+        <!-- Bottom Panel -->
+        <div class="bottom-panel">
+            <!-- Chat Panel -->
+            <div class="panel">
+                <h3>💬 Chat</h3>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="no-messages" style="color: #666; text-align: center; padding: 20px;">No messages yet</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Type message..." maxlength="500">
+                    <button class="btn btn-primary btn-small" id="sendChatBtn" disabled>Send</button>
+                </div>
+            </div>
+
+            <!-- Answer Panel -->
+            <div class="panel">
+                <h3>📝 Send Answer</h3>
+                <textarea class="answer-textarea" id="answerText" placeholder="Type your answer or code here..."></textarea>
+                <div class="answer-buttons">
+                    <button class="btn btn-primary btn-small" id="sendAnswerBtn" disabled>Send</button>
+                    <button class="btn btn-secondary btn-small" id="clearAnswerBtn">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let isConnected = false;
+        let isControlMode = false;
+        
+        // Elements
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const testerIP = document.getElementById('testerIP');
+        const testerPort = document.getElementById('testerPort');
+        const screenViewer = document.getElementById('screenViewer');
+        const cursorInfo = document.getElementById('cursorInfo');
+        const viewModeBtn = document.getElementById('viewModeBtn');
+        const controlModeBtn = document.getElementById('controlModeBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendChatBtn = document.getElementById('sendChatBtn');
+        const answerText = document.getElementById('answerText');
+        const sendAnswerBtn = document.getElementById('sendAnswerBtn');
+        const clearAnswerBtn = document.getElementById('clearAnswerBtn');
+
+        // Connection handlers
+        connectBtn.addEventListener('click', () => {
+            const ip = testerIP.value;
+            const port = testerPort.value;
+            
+            if (ip && port) {
+                ipcRenderer.send('connect-to-tester', { ip, port });
+            }
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            ipcRenderer.send('disconnect-from-tester');
+        });
+
+        // Mode toggle
+        viewModeBtn.addEventListener('click', () => setControlMode(false));
+        controlModeBtn.addEventListener('click', () => setControlMode(true));
+
+        // Capture
+        captureBtn.addEventListener('click', () => {
+            ipcRenderer.invoke('capture-screenshot');
+        });
+
+        // Chat
+        sendChatBtn.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        // Answer
+        sendAnswerBtn.addEventListener('click', sendAnswer);
+        clearAnswerBtn.addEventListener('click', () => {
+            answerText.value = '';
+        });
+
+        // Screen viewer events
+        screenViewer.addEventListener('mousemove', handleMouseMove);
+        screenViewer.addEventListener('click', handleMouseClick);
+        screenViewer.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            handleMouseClick(e, 'right');
+        });
+
+        // IPC Event Handlers
+        ipcRenderer.on('connection-status', (event, status) => {
+            isConnected = status.connected;
+            updateConnectionStatus();
+            
+            if (status.error) {
+                alert(`Connection failed: ${status.error}`);
+            }
+        });
+
+        ipcRenderer.on('screen-data', (event, data) => {
+            displayScreen(data.data);
+        });
+
+        ipcRenderer.on('client-disconnected', (event) => {
+            clearScreen();
+        });
+
+        ipcRenderer.on('screenshot-saved', (event, result) => {
+            if (result.success) {
+                // Show success message
+                const originalText = captureBtn.textContent;
+                captureBtn.textContent = '✅ Saved!';
+                captureBtn.style.background = '#2ed573';
+                setTimeout(() => {
+                    captureBtn.textContent = originalText;
+                    captureBtn.style.background = '';
+                }, 2000);
+            }
+        });
+
+        // Functions
+        function updateConnectionStatus() {
+            if (isConnected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                captureBtn.disabled = false;
+                sendChatBtn.disabled = false;
+                sendAnswerBtn.disabled = false;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                captureBtn.disabled = true;
+                sendChatBtn.disabled = true;
+                sendAnswerBtn.disabled = true;
+            }
+        }
+
+        function setControlMode(control) {
+            isControlMode = control;
+            
+            if (control) {
+                viewModeBtn.classList.remove('active');
+                controlModeBtn.classList.add('active');
+                screenViewer.style.cursor = 'crosshair';
+            } else {
+                viewModeBtn.classList.add('active');
+                controlModeBtn.classList.remove('active');
+                screenViewer.style.cursor = 'default';
+            }
+            
+            ipcRenderer.invoke('set-control-mode', control);
+        }
+
+        function displayScreen(base64Data) {
+            const img = document.createElement('img');
+            const format = base64Data.startsWith('/9j/') ? 'jpeg' : 'png';
+            img.src = `data:image/${format};base64,${base64Data}`;
+            img.className = 'screen-image';
+            
+            // Clear existing content
+            screenViewer.innerHTML = '';
+            screenViewer.appendChild(img);
+            
+            // Add cursor info back
+            const cursorDiv = document.createElement('div');
+            cursorDiv.className = 'cursor-info';
+            cursorDiv.id = 'cursorInfo';
+            cursorDiv.style.display = 'none';
+            cursorDiv.textContent = 'X: 0, Y: 0';
+            screenViewer.appendChild(cursorDiv);
+        }
+
+        function clearScreen() {
+            screenViewer.innerHTML = `
+                <div class="no-screen">
+                    <h3>No Screen Shared</h3>
+                    <p>Connect to tester to view their screen</p>
+                </div>
+            `;
+        }
+
+        function handleMouseMove(e) {
+            if (!isControlMode || !isConnected) return;
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) * (screenViewer.offsetWidth / rect.width));
+            const y = Math.round((e.clientY - rect.top) * (screenViewer.offsetHeight / rect.height));
+            
+            cursorInfo.textContent = `X: ${x}, Y: ${y}`;
+            cursorInfo.style.display = 'block';
+            
+            ipcRenderer.invoke('send-mouse-move', { x, y });
+        }
+
+        function handleMouseClick(e, button = 'left') {
+            if (!isControlMode || !isConnected) return;
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const x = Math.round((e.clientX - rect.left) * (screenViewer.offsetWidth / rect.width));
+            const y = Math.round((e.clientY - rect.top) * (screenViewer.offsetHeight / rect.height));
+            
+            ipcRenderer.invoke('send-mouse-click', { x, y, button });
+        }
+
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (message && isConnected) {
+                ipcRenderer.invoke('send-chat-message', message);
+                chatInput.value = '';
+            }
+        }
+
+        function sendAnswer() {
+            const answer = answerText.value.trim();
+            if (answer && isConnected) {
+                ipcRenderer.invoke('send-data-to-tester', { type: 'answer', data: answer });
+                answerText.value = '';
+            }
+        }
+
+        // Initialize
+        updateConnectionStatus();
+    </script>
+</body>
+</html>

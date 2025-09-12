@@ -1,0 +1,51 @@
+{
+  "name": "code-supporter-supporter",
+  "version": "1.0.0",
+  "description": "Supporter (Server) application for Code Supporter",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.codesupporter.supporter",
+    "productName": "Code Supporter - Supporter",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/socket.io/**/*",
+      "node_modules/express/**/*",
+      "node_modules/node-notifier/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "publisherName": "Code Supporter"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Code Supporter - Supporter",
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-notifier": "^10.0.1",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.6.4"
+  }
+}

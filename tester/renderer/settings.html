@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Code Supporter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2d2d2d;
+            padding: 16px 20px;
+            border-bottom: 1px solid #404040;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .settings-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #ccc;
+        }
+
+        .input-group select,
+        .input-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 12px;
+        }
+
+        .input-group select:focus,
+        .input-group input:focus {
+            outline: none;
+            border-color: #2ed573;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #2ed573;
+        }
+
+        .checkbox-group label {
+            font-size: 12px;
+            color: #ccc;
+            margin: 0;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2ed573;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #26d065;
+        }
+
+        .btn-secondary {
+            background: #404040;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a4a4a;
+        }
+
+        .footer {
+            background: #2d2d2d;
+            padding: 12px 20px;
+            border-top: 1px solid #404040;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .footer .btn {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ff4757;
+            margin-right: 6px;
+        }
+
+        .status-indicator.active {
+            background: #2ed573;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: #404040;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Settings</h1>
+        <p>Configure audio devices and preferences</p>
+    </div>
+
+    <div class="main-content">
+        <div class="settings-section">
+            <h3>🎤 Audio Settings</h3>
+            
+            <div class="input-group">
+                <label for="inputDevice">Microphone</label>
+                <select id="inputDevice">
+                    <option value="">Select microphone...</option>
+                </select>
+                <div class="test-buttons">
+                    <button class="btn btn-primary" id="testMic">Test</button>
+                    <button class="btn btn-secondary" id="stopMic">Stop</button>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="outputDevice">Speaker</label>
+                <select id="outputDevice">
+                    <option value="">Select speaker...</option>
+                </select>
+                <div class="test-buttons">
+                    <button class="btn btn-primary" id="testSpeaker">Test</button>
+                    <button class="btn btn-secondary" id="stopSpeaker">Stop</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>🔗 Connection Settings</h3>
+            
+            <div class="input-group">
+                <label for="defaultIP">Default Supporter IP</label>
+                <input type="text" id="defaultIP" placeholder="192.168.1.100">
+            </div>
+
+            <div class="input-group">
+                <label for="defaultPort">Default Port</label>
+                <input type="number" id="defaultPort" placeholder="8080" value="8080">
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>🔒 Privacy Settings</h3>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="hideOnShare" checked>
+                <label for="hideOnShare">Hide window when sharing screen</label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="minimizeToTray" checked>
+                <label for="minimizeToTray">Minimize to system tray</label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>🔔 Notifications</h3>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="soundNotifications" checked>
+                <label for="soundNotifications">Play sound notifications</label>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="trayNotifications" checked>
+                <label for="trayNotifications">Show tray notifications</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <button class="btn btn-secondary" id="closeSettings">Close</button>
+        <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadAudioDevices();
+        });
+
+        // Save settings
+        document.getElementById('saveSettings').addEventListener('click', () => {
+            const settings = {
+                inputDevice: document.getElementById('inputDevice').value,
+                outputDevice: document.getElementById('outputDevice').value,
+                defaultIP: document.getElementById('defaultIP').value,
+                defaultPort: document.getElementById('defaultPort').value,
+                hideOnShare: document.getElementById('hideOnShare').checked,
+                minimizeToTray: document.getElementById('minimizeToTray').checked,
+                soundNotifications: document.getElementById('soundNotifications').checked,
+                trayNotifications: document.getElementById('trayNotifications').checked
+            };
+            
+            ipcRenderer.send('save-settings', settings);
+        });
+
+        // Close settings window
+        document.getElementById('closeSettings').addEventListener('click', () => {
+            window.close();
+        });
+
+        // Test audio devices
+        document.getElementById('testMic').addEventListener('click', () => {
+            ipcRenderer.send('test-audio-device', { type: 'input', device: document.getElementById('inputDevice').value });
+        });
+
+        document.getElementById('testSpeaker').addEventListener('click', () => {
+            ipcRenderer.send('test-audio-device', { type: 'output', device: document.getElementById('outputDevice').value });
+        });
+
+        function loadSettings() {
+            // Load saved settings from localStorage or main process
+            const savedSettings = localStorage.getItem('tester-settings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('inputDevice').value = settings.inputDevice || '';
+                document.getElementById('outputDevice').value = settings.outputDevice || '';
+                document.getElementById('defaultIP').value = settings.defaultIP || '';
+                document.getElementById('defaultPort').value = settings.defaultPort || '8080';
+                document.getElementById('hideOnShare').checked = settings.hideOnShare !== false;
+                document.getElementById('minimizeToTray').checked = settings.minimizeToTray !== false;
+                document.getElementById('soundNotifications').checked = settings.soundNotifications !== false;
+                document.getElementById('trayNotifications').checked = settings.trayNotifications !== false;
+            }
+        }
+
+        function loadAudioDevices() {
+            // Request audio devices from main process
+            ipcRenderer.send('get-audio-devices');
+        }
+
+        // Handle audio devices response
+        ipcRenderer.on('audio-devices', (event, devices) => {
+            const inputSelect = document.getElementById('inputDevice');
+            const outputSelect = document.getElementById('outputDevice');
+            
+            // Clear existing options
+            inputSelect.innerHTML = '<option value="">Select microphone...</option>';
+            outputSelect.innerHTML = '<option value="">Select speaker...</option>';
+            
+            // Add input devices
+            devices.input.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = device.label || device.deviceId;
+                inputSelect.appendChild(option);
+            });
+            
+            // Add output devices
+            devices.output.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = device.label || device.deviceId;
+                outputSelect.appendChild(option);
+            });
+        });
+
+        // Handle settings save response
+        ipcRenderer.on('settings-saved', (event, success) => {
+            if (success) {
+                // Show success message
+                const btn = document.getElementById('saveSettings');
+                const originalText = btn.textContent;
+                btn.textContent = 'Saved!';
+                btn.style.background = '#2ed573';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
