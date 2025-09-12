@@ -115,25 +115,61 @@
             min-width: 120px;
         }
 
-        /* Chat Panel - Main Area */
-        .chat-panel {
+        /* Tab Interface */
+        .tab-container {
             flex: 1;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 16px;
             display: flex;
             flex-direction: column;
-            min-height: 0; /* Important for flex child to shrink */
+            overflow: hidden;
+            min-height: 0;
         }
 
-        .chat-panel h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
+        .tab-header {
+            display: flex;
+            background: #1a1a1a;
+            border-bottom: 1px solid #404040;
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 16px;
+            background: transparent;
+            border: none;
+            color: #888;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: #2d2d2d;
             color: #fff;
-            flex-shrink: 0; /* Don't shrink the header */
         }
 
+        .tab-button.active {
+            color: #2ed573;
+            border-bottom-color: #2ed573;
+            background: #2d2d2d;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            padding: 16px;
+            gap: 12px;
+            min-height: 0;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Chat Tab */
         .chat-messages {
             flex: 1;
             background: #1a1a1a;
@@ -142,7 +178,7 @@
             overflow-y: auto;
             margin-bottom: 12px;
             font-size: 13px;
-            min-height: 0; /* Allow shrinking */
+            min-height: 0;
         }
 
         .chat-message {
@@ -167,7 +203,7 @@
         .chat-input-area {
             display: flex;
             gap: 8px;
-            flex-shrink: 0; /* Don't shrink the input area */
+            flex-shrink: 0;
         }
 
         .chat-input {
@@ -178,6 +214,64 @@
             background: #1a1a1a;
             color: #ffffff;
             font-size: 13px;
+        }
+
+        /* Settings Tab */
+        .settings-section {
+            background: #1a1a1a;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #404040;
+        }
+
+        .settings-section h4 {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 8px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            color: #ccc;
+            margin-bottom: 4px;
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 6px 8px;
+            background: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 11px;
+        }
+
+        .input-group select:focus {
+            outline: none;
+            border-color: #2ed573;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            accent-color: #2ed573;
+        }
+
+        .checkbox-group label {
+            font-size: 11px;
+            color: #ccc;
+            margin: 0;
         }
 
         .btn {
@@ -292,15 +386,73 @@
             </select>
         </div>
 
-        <!-- Chat Panel - Main Area -->
-        <div class="chat-panel">
-            <h3>💬 Chat</h3>
-            <div class="chat-messages" id="chatMessages">
-                <div class="no-messages" style="color: #666; text-align: center; padding: 20px;">No messages yet</div>
+        <!-- Tab Container - Main Area -->
+        <div class="tab-container">
+            <div class="tab-header">
+                <button class="tab-button active" data-tab="chat">💬 Chat</button>
+                <button class="tab-button" data-tab="settings">⚙️ Settings</button>
             </div>
-            <div class="chat-input-area">
-                <input type="text" class="chat-input" id="chatInput" placeholder="Type message..." maxlength="500">
-                <button class="btn btn-primary" id="sendChatBtn" disabled>Send</button>
+            
+            <!-- Chat Tab -->
+            <div class="tab-content active" id="chatTab">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="no-messages" style="color: #666; text-align: center; padding: 20px;">No messages yet</div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Type message..." maxlength="500">
+                    <button class="btn btn-primary" id="sendChatBtn" disabled>Send</button>
+                </div>
+            </div>
+            
+            <!-- Settings Tab -->
+            <div class="tab-content" id="settingsTab">
+                <div class="settings-section">
+                    <h4>🎤 Audio Settings</h4>
+                    <div class="input-group">
+                        <label for="inputDevice">Microphone:</label>
+                        <select id="inputDevice">
+                            <option value="">Select microphone...</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="outputDevice">Speaker:</label>
+                        <select id="outputDevice">
+                            <option value="">Select speaker...</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>🔗 Connection Settings</h4>
+                    <div class="input-group">
+                        <label for="serverPort">Server Port:</label>
+                        <select id="serverPort">
+                            <option value="8080" selected>8080 (Default)</option>
+                            <option value="8081">8081</option>
+                            <option value="8082">8082</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>🔒 Privacy Settings</h4>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="stealthMode" checked disabled>
+                        <label for="stealthMode">Always Invisible Mode (Always Active)</label>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>🔔 Notifications</h4>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="soundNotifications" checked>
+                        <label for="soundNotifications">Sound Notifications</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="trayNotifications" checked>
+                        <label for="trayNotifications">Tray Notifications</label>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -324,6 +476,18 @@
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendChatBtn = document.getElementById('sendChatBtn');
+        
+        // Tab elements
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Settings elements
+        const inputDevice = document.getElementById('inputDevice');
+        const outputDevice = document.getElementById('outputDevice');
+        const serverPort = document.getElementById('serverPort');
+        const stealthMode = document.getElementById('stealthMode');
+        const soundNotifications = document.getElementById('soundNotifications');
+        const trayNotifications = document.getElementById('trayNotifications');
 
         // IPC Event Handlers
         ipcRenderer.on('connection-status', (event, status) => {
@@ -402,8 +566,87 @@
             ipcRenderer.send('change-quality', quality);
         });
 
+        // Tab functionality
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.getAttribute('data-tab');
+                
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding content
+                button.classList.add('active');
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            });
+        });
+
+        // Settings functionality
+        function loadSettings() {
+            // Load saved settings from localStorage
+            const savedSettings = localStorage.getItem('tester-settings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                
+                if (settings.inputDevice) inputDevice.value = settings.inputDevice;
+                if (settings.outputDevice) outputDevice.value = settings.outputDevice;
+                if (settings.serverPort) serverPort.value = settings.serverPort;
+                if (settings.soundNotifications !== undefined) soundNotifications.checked = settings.soundNotifications;
+                if (settings.trayNotifications !== undefined) trayNotifications.checked = settings.trayNotifications;
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                inputDevice: inputDevice.value,
+                outputDevice: outputDevice.value,
+                serverPort: serverPort.value,
+                soundNotifications: soundNotifications.checked,
+                trayNotifications: trayNotifications.checked
+            };
+            
+            localStorage.setItem('tester-settings', JSON.stringify(settings));
+            ipcRenderer.send('save-settings', settings);
+        }
+
+        // Settings event listeners
+        inputDevice.addEventListener('change', saveSettings);
+        outputDevice.addEventListener('change', saveSettings);
+        serverPort.addEventListener('change', saveSettings);
+        soundNotifications.addEventListener('change', saveSettings);
+        trayNotifications.addEventListener('change', saveSettings);
+
+        // Load audio devices
+        function loadAudioDevices() {
+            ipcRenderer.send('get-audio-devices');
+        }
+
+        // Handle audio devices response
+        ipcRenderer.on('audio-devices', (event, devices) => {
+            inputDevice.innerHTML = '<option value="">Select microphone...</option>';
+            outputDevice.innerHTML = '<option value="">Select speaker...</option>';
+            
+            // Add input devices
+            devices.input.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = device.label || device.deviceId;
+                inputDevice.appendChild(option);
+            });
+            
+            // Add output devices
+            devices.output.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = device.label || device.deviceId;
+                outputDevice.appendChild(option);
+            });
+        });
+
         // Initialize
         updateConnectionStatus();
+        loadSettings();
+        loadAudioDevices();
     </script>
 </body>
 </html>

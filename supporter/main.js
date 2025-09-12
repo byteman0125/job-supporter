@@ -121,7 +121,6 @@ class SupporterApp {
       // Notify the renderer that screenshot was saved
       this.mainWindow.webContents.send('screenshot-saved', { success: true, filepath });
     });
-
     this.socket.on('chatMessage', (message) => {
       // Store message locally
       if (!this.chatMessages.has('tester')) {

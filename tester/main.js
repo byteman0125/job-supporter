@@ -8,8 +8,7 @@ const notifier = require('node-notifier');
 class TesterApp {
   constructor() {
     this.mainWindow = null;
-    this.settingsWindow = null;
-    this.chatWindow = null;
+    // Removed settingsWindow and chatWindow - now integrated into main window tabs
     this.tray = null;
     this.socket = null;
     this.isConnected = false;
@@ -522,7 +521,7 @@ class TesterApp {
       },
       {
         label: 'Show Settings',
-        click: () => this.showSettings()
+        click: () => this.showMainWindowTemporarily() // Settings now in main window tabs
       },
       { type: 'separator' },
       {
@@ -547,28 +546,7 @@ class TesterApp {
     });
   }
 
-  showSettings() {
-    if (!this.settingsWindow) {
-      this.settingsWindow = new BrowserWindow({
-        width: 500,
-        height: 400,
-        parent: this.mainWindow,
-        modal: true,
-        webPreferences: {
-          nodeIntegration: true,
-          contextIsolation: false
-        }
-      });
-
-      this.settingsWindow.loadFile('renderer/settings.html');
-      
-      this.settingsWindow.on('closed', () => {
-        this.settingsWindow = null;
-      });
-    }
-    
-    this.settingsWindow.show();
-  }
+  // Removed showSettings - settings now integrated into main window tabs
 
   showConnectionDialog() {
     this.mainWindow.show();
@@ -666,14 +644,7 @@ class TesterApp {
         sender: 'supporter'
       });
       
-      // Update chat window if open
-      if (this.chatWindow) {
-        this.chatWindow.webContents.send('new-message', {
-          type: 'supporter',
-          message: message,
-          timestamp: new Date()
-        });
-      }
+      // Chat is now integrated into main window - no separate chat window needed
     });
 
     socket.on('request-screenshot', async () => {
