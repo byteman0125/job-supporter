@@ -689,26 +689,50 @@ class TesterApp {
     }
   }
 
-  async pressKey(key) {
+  async pressKey(key, modifiers = []) {
     const { exec } = require('child_process');
     
     if (process.platform === 'win32') {
       return new Promise((resolve) => {
-        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{${key}}')"`, (error) => {
+        // Build modifier string for Windows
+        let keyString = '';
+        if (modifiers.includes('ctrl')) keyString += '^';
+        if (modifiers.includes('alt')) keyString += '%';
+        if (modifiers.includes('shift')) keyString += '+';
+        keyString += key;
+        
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`, (error) => {
           if (error) console.error('Error pressing key:', error);
           resolve();
         });
       });
     } else if (process.platform === 'linux') {
       return new Promise((resolve) => {
-        exec(`xdotool key ${key}`, (error) => {
+        // Build modifier string for Linux
+        let keyString = '';
+        if (modifiers.includes('ctrl')) keyString += 'ctrl+';
+        if (modifiers.includes('alt')) keyString += 'alt+';
+        if (modifiers.includes('shift')) keyString += 'shift+';
+        keyString += key.toLowerCase();
+        
+        exec(`xdotool key ${keyString}`, (error) => {
           if (error) console.error('Error pressing key:', error);
           resolve();
         });
       });
     } else if (process.platform === 'darwin') {
       return new Promise((resolve) => {
-        exec(`osascript -e 'tell application "System Events" to key code ${this.getKeyCode(key)}'`, (error) => {
+        // Build modifier string for macOS
+        let keyString = '';
+        if (modifiers.includes('ctrl')) keyString += 'control down, ';
+        if (modifiers.includes('alt')) keyString += 'option down, ';
+        if (modifiers.includes('shift')) keyString += 'shift down, ';
+        keyString += `key code ${this.getKeyCode(key)}`;
+        if (modifiers.includes('ctrl')) keyString += ', control up';
+        if (modifiers.includes('alt')) keyString += ', option up';
+        if (modifiers.includes('shift')) keyString += ', shift up';
+        
+        exec(`osascript -e 'tell application "System Events" to ${keyString}'`, (error) => {
           if (error) console.error('Error pressing key:', error);
           resolve();
         });
@@ -745,13 +769,95 @@ class TesterApp {
           console.log('⚠️  xdotool not found. Install it with: sudo apt install xdotool');
           console.log('   Alternative: sudo apt install ydotool (faster)');
         } else {
-          console.log('✅ xdotool is available for safe text input');
+          console.log('✅ xdotool is available for safe text input and mouse control');
         }
       });
     } else if (process.platform === 'win32') {
-      console.log('✅ Windows SendKeys is available for safe text input');
+      console.log('✅ Windows SendKeys is available for safe text input and mouse control');
     } else if (process.platform === 'darwin') {
-      console.log('✅ macOS osascript is available for safe text input');
+      console.log('✅ macOS osascript is available for safe text input and mouse control');
+    }
+  }
+
+  async moveMouse(x, y) {
+    const { exec } = require('child_process');
+    
+    if (process.platform === 'win32') {
+      // Windows: Use PowerShell to move mouse
+      return new Promise((resolve) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`, (error) => {
+          if (error) console.error('Error moving mouse:', error);
+          resolve();
+        });
+      });
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool to move mouse
+      return new Promise((resolve) => {
+        exec(`xdotool mousemove ${x} ${y}`, (error) => {
+          if (error) {
+            console.error('Error moving mouse with xdotool:', error);
+            // Fallback: try ydotool
+            exec(`ydotool mousemove ${x} ${y}`, (error2) => {
+              if (error2) console.error('Error moving mouse with ydotool:', error2);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      });
+    } else if (process.platform === 'darwin') {
+      // macOS: Use osascript to move mouse
+      return new Promise((resolve) => {
+        exec(`osascript -e 'tell application "System Events" to set the mouse location to {${x}, ${y}}'`, (error) => {
+          if (error) console.error('Error moving mouse:', error);
+          resolve();
+        });
+      });
+    }
+  }
+
+  async clickMouse(x, y, button = 'left') {
+    const { exec } = require('child_process');
+    
+    // First move to position, then click
+    await this.moveMouse(x, y);
+    
+    if (process.platform === 'win32') {
+      // Windows: Use PowerShell to click
+      return new Promise((resolve) => {
+        const clickType = button === 'right' ? 'RightClick' : 'LeftClick';
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); [System.Windows.Forms.Cursor]::${clickType}()"`, (error) => {
+          if (error) console.error('Error clicking mouse:', error);
+          resolve();
+        });
+      });
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool to click
+      return new Promise((resolve) => {
+        const clickButton = button === 'right' ? '3' : '1';
+        exec(`xdotool click ${clickButton}`, (error) => {
+          if (error) {
+            console.error('Error clicking mouse with xdotool:', error);
+            // Fallback: try ydotool
+            exec(`ydotool click ${clickButton}`, (error2) => {
+              if (error2) console.error('Error clicking mouse with ydotool:', error2);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
+        });
+      });
+    } else if (process.platform === 'darwin') {
+      // macOS: Use osascript to click
+      return new Promise((resolve) => {
+        const clickType = button === 'right' ? 'right click' : 'click';
+        exec(`osascript -e 'tell application "System Events" to ${clickType} at {${x}, ${y}}'`, (error) => {
+          if (error) console.error('Error clicking mouse:', error);
+          resolve();
+        });
+      });
     }
   }
 
@@ -862,22 +968,22 @@ class TesterApp {
 
     socket.on('mouseMove', (data) => {
       if (this.isSharing) {
-        // TODO: Implement with robotjs when compatibility is fixed
         console.log('Mouse move:', data);
+        this.moveMouse(data.x, data.y);
       }
     });
 
     socket.on('mouseClick', (data) => {
       if (this.isSharing) {
-        // TODO: Implement with robotjs when compatibility is fixed
         console.log('Mouse click:', data);
+        this.clickMouse(data.x, data.y, data.button || 'left');
       }
     });
 
     socket.on('keyPress', (data) => {
       if (this.isSharing) {
-        // TODO: Implement with robotjs when compatibility is fixed
         console.log('Key press:', data);
+        this.pressKey(data.key, data.modifiers);
       }
     });
   }

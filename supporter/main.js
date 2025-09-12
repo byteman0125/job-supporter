@@ -207,6 +207,14 @@ class SupporterApp {
       return false;
     });
 
+    ipcMain.handle('send-key-press', (event, { key, modifiers }) => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('keyPress', { key, modifiers });
+        return true;
+      }
+      return false;
+    });
+
     ipcMain.handle('send-chat-message', (event, message) => {
       if (this.socket && this.isConnected) {
         this.socket.emit('chatMessage', message);
