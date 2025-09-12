@@ -579,11 +579,12 @@ class TesterApp {
       return;
     }
     
-    console.log('Inputting ONE word:', this.tempData);
+    console.log('Inputting ONE word from:', this.tempData.substring(0, 100) + '...');
     
     // Get only the first word
     const firstWord = this.tempData.split(' ')[0];
     if (firstWord.trim()) {
+      console.log('First word to type:', firstWord);
       await this.typeText(firstWord);
     }
   }
@@ -594,11 +595,12 @@ class TesterApp {
       return;
     }
     
-    console.log('Inputting ONE line:', this.tempData);
+    console.log('Inputting ONE line from:', this.tempData.substring(0, 100) + '...');
     
     // Get only the first line
     const firstLine = this.tempData.split('\n')[0];
     if (firstLine.trim()) {
+      console.log('First line to type:', firstLine.substring(0, 100) + '...');
       await this.typeText(firstLine);
     }
   }
@@ -610,6 +612,12 @@ class TesterApp {
     console.log('🔤 Platform:', process.platform);
     console.log('🔤 Text length:', text.length);
     console.log('🔤 First 50 chars:', text.substring(0, 50));
+    
+    // Limit text length to prevent issues
+    if (text.length > 1000) {
+      console.log('⚠️ Text too long, truncating to 1000 characters');
+      text = text.substring(0, 1000);
+    }
     
     if (process.platform === 'win32') {
       // Windows: Use PowerShell to send text character by character (safer)
