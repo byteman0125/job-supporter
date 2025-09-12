@@ -606,6 +606,11 @@ class TesterApp {
   async typeText(text) {
     const { exec } = require('child_process');
     
+    console.log('🔤 Attempting to type text:', text);
+    console.log('🔤 Platform:', process.platform);
+    console.log('🔤 Text length:', text.length);
+    console.log('🔤 First 50 chars:', text.substring(0, 50));
+    
     if (process.platform === 'win32') {
       // Windows: Use PowerShell to send text character by character (safer)
       const escapedText = text.replace(/"/g, '""').replace(/\{/g, '{{').replace(/\}/g, '}}');
@@ -627,35 +632,10 @@ class TesterApp {
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool to type character by character (safe method)
       return new Promise((resolve) => {
-        // Escape special characters for xdotool
-        const escapedText = text
-          .replace(/\\/g, '\\\\')
-          .replace(/"/g, '\\"')
-          .replace(/'/g, "\\'")
-          .replace(/`/g, '\\`')
-          .replace(/\$/g, '\\$')
-          .replace(/\(/g, '\\(')
-          .replace(/\)/g, '\\)')
-          .replace(/\[/g, '\\[')
-          .replace(/\]/g, '\\]')
-          .replace(/\{/g, '\\{')
-          .replace(/\}/g, '\\}')
-          .replace(/\|/g, '\\|')
-          .replace(/;/g, '\\;')
-          .replace(/&/g, '\\&')
-          .replace(/</g, '\\<')
-          .replace(/>/g, '\\>')
-          .replace(/\*/g, '\\*')
-          .replace(/\?/g, '\\?')
-          .replace(/~/g, '\\~')
-          .replace(/#/g, '\\#')
-          .replace(/%/g, '\\%')
-          .replace(/!/g, '\\!')
-          .replace(/@/g, '\\@')
-          .replace(/\+/g, '\\+')
-          .replace(/=/g, '\\=')
-          .replace(/\^/g, '\\^');
+        // Simple escaping for xdotool - only escape quotes and backslashes
+        const escapedText = text.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
         
+        console.log('🔤 Linux command:', `xdotool type "${escapedText}"`);
         exec(`xdotool type "${escapedText}"`, (error) => {
           if (error) {
             console.error('Error typing text with xdotool:', error);
@@ -675,6 +655,7 @@ class TesterApp {
               }
             });
           } else {
+            console.log('✅ Successfully typed text with xdotool');
             resolve();
           }
         });
