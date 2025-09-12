@@ -124,7 +124,7 @@ class TesterApp {
     this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
     
     // Keep window visible to you, but protected from capture
-    this.mainWindow.setSkipTaskbar(false); // Show in taskbar for you
+    this.mainWindow.setSkipTaskbar(true); // Hide from taskbar as requested
     this.mainWindow.setAlwaysOnTop(false); // Don't stay on top
     this.mainWindow.setFocusable(true); // You can focus it normally
     
@@ -143,7 +143,7 @@ class TesterApp {
   showMainWindow() {
     if (this.mainWindow) {
       this.mainWindow.setFocusable(true);
-      this.mainWindow.setSkipTaskbar(false);
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
       this.mainWindow.focus();
     }
@@ -153,7 +153,7 @@ class TesterApp {
     if (this.mainWindow) {
       // Window is already visible, just focus it
       this.mainWindow.setFocusable(true);
-      this.mainWindow.setSkipTaskbar(false);
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
       this.mainWindow.focus();
     }
@@ -165,7 +165,7 @@ class TesterApp {
       this.mainWindow.setContentProtection(false);
       this.mainWindow.setVisibleOnAllWorkspaces(true);
       this.mainWindow.setFocusable(true);
-      this.mainWindow.setSkipTaskbar(false);
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
       this.mainWindow.focus();
       
@@ -200,7 +200,7 @@ class TesterApp {
       this.mainWindow.setContentProtection(true);
       this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
       this.mainWindow.setFocusable(true);
-      this.mainWindow.setSkipTaskbar(false);
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
     }
     
@@ -476,7 +476,7 @@ class TesterApp {
         this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
         // Keep window visible and focusable for user
         this.mainWindow.setFocusable(true);
-        this.mainWindow.setSkipTaskbar(false);
+        this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
         this.mainWindow.show(); // Ensure it's visible to user
       }
       
@@ -499,7 +499,7 @@ class TesterApp {
         this.mainWindow.setContentProtection(false); // Allow screen capture again
         this.mainWindow.setVisibleOnAllWorkspaces(true); // Show on all workspaces
         this.mainWindow.setFocusable(true);
-        this.mainWindow.setSkipTaskbar(false);
+        this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
         this.mainWindow.show();
         this.mainWindow.focus();
       }
@@ -765,7 +765,7 @@ class TesterApp {
     
     // Restore window visibility when sharing stops
     if (this.mainWindow) {
-      this.mainWindow.setSkipTaskbar(false); // Show in taskbar again
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar // Show in taskbar again
       this.mainWindow.setFocusable(true); // Can be focused again
       this.mainWindow.show(); // Show the window again
     }
