@@ -181,6 +181,26 @@
             font-family: monospace;
         }
 
+        .mouse-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 0, 0, 0.8);
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+            animation: cursorPulse 1s infinite;
+        }
+
+        @keyframes cursorPulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
         /* Bottom Panel */
         .bottom-panel {
             display: flex;
@@ -443,7 +463,7 @@
         });
 
         ipcRenderer.on('screen-data', (event, data) => {
-            displayScreen(data.data);
+            displayScreen(data.data, data.mouseX, data.mouseY);
         });
 
         ipcRenderer.on('client-disconnected', (event) => {
@@ -504,7 +524,7 @@
             ipcRenderer.invoke('set-control-mode', control);
         }
 
-        function displayScreen(base64Data) {
+        function displayScreen(base64Data, mouseX = 0, mouseY = 0) {
             const img = document.createElement('img');
             const format = base64Data.startsWith('/9j/') ? 'jpeg' : 'png';
             img.src = `data:image/${format};base64,${base64Data}`;
@@ -514,12 +534,21 @@
             screenViewer.innerHTML = '';
             screenViewer.appendChild(img);
             
+            // Add mouse cursor overlay
+            if (mouseX > 0 || mouseY > 0) {
+                const cursor = document.createElement('div');
+                cursor.className = 'mouse-cursor';
+                cursor.style.left = `${mouseX}px`;
+                cursor.style.top = `${mouseY}px`;
+                screenViewer.appendChild(cursor);
+            }
+            
             // Add cursor info back
             const cursorDiv = document.createElement('div');
             cursorDiv.className = 'cursor-info';
             cursorDiv.id = 'cursorInfo';
-            cursorDiv.style.display = 'none';
-            cursorDiv.textContent = 'X: 0, Y: 0';
+            cursorDiv.style.display = 'block';
+            cursorDiv.textContent = `Mouse: X: ${mouseX}, Y: ${mouseY}`;
             screenViewer.appendChild(cursorDiv);
         }
 

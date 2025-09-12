@@ -824,12 +824,41 @@ class TesterApp {
     await this.moveMouse(x, y);
     
     if (process.platform === 'win32') {
-      // Windows: Use PowerShell to click
+      // Windows: Use PowerShell with proper mouse_event API
       return new Promise((resolve) => {
-        const clickType = button === 'right' ? 'RightClick' : 'LeftClick';
-        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); [System.Windows.Forms.Cursor]::${clickType}()"`, (error) => {
-          if (error) console.error('Error clicking mouse:', error);
-          resolve();
+        const mouseDown = button === 'right' ? '0x0008' : '0x0002'; // MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN
+        const mouseUp = button === 'right' ? '0x0010' : '0x0004';   // MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP
+        
+        const psScript = `
+          Add-Type -TypeDefinition @"
+            using System;
+            using System.Runtime.InteropServices;
+            public class Mouse {
+              [DllImport("user32.dll")]
+              public static extern bool SetCursorPos(int x, int y);
+              [DllImport("user32.dll")]
+              public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
+            }
+"@
+          [Mouse]::SetCursorPos(${x}, ${y})
+          Start-Sleep -Milliseconds 10
+          [Mouse]::mouse_event(${mouseDown}, 0, 0, 0, 0)
+          Start-Sleep -Milliseconds 10
+          [Mouse]::mouse_event(${mouseUp}, 0, 0, 0, 0)
+        `;
+        
+        exec(`powershell -command "${psScript}"`, (error) => {
+          if (error) {
+            console.error('Error clicking mouse:', error);
+            // Fallback: try simple SendKeys approach
+            const clickKey = button === 'right' ? '{F10}' : '{ENTER}';
+            exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('${clickKey}')"`, (error2) => {
+              if (error2) console.error('Error with SendKeys fallback:', error2);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
         });
       });
     } else if (process.platform === 'linux') {
@@ -856,6 +885,75 @@ class TesterApp {
         exec(`osascript -e 'tell application "System Events" to ${clickType} at {${x}, ${y}}'`, (error) => {
           if (error) console.error('Error clicking mouse:', error);
           resolve();
+        });
+      });
+    }
+  }
+
+  async getMousePosition() {
+    const { exec } = require('child_process');
+    
+    if (process.platform === 'win32') {
+      // Windows: Use PowerShell to get mouse position
+      return new Promise((resolve) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`, (error, stdout) => {
+          if (error) {
+            console.error('Error getting mouse position:', error);
+            resolve({ x: 0, y: 0 });
+          } else {
+            const [x, y] = stdout.trim().split(',').map(Number);
+            resolve({ x: x || 0, y: y || 0 });
+          }
+        });
+      });
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool to get mouse position
+      return new Promise((resolve) => {
+        exec(`xdotool getmouselocation --shell`, (error, stdout) => {
+          if (error) {
+            console.error('Error getting mouse position with xdotool:', error);
+            // Fallback: try ydotool
+            exec(`ydotool getmouselocation`, (error2, stdout2) => {
+              if (error2) {
+                console.error('Error getting mouse position with ydotool:', error2);
+                resolve({ x: 0, y: 0 });
+              } else {
+                // Parse ydotool output format
+                const match = stdout2.match(/x:(\d+)\s+y:(\d+)/);
+                if (match) {
+                  resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
+                } else {
+                  resolve({ x: 0, y: 0 });
+                }
+              }
+            });
+          } else {
+            // Parse xdotool output format: X=123 Y=456
+            const match = stdout.match(/X=(\d+)\s+Y=(\d+)/);
+            if (match) {
+              resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
+            } else {
+              resolve({ x: 0, y: 0 });
+            }
+          }
+        });
+      });
+    } else if (process.platform === 'darwin') {
+      // macOS: Use osascript to get mouse position
+      return new Promise((resolve) => {
+        exec(`osascript -e 'tell application "System Events" to get mouse location'`, (error, stdout) => {
+          if (error) {
+            console.error('Error getting mouse position:', error);
+            resolve({ x: 0, y: 0 });
+          } else {
+            // Parse osascript output format: {123, 456}
+            const match = stdout.match(/\{(\d+),\s*(\d+)\}/);
+            if (match) {
+              resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
+            } else {
+              resolve({ x: 0, y: 0 });
+            }
+          }
         });
       });
     }
@@ -1052,7 +1150,12 @@ class TesterApp {
       if (this.isSharing && this.socket) {
         try {
           const img = await screenshot(captureOptions);
-          this.socket.emit('screenData', img.toString('base64'));
+          const mousePos = await this.getMousePosition();
+          this.socket.emit('screenData', {
+            image: img.toString('base64'),
+            mouseX: mousePos.x,
+            mouseY: mousePos.y
+          });
         } catch (error) {
           console.error('Screen capture error:', error);
         }

@@ -98,9 +98,11 @@ class SupporterApp {
       // Store last screen data for screenshot capture
       this.lastScreenData = data;
       
-      // Send screen data to renderer
+      // Send screen data to renderer with mouse position
       this.mainWindow.webContents.send('screen-data', {
-        data: data
+        data: data.image || data, // Handle both old and new format
+        mouseX: data.mouseX || 0,
+        mouseY: data.mouseY || 0
       });
     });
 
