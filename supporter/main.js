@@ -121,6 +121,25 @@ class SupporterApp {
       // Notify the renderer that screenshot was saved
       this.mainWindow.webContents.send('screenshot-saved', { success: true, filepath });
     });
+
+    this.socket.on('chatMessage', (message) => {
+      // Store message locally
+      if (!this.chatMessages.has('tester')) {
+        this.chatMessages.set('tester', []);
+      }
+      
+      this.chatMessages.get('tester').push({
+        type: 'tester',
+        message: message,
+        timestamp: new Date()
+      });
+      
+      // Send to renderer
+      this.mainWindow.webContents.send('chat-message', {
+        message: message,
+        sender: 'tester'
+      });
+    });
   }
 
   setupAudio() {

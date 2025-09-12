@@ -890,7 +890,15 @@ class TesterApp {
 
     ipcMain.handle('send-chat-message', (event, message) => {
       if (this.socket && this.isConnected) {
-        this.socket.emit('chat-message', { message, sender: 'tester' });
+        this.socket.emit('chatMessage', message);
+        
+        // Add to local chat messages
+        this.chatMessages.push({
+          type: 'tester',
+          message: message,
+          timestamp: new Date()
+        });
+        
         return true;
       }
       return false;
@@ -913,19 +921,6 @@ class TesterApp {
     ipcMain.on('test-audio-device', (event, { type, device }) => {
       // Test audio device
       console.log(`Testing ${type} device:`, device);
-    });
-
-    ipcMain.on('send-chat-message', (event, message) => {
-      if (this.socket && this.isConnected) {
-        this.socket.emit('chatMessage', message);
-        
-        // Add to local chat messages
-        this.chatMessages.push({
-          type: 'tester',
-          message: message,
-          timestamp: new Date()
-        });
-      }
     });
 
     ipcMain.on('get-chat-messages', (event) => {

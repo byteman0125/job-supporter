@@ -463,6 +463,10 @@
             }
         });
 
+        ipcRenderer.on('chat-message', (event, data) => {
+            addChatMessage(data.message, data.sender);
+        });
+
         // Functions
         function updateConnectionStatus() {
             if (isConnected) {
@@ -555,8 +559,24 @@
             const message = chatInput.value.trim();
             if (message && isConnected) {
                 ipcRenderer.invoke('send-chat-message', message);
+                addChatMessage(message, 'supporter');
                 chatInput.value = '';
             }
+        }
+
+        function addChatMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            messageDiv.textContent = message;
+            
+            // Remove "no messages" if it exists
+            const noMessages = chatMessages.querySelector('.no-messages');
+            if (noMessages) {
+                noMessages.remove();
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         function sendAnswer() {
