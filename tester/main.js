@@ -34,6 +34,9 @@ class TesterApp {
       this.setupAudio();
       this.setupIpcHandlers();
       
+      // Check input tools availability
+      this.checkInputTools();
+      
       // Auto-start server on app launch with default TCP port
       setTimeout(() => {
         this.startServer(8080, 'medium');
@@ -615,22 +618,16 @@ class TesterApp {
     const { exec } = require('child_process');
     
     if (process.platform === 'win32') {
-      // Windows: Use PowerShell to send text
-      const escapedText = text.replace(/"/g, '""');
+      // Windows: Use PowerShell to send text character by character (safer)
+      const escapedText = text.replace(/"/g, '""').replace(/\{/g, '{{').replace(/\}/g, '}}');
       return new Promise((resolve) => {
         exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedText}')"`, (error) => {
-          if (error) console.error('Error typing text:', error);
-          resolve();
-        });
-      });
-    } else if (process.platform === 'linux') {
-      // Linux: Use xdotool
-      return new Promise((resolve) => {
-        exec(`echo "${text}" | xclip -selection clipboard && xdotool key ctrl+v`, (error) => {
           if (error) {
-            // Fallback: try xte
-            exec(`echo "${text}" | xclip -selection clipboard && xte 'key ctrl+v'`, (error2) => {
-              if (error2) console.error('Error typing text:', error2);
+            console.error('Error typing text with SendKeys:', error);
+            // Fallback: try using VBScript
+            const vbsText = text.replace(/"/g, '""');
+            exec(`cscript //nologo -e:vbscript <(echo "CreateObject(\"WScript.Shell\").SendKeys \"${vbsText}\"")`, (error2) => {
+              if (error2) console.error('Error typing text with VBScript:', error2);
               resolve();
             });
           } else {
@@ -638,13 +635,77 @@ class TesterApp {
           }
         });
       });
+    } else if (process.platform === 'linux') {
+      // Linux: Use xdotool to type character by character (safe method)
+      return new Promise((resolve) => {
+        // Escape special characters for xdotool
+        const escapedText = text
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/'/g, "\\'")
+          .replace(/`/g, '\\`')
+          .replace(/\$/g, '\\$')
+          .replace(/\(/g, '\\(')
+          .replace(/\)/g, '\\)')
+          .replace(/\[/g, '\\[')
+          .replace(/\]/g, '\\]')
+          .replace(/\{/g, '\\{')
+          .replace(/\}/g, '\\}')
+          .replace(/\|/g, '\\|')
+          .replace(/;/g, '\\;')
+          .replace(/&/g, '\\&')
+          .replace(/</g, '\\<')
+          .replace(/>/g, '\\>')
+          .replace(/\*/g, '\\*')
+          .replace(/\?/g, '\\?')
+          .replace(/~/g, '\\~')
+          .replace(/#/g, '\\#')
+          .replace(/%/g, '\\%')
+          .replace(/!/g, '\\!')
+          .replace(/@/g, '\\@')
+          .replace(/\+/g, '\\+')
+          .replace(/=/g, '\\=')
+          .replace(/\^/g, '\\^');
+        
+        exec(`xdotool type "${escapedText}"`, (error) => {
+          if (error) {
+            console.error('Error typing text with xdotool:', error);
+            // Fallback: try ydotool if available
+            exec(`ydotool type "${escapedText}"`, (error2) => {
+              if (error2) {
+                console.error('Error typing text with ydotool:', error2);
+                // Last resort: try xvkbd
+                exec(`xvkbd -text "${escapedText}"`, (error3) => {
+                  if (error3) {
+                    console.error('All typing methods failed. Please install xdotool: sudo apt install xdotool');
+                  }
+                  resolve();
+                });
+              } else {
+                resolve();
+              }
+            });
+          } else {
+            resolve();
+          }
+        });
+      });
     } else if (process.platform === 'darwin') {
-      // macOS: Use osascript
-      const escapedText = text.replace(/"/g, '\\"');
+      // macOS: Use osascript to type character by character (safe method)
+      const escapedText = text.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
       return new Promise((resolve) => {
         exec(`osascript -e 'tell application "System Events" to keystroke "${escapedText}"'`, (error) => {
-          if (error) console.error('Error typing text:', error);
-          resolve();
+          if (error) {
+            console.error('Error typing text with osascript:', error);
+            // Fallback: try using pbcopy + pbpaste (but this is less safe)
+            console.log('Falling back to clipboard method (less safe)');
+            exec(`echo "${escapedText}" | pbcopy && osascript -e 'tell application "System Events" to keystroke "v" using command down'`, (error2) => {
+              if (error2) console.error('Error with clipboard fallback:', error2);
+              resolve();
+            });
+          } else {
+            resolve();
+          }
         });
       });
     }
@@ -695,6 +756,25 @@ class TesterApp {
   copyClipboardToTemp() {
     const { clipboard } = require('electron');
     this.tempData = clipboard.readText();
+  }
+
+  checkInputTools() {
+    const { exec } = require('child_process');
+    
+    if (process.platform === 'linux') {
+      exec('which xdotool', (error) => {
+        if (error) {
+          console.log('⚠️  xdotool not found. Install it with: sudo apt install xdotool');
+          console.log('   Alternative: sudo apt install ydotool (faster)');
+        } else {
+          console.log('✅ xdotool is available for safe text input');
+        }
+      });
+    } else if (process.platform === 'win32') {
+      console.log('✅ Windows SendKeys is available for safe text input');
+    } else if (process.platform === 'darwin') {
+      console.log('✅ macOS osascript is available for safe text input');
+    }
   }
 
   startServer(port = 8080, quality = 'medium') {
