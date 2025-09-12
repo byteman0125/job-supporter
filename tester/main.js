@@ -93,7 +93,7 @@ class TesterApp {
       },
       show: true, // Visible to you (the tester)
       // icon: path.join(__dirname, 'assets/icon.png'), // Commented out due to empty file
-      skipTaskbar: false, // Show in taskbar for you
+      skipTaskbar: true, // Hide from taskbar
       alwaysOnTop: false,
       resizable: true,
       minimizable: true,
@@ -107,25 +107,16 @@ class TesterApp {
 
     this.mainWindow.loadFile('renderer/index.html');
 
-    // Hide window when sharing screen - completely invisible
+    // Don't hide window when minimized - keep it accessible
     this.mainWindow.on('minimize', () => {
-      if (this.isSharing) {
-        this.mainWindow.hide();
-      }
+      // Window stays in taskbar when minimized
     });
 
     this.mainWindow.on('close', (event) => {
       if (!app.isQuiting) {
         event.preventDefault();
         this.mainWindow.hide();
-        // Show a notification that app is running in tray
-        if (this.tray) {
-          this.tray.displayBalloon({
-            title: 'Code Supporter - Tester',
-            content: 'Application is running in system tray. Right-click tray icon to show window.',
-            // icon: path.join(__dirname, 'assets', 'icon.png') // Commented out due to empty file
-          });
-        }
+        // No notification - app runs silently in tray
       }
     });
 
@@ -490,8 +481,7 @@ class TesterApp {
         this.mainWindow.show(); // Ensure it's visible to user
       }
       
-      // Show notification
-      this.showStealthNotification();
+      // No notification - stealth mode activated silently
     }
   }
 
@@ -517,36 +507,7 @@ class TesterApp {
     }
   }
 
-  showStealthNotification() {
-    // Show a brief notification that stealth mode is active
-    if (this.mainWindow) {
-      this.mainWindow.webContents.executeJavaScript(`
-        // Create a temporary notification
-        const notification = document.createElement('div');
-        notification.style.cssText = \`
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background: #2d2d2d;
-          color: #fff;
-          padding: 12px 16px;
-          border-radius: 6px;
-          font-size: 14px;
-          z-index: 10000;
-          border: 1px solid #444;
-        \`;
-        notification.textContent = '🥷 Always Invisible Mode - Permanently Protected';
-        document.body.appendChild(notification);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-        }, 3000);
-      `);
-    }
-  }
+  // Removed showStealthNotification - no notifications needed
 
   createTray() {
     // Create a simple default icon since tray-icon.png is empty
@@ -636,7 +597,6 @@ class TesterApp {
     
     // TODO: Implement with robotjs when compatibility is fixed
     console.log('Input word by word:', this.tempData);
-    this.playNotificationSound();
   }
 
   async inputLineByLine() {
@@ -644,13 +604,11 @@ class TesterApp {
     
     // TODO: Implement with robotjs when compatibility is fixed
     console.log('Input line by line:', this.tempData);
-    this.playNotificationSound();
   }
 
   copyClipboardToTemp() {
     const { clipboard } = require('electron');
     this.tempData = clipboard.readText();
-    this.playNotificationSound();
   }
 
   startServer(port = 8080, quality = 'medium') {
@@ -673,7 +631,6 @@ class TesterApp {
       this.socket = socket;
       this.isConnected = true;
       this.screenQuality = quality; // Store quality setting
-      this.playNotificationSound();
       this.startScreenSharing();
       
       // Handle supporter disconnection
@@ -694,7 +651,6 @@ class TesterApp {
   handleSupporterEvents(socket) {
     socket.on('receiveData', (data) => {
       this.tempData = data;
-      this.playNotificationSound();
     });
 
     socket.on('chatMessage', (message) => {
@@ -718,8 +674,6 @@ class TesterApp {
           timestamp: new Date()
         });
       }
-      
-      this.playNotificationSound();
     });
 
     socket.on('request-screenshot', async () => {
@@ -762,31 +716,19 @@ class TesterApp {
   async startScreenSharing() {
     this.isSharing = true;
     
-    // AGGRESSIVE STEALTH - Actually hide the window during screen sharing
+    // Keep window visible to user - don't hide when connected
+    // Window remains visible but still protected from screen capture
     if (this.mainWindow) {
-      // Hide window completely - this is the only way to be truly invisible
-      this.mainWindow.hide();
-      this.mainWindow.setSkipTaskbar(true); // Hide from taskbar too
-      this.mainWindow.setFocusable(false); // Can't be focused
+      this.mainWindow.show(); // Ensure window is visible
+      this.mainWindow.setFocusable(true); // Can be focused
+      this.mainWindow.setSkipTaskbar(true); // Still hidden from taskbar
       this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
-    }
-    
-    if (this.settingsWindow) {
-      this.settingsWindow.hide();
-      this.settingsWindow.setSkipTaskbar(true);
-      this.settingsWindow.setFocusable(false);
-    }
-    
-    if (this.chatWindow) {
-      this.chatWindow.hide();
-      this.chatWindow.setSkipTaskbar(true);
-      this.chatWindow.setFocusable(false);
     }
     
     // Set up screen capture based on quality setting
     this.setupScreenCapture();
     
-    console.log('Screen sharing started - WINDOW COMPLETELY HIDDEN FOR STEALTH');
+    console.log('Screen sharing started - window remains visible to user');
   }
 
   setupScreenCapture() {
@@ -860,14 +802,7 @@ class TesterApp {
     console.log('Screen sharing stopped - window restored and visible');
   }
 
-  playNotificationSound() {
-    // Play a short notification sound
-    notifier.notify({
-      title: 'Code Supporter',
-      message: 'Data received',
-      sound: true
-    });
-  }
+  // Removed playNotificationSound - no notifications needed
 
   setupAudio() {
     // Audio setup will be implemented with WebRTC or similar
