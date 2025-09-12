@@ -92,7 +92,7 @@ class TesterApp {
         enableRemoteModule: false
       },
       show: true, // Visible to you (the tester)
-      icon: path.join(__dirname, 'assets/icon.png'),
+      // icon: path.join(__dirname, 'assets/icon.png'), // Commented out due to empty file
       skipTaskbar: false, // Show in taskbar for you
       alwaysOnTop: false,
       resizable: true,
@@ -123,7 +123,7 @@ class TesterApp {
           this.tray.displayBalloon({
             title: 'Code Supporter - Tester',
             content: 'Application is running in system tray. Right-click tray icon to show window.',
-            icon: path.join(__dirname, 'assets', 'icon.png')
+            // icon: path.join(__dirname, 'assets', 'icon.png') // Commented out due to empty file
           });
         }
       }
@@ -549,8 +549,8 @@ class TesterApp {
   }
 
   createTray() {
-    const iconPath = path.join(__dirname, 'assets/tray-icon.png');
-    const icon = nativeImage.createFromPath(iconPath);
+    // Create a simple default icon since tray-icon.png is empty
+    const icon = nativeImage.createEmpty();
     
     this.tray = new Tray(icon);
     
