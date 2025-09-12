@@ -557,12 +557,12 @@ class TesterApp {
   }
 
   registerGlobalShortcuts() {
-    // ALT+L: Input one word at a time
+    // ALT+L: Input only the first word
     globalShortcut.register('Alt+L', () => {
       this.inputWordByWord();
     });
 
-    // ALT+K: Input one line at a time
+    // ALT+K: Input only the first line
     globalShortcut.register('Alt+K', () => {
       this.inputLineByLine();
     });
@@ -579,16 +579,12 @@ class TesterApp {
       return;
     }
     
-    console.log('Inputting word by word:', this.tempData);
+    console.log('Inputting ONE word:', this.tempData);
     
-    // Split into words and input each word with a small delay
-    const words = this.tempData.split(' ');
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      if (word.trim()) {
-        await this.typeText(word + (i < words.length - 1 ? ' ' : ''));
-        await this.delay(200); // 200ms delay between words
-      }
+    // Get only the first word
+    const firstWord = this.tempData.split(' ')[0];
+    if (firstWord.trim()) {
+      await this.typeText(firstWord);
     }
   }
 
@@ -598,19 +594,12 @@ class TesterApp {
       return;
     }
     
-    console.log('Inputting line by line:', this.tempData);
+    console.log('Inputting ONE line:', this.tempData);
     
-    // Split into lines and input each line
-    const lines = this.tempData.split('\n');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.trim()) {
-        await this.typeText(line);
-        if (i < lines.length - 1) {
-          await this.pressKey('Enter');
-          await this.delay(100); // Small delay between lines
-        }
-      }
+    // Get only the first line
+    const firstLine = this.tempData.split('\n')[0];
+    if (firstLine.trim()) {
+      await this.typeText(firstLine);
     }
   }
 
@@ -842,7 +831,7 @@ class TesterApp {
         
         // Notify user that answer is ready for hotkey input
         this.mainWindow.webContents.send('answer-received', {
-          message: 'Answer saved! Use Alt+L (word by word) or Alt+K (line by line) to input.',
+          message: 'Answer saved! Use Alt+L (one word) or Alt+K (one line) to input.',
           answer: data.data
         });
       } else {
