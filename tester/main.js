@@ -611,6 +611,12 @@ class TesterApp {
       this.screenQuality = quality; // Store quality setting
       this.startScreenSharing();
       
+      // Notify renderer about connection status
+      this.mainWindow.webContents.send('connection-status', { connected: true });
+      
+      // Handle supporter events
+      this.handleSupporterEvents(socket);
+      
       // Handle supporter disconnection
       socket.on('disconnect', () => {
         this.isConnected = false;
@@ -629,6 +635,21 @@ class TesterApp {
   handleSupporterEvents(socket) {
     socket.on('receiveData', (data) => {
       this.tempData = data;
+      
+      // If it's an answer, display it in the chat
+      if (data.type === 'answer') {
+        this.chatMessages.push({
+          type: 'supporter',
+          message: `📝 Answer: ${data.data}`,
+          timestamp: new Date()
+        });
+        
+        // Send to main window chat
+        this.mainWindow.webContents.send('chat-message', {
+          message: `📝 Answer: ${data.data}`,
+          sender: 'supporter'
+        });
+      }
     });
 
     socket.on('chatMessage', (message) => {
