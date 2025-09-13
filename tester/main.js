@@ -1728,7 +1728,7 @@ class TesterApp {
       case 'high':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,  // High quality for 20 FPS
+          quality: 1,  // High quality for 20 FPS
           screen: 0,
           width: 1920,    // Full HD resolution
           height: 1080,
@@ -1739,7 +1739,7 @@ class TesterApp {
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,  // Good quality for 15 FPS
+          quality: 1,  // Good quality for 15 FPS
           screen: 0,
           width: 1920,
           height: 1080,
@@ -1750,7 +1750,7 @@ class TesterApp {
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.8,   // Good quality for 10 FPS
+          quality: 1,   // Good quality for 10 FPS
           screen: 0,
           width: 1920,
           height: 1080,
@@ -1761,7 +1761,7 @@ class TesterApp {
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,
+          quality: 1,
           screen: 0,
           width: 1920,
           height: 1080,
