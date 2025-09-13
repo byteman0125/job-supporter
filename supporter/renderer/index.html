@@ -439,7 +439,7 @@
                 statusDot.classList.add('connected');
                 statusText.textContent = message || 'Connected';
                 connectionStatus.style.display = 'flex';
-            } else {
+                } else {
                 statusDot.classList.remove('connected');
                 statusText.textContent = message || 'Disconnected';
                 connectionStatus.style.display = 'flex';
@@ -574,6 +574,7 @@
                 mouseY: data.mouseY,
                 timestamp: data.timestamp
             });
+            
             if (data.image) {
                 displayScreenImage(data.image);
             }
@@ -582,7 +583,8 @@
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
                 updateMouseCursor(data.mouseX, data.mouseY);
             }
-        } else {
+            
+            if (!data.image) {
                 console.warn('⚠️ No image data received');
             }
         });
@@ -642,12 +644,6 @@
                 previousWidth = newWidth;
                 previousHeight = newHeight;
             }
-        });
-
-        // Update mouse cursor position when window is resized
-        window.addEventListener('resize', () => {
-            // Mouse cursor position will be updated on next screen data
-            // This ensures it stays in sync with the scaled image
         });
 
         // Initialize

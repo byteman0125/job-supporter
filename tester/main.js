@@ -1315,10 +1315,37 @@ class TesterApp {
     }
   }
 
-  async getMousePosition() {
-    const { exec } = require('child_process');
+  captureCursor() {
+    const point = screen.getCursorScreenPoint();
+    const displays = screen.getAllDisplays();
     
-    if (process.platform === 'win32') {
+    // Find which display the cursor is on
+    const currentDisplay = displays.find(display => {
+      return point.x >= display.bounds.x && 
+             point.x <= display.bounds.x + display.bounds.width &&
+             point.y >= display.bounds.y && 
+             point.y <= display.bounds.y + display.bounds.height;
+    });
+
+    return {
+      x: point.x - currentDisplay.bounds.x,
+      y: point.y - currentDisplay.bounds.y,
+      display: currentDisplay
+    };
+  }
+
+  async getMousePosition() {
+    try {
+      // Use Electron's screen API for more accurate cursor tracking
+      const cursorInfo = this.captureCursor();
+      return { x: cursorInfo.x, y: cursorInfo.y };
+    } catch (error) {
+      console.error('Error getting mouse position with Electron API:', error);
+      
+      // Fallback to platform-specific methods
+      const { exec } = require('child_process');
+      
+      if (process.platform === 'win32') {
       // Windows: Use PowerShell to get mouse position
       return new Promise((resolve) => {
         exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`, (error, stdout) => {
@@ -1379,6 +1406,7 @@ class TesterApp {
           }
         });
       });
+    }
     }
   }
 
