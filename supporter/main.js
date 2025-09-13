@@ -329,9 +329,7 @@ class SupporterApp {
         // Set the window size to match the tester's screen resolution
         this.mainWindow.setSize(width, height);
         
-        // Center the window on screen
-        this.mainWindow.center();
-        
+        // Don't center - let user position window wherever they want
         console.log('✅ Supporter window resized to match tester screen');
       }
     });
@@ -343,9 +341,7 @@ class SupporterApp {
         // Reset to default size
         this.mainWindow.setSize(1200, 800);
         
-        // Center the window on screen
-        this.mainWindow.center();
-        
+        // Don't center - maintain user's preferred position
         console.log('✅ Supporter window reset to default size');
       }
     });
