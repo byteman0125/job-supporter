@@ -140,7 +140,7 @@
         .screen-image {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: fill;
             border-radius: 4px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             display: block;
@@ -203,7 +203,7 @@
             <div class="input-group">
                 <label for="testerIP">Tester IP Address:</label>
                 <input type="text" id="testerIP" placeholder="192.168.1.100" value="192.168.1.100">
-            </div>
+                </div>
             <div class="input-group">
                 <label for="testerPort">Port:</label>
                 <input type="number" id="testerPort" placeholder="8080" value="8080">
@@ -215,8 +215,8 @@
             <div class="shortcut-hint">
                 Press Ctrl+Shift+H to open this dialog
             </div>
-        </div>
-    </div>
+                </div>
+            </div>
 
     <!-- Main Screen Viewer -->
     <div class="screen-viewer" id="screenViewer">
@@ -229,7 +229,7 @@
 
     <script>
         const { ipcRenderer } = require('electron');
-
+        
         // DOM Elements
         const connectionModal = document.getElementById('connectionModal');
         const screenViewer = document.getElementById('screenViewer');
@@ -310,7 +310,19 @@
                 console.log('✅ Screen image loaded successfully');
                 console.log('📐 Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
                 
-                // Set image to fill the entire container with proper scaling
+                // Resize supporter window to match tester's screen resolution
+                const imageWidth = img.naturalWidth;
+                const imageHeight = img.naturalHeight;
+                
+                console.log('🖼️ Resizing supporter window to match tester screen:', imageWidth, 'x', imageHeight);
+                
+                // Send resize request to main process
+                ipcRenderer.send('resize-window-to-screen', {
+                    width: imageWidth,
+                    height: imageHeight
+                });
+                
+                // Set image to fill the entire container
                 img.style.width = '100%';
                 img.style.height = '100%';
             };
@@ -328,6 +340,9 @@
             if (existingImg) {
                 existingImg.remove();
             }
+            
+            // Reset window to default size when disconnecting
+            ipcRenderer.send('reset-window-size');
         }
 
         // Connection Status
@@ -425,10 +440,10 @@
                             shift: e.shiftKey,
                             alt: e.altKey,
                             meta: e.metaKey
-                        }
-                    });
-                }
+                    }
+                });
             }
+        }
         });
 
         // Mouse position calculation
@@ -490,13 +505,6 @@
             showConnectionModal();
         });
 
-        // Window resize handler to ensure image scales properly
-        window.addEventListener('resize', () => {
-            const img = screenViewer.querySelector('.screen-image');
-            if (img) {
-                console.log('🔄 Window resized, image will scale to fit new size');
-            }
-        });
 
         // Initialize
         updateConnectionStatus(false);

@@ -322,6 +322,34 @@ class SupporterApp {
       }
     });
 
+    ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
+      if (this.mainWindow) {
+        console.log('🖼️ Resizing supporter window to:', width, 'x', height);
+        
+        // Set the window size to match the tester's screen resolution
+        this.mainWindow.setSize(width, height);
+        
+        // Center the window on screen
+        this.mainWindow.center();
+        
+        console.log('✅ Supporter window resized to match tester screen');
+      }
+    });
+
+    ipcMain.on('reset-window-size', () => {
+      if (this.mainWindow) {
+        console.log('🔄 Resetting supporter window to default size');
+        
+        // Reset to default size
+        this.mainWindow.setSize(1200, 800);
+        
+        // Center the window on screen
+        this.mainWindow.center();
+        
+        console.log('✅ Supporter window reset to default size');
+      }
+    });
+
 
 
     ipcMain.handle('send-data-to-tester', (event, data) => {
