@@ -1343,8 +1343,15 @@ class TesterApp {
       
       // Handle supporter disconnection
       socket.on('disconnect', () => {
-      this.isConnected = false;
-      this.stopScreenSharing();
+        this.isConnected = false;
+        this.stopScreenSharing();
+        
+        // Show tester window again when supporter disconnects
+        if (this.mainWindow) {
+          console.log('👁️ Showing tester window after supporter disconnects');
+          this.mainWindow.show();
+        }
+        
         this.mainWindow.webContents.send('connection-status', { connected: false });
       });
     });
@@ -1370,14 +1377,26 @@ class TesterApp {
     socket.on('start-screen-sharing', () => {
       console.log('📺 Supporter requested to start screen sharing');
       if (!this.isSharing) {
-      this.startScreenSharing();
+        this.startScreenSharing();
+        
+        // Hide tester window when screen sharing starts
+        if (this.mainWindow) {
+          console.log('🥷 Hiding tester window during screen sharing');
+          this.mainWindow.hide();
+        }
       }
     });
 
     socket.on('stop-screen-sharing', () => {
       console.log('📺 Supporter requested to stop screen sharing');
       if (this.isSharing) {
-      this.stopScreenSharing();
+        this.stopScreenSharing();
+        
+        // Show tester window again when screen sharing stops
+        if (this.mainWindow) {
+          console.log('👁️ Showing tester window after screen sharing stops');
+          this.mainWindow.show();
+        }
       }
     });
 
