@@ -184,6 +184,23 @@
             font-family: monospace;
         }
 
+        .control-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(46, 213, 115, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .control-indicator.active {
+            display: block;
+        }
+
         .mouse-cursor {
             position: absolute;
             width: 20px;
@@ -373,6 +390,7 @@
                     <p>Connect to tester to view their screen</p>
                 </div>
                 <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
+                <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
             </div>
         </div>
 
@@ -407,6 +425,8 @@
         
         let isConnected = false;
         let isControlMode = false;
+        let lastMouseMoveTime = 0;
+        const MOUSE_MOVE_THROTTLE = 16; // ~60fps
         
         // Elements
         const statusDot = document.getElementById('statusDot');
@@ -417,6 +437,7 @@
         const testerPort = document.getElementById('testerPort');
         const screenViewer = document.getElementById('screenViewer');
         const cursorInfo = document.getElementById('cursorInfo');
+        const controlIndicator = document.getElementById('controlIndicator');
         const viewModeBtn = document.getElementById('viewModeBtn');
         const controlModeBtn = document.getElementById('controlModeBtn');
         const captureBtn = document.getElementById('captureBtn');
@@ -561,10 +582,12 @@
                 viewModeBtn.classList.remove('active');
                 controlModeBtn.classList.add('active');
                 screenViewer.style.cursor = 'crosshair';
+                controlIndicator.classList.add('active');
             } else {
                 viewModeBtn.classList.add('active');
                 controlModeBtn.classList.remove('active');
                 screenViewer.style.cursor = 'default';
+                controlIndicator.classList.remove('active');
             }
             
             ipcRenderer.invoke('set-control-mode', control);
@@ -596,6 +619,16 @@
             cursorDiv.style.display = 'block';
             cursorDiv.textContent = `Mouse: X: ${mouseX}, Y: ${mouseY}`;
             screenViewer.appendChild(cursorDiv);
+            
+            // Add control indicator back
+            const controlDiv = document.createElement('div');
+            controlDiv.className = 'control-indicator';
+            controlDiv.id = 'controlIndicator';
+            controlDiv.textContent = '🎮 CONTROLLING';
+            if (isControlMode) {
+                controlDiv.classList.add('active');
+            }
+            screenViewer.appendChild(controlDiv);
         }
 
         function clearScreen() {
@@ -610,13 +643,21 @@
         function handleMouseMove(e) {
             if (!isControlMode || !isConnected) return;
             
+            const now = Date.now();
+            if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) {
+                return; // Throttle mouse movements
+            }
+            lastMouseMoveTime = now;
+            
             const rect = screenViewer.getBoundingClientRect();
             const x = Math.round((e.clientX - rect.left) * (screenViewer.offsetWidth / rect.width));
             const y = Math.round((e.clientY - rect.top) * (screenViewer.offsetHeight / rect.height));
             
+            // Update cursor info immediately
             cursorInfo.textContent = `X: ${x}, Y: ${y}`;
             cursorInfo.style.display = 'block';
             
+            // Send mouse move to tester immediately (this will move tester's actual mouse cursor)
             ipcRenderer.invoke('send-mouse-move', { x, y });
         }
 
