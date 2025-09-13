@@ -143,42 +143,6 @@ class TesterApp {
     });
   }
 
-  // Test cursor capture functionality
-  async testCursorCapture() {
-    console.log('🖱️ Testing cursor capture functionality...');
-    
-    try {
-      const testOptions = {
-        format: 'png',
-        quality: 1.0,
-        screen: 0,
-        width: 1920,
-        height: 1080,
-        cursor: true,
-        ...(process.platform === 'win32' && { 
-          cursorSize: 32,
-          cursorColor: '#ffffff'
-        })
-      };
-      
-      console.log('🖱️ Test capture options:', JSON.stringify(testOptions, null, 2));
-      
-      const img = await screenshot(testOptions);
-      console.log('🖱️ Test screenshot captured successfully');
-      console.log('🖱️ Image size:', img.length, 'bytes');
-      
-      // Send test image to supporter
-      if (this.socket && this.isConnected) {
-        const base64Data = img.toString('base64');
-        this.socket.emit('screenData', base64Data);
-        console.log('🖱️ Test image sent to supporter');
-      }
-      
-    } catch (error) {
-      console.error('🖱️ Cursor capture test failed:', error);
-    }
-  }
-
   startWindowHidingProtection() {
     // Continuously ensure window stays hidden
     this.windowHidingInterval = setInterval(() => {
@@ -246,7 +210,7 @@ class TesterApp {
 
     // Hide window immediately after loading - keep it hidden by default
     this.mainWindow.once('ready-to-show', () => {
-      this.mainWindow.hide();
+        this.mainWindow.hide();
       // Ensure window is completely hidden from taskbar
       this.mainWindow.setSkipTaskbar(true);
       this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
@@ -1479,7 +1443,7 @@ class TesterApp {
     socket.on('start-screen-sharing', () => {
       console.log('📺 Supporter requested to start screen sharing');
       if (!this.isSharing) {
-        this.startScreenSharing();
+      this.startScreenSharing();
         
         // Window already hidden by default - no need to hide again
         console.log('🥷 Tester window already hidden - clean screen sharing');
@@ -1489,7 +1453,7 @@ class TesterApp {
     socket.on('stop-screen-sharing', () => {
       console.log('📺 Supporter requested to stop screen sharing');
       if (this.isSharing) {
-        this.stopScreenSharing();
+      this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
         console.log('🥷 Tester window remains hidden - access via tray icon');
@@ -1833,12 +1797,11 @@ class TesterApp {
 
   setupScreenshotCapture() {
     console.log('📸 Using high-quality PNG screenshot-desktop method with mouse cursor capture...');
-    console.log('🖱️ Mouse cursor capture is ENABLED - you should see the cursor in real-time');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
-    // Optimized settings for maximum image quality with enhanced cursor capture
+    // Optimized settings for maximum image quality
     switch (quality) {
       case 'high':
         captureOptions = {
@@ -1847,12 +1810,7 @@ class TesterApp {
           screen: 0,
           width: 1920,       // Full HD resolution
           height: 1080,
-          cursor: true,      // Capture mouse cursor
-          ...(process.platform === 'win32' && { 
-            // Windows-specific cursor options
-            cursorSize: 32,  // Larger cursor for better visibility
-            cursorColor: '#ffffff' // White cursor for better contrast
-          })
+          cursor: true       // Capture mouse cursor
         };
         interval = 50; // 20 FPS (reduced for PNG quality)
         break;
@@ -1863,11 +1821,7 @@ class TesterApp {
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true,      // Capture mouse cursor
-          ...(process.platform === 'win32' && { 
-            cursorSize: 32,
-            cursorColor: '#ffffff'
-          })
+          cursor: true       // Capture mouse cursor
         };
         interval = 67; // 15 FPS
         break;
@@ -1878,11 +1832,7 @@ class TesterApp {
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true,      // Capture mouse cursor
-          ...(process.platform === 'win32' && { 
-            cursorSize: 32,
-            cursorColor: '#ffffff'
-          })
+          cursor: true       // Capture mouse cursor
         };
         interval = 100; // 10 FPS
         break;
@@ -1893,11 +1843,7 @@ class TesterApp {
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true,      // Capture mouse cursor
-          ...(process.platform === 'win32' && { 
-            cursorSize: 32,
-            cursorColor: '#ffffff'
-          })
+          cursor: true       // Capture mouse cursor
         };
         interval = 67; // Default to 15 FPS (medium)
     }
@@ -1927,8 +1873,6 @@ class TesterApp {
 
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
-          console.log('🖱️ Screenshot captured with cursor:', captureOptions.cursor ? 'YES' : 'NO');
-          console.log('🖱️ Capture options:', JSON.stringify(captureOptions, null, 2));
           
           // Get mouse position every frame for smooth cursor tracking
           let mousePos = { x: 0, y: 0 };
@@ -2552,11 +2496,6 @@ class TesterApp {
       if (this.isSharing) {
         await this.setupScreenCapture();
       }
-    });
-
-    // Test cursor capture
-    ipcMain.on('test-cursor-capture', async () => {
-      await this.testCursorCapture();
     });
 
     ipcMain.handle('send-chat-message', (event, message) => {

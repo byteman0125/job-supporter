@@ -147,6 +147,37 @@
             transition: all 0.2s ease-in-out;
         }
 
+        /* Mouse cursor overlay */
+        .mouse-cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid #007acc;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1000;
+            transition: all 0.1s ease-out;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .mouse-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: #007acc;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .mouse-cursor.hidden {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
 
         .no-connection {
             text-align: center;
@@ -226,6 +257,9 @@
             <h2>No Connection</h2>
             <p>Press Ctrl+Shift+H to connect to a tester</p>
         </div>
+        
+        <!-- Mouse cursor overlay -->
+        <div class="mouse-cursor hidden" id="mouseCursor"></div>
     </div>
 
 
@@ -241,6 +275,7 @@
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
         const testerIP = document.getElementById('testerIP');
+        const mouseCursor = document.getElementById('mouseCursor');
         const testerPort = document.getElementById('testerPort');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -353,6 +388,9 @@
                 existingImg.remove();
             }
             
+            // Hide mouse cursor when disconnecting
+            mouseCursor.classList.add('hidden');
+            
             // Reset stored dimensions
             originalScreenWidth = 0;
             originalScreenHeight = 0;
@@ -361,6 +399,36 @@
             
             // Reset window to default size when disconnecting
             ipcRenderer.send('reset-window-size');
+        }
+
+        function updateMouseCursor(mouseX, mouseY) {
+            if (!isConnected || !originalScreenWidth || !originalScreenHeight) {
+                mouseCursor.classList.add('hidden');
+                return;
+            }
+
+            // Get the current screen image dimensions
+            const screenImg = screenViewer.querySelector('.screen-image');
+            if (!screenImg) {
+                mouseCursor.classList.add('hidden');
+                return;
+            }
+
+            // Calculate the scaling factors
+            const imgRect = screenImg.getBoundingClientRect();
+            const scaleX = imgRect.width / originalScreenWidth;
+            const scaleY = imgRect.height / originalScreenHeight;
+
+            // Convert tester's mouse coordinates to supporter's screen coordinates
+            const scaledX = mouseX * scaleX;
+            const scaledY = mouseY * scaleY;
+
+            // Position the cursor overlay
+            mouseCursor.style.left = (imgRect.left + scaledX - 10) + 'px'; // -10 to center the 20px cursor
+            mouseCursor.style.top = (imgRect.top + scaledY - 10) + 'px';
+            mouseCursor.classList.remove('hidden');
+
+            console.log(`🖱️ Mouse cursor: ${mouseX},${mouseY} → ${scaledX},${scaledY}`);
         }
 
         // Connection Status
@@ -508,7 +576,13 @@
             });
             if (data.image) {
                 displayScreenImage(data.image);
-            } else {
+            }
+            
+            // Update mouse cursor position
+            if (data.mouseX !== undefined && data.mouseY !== undefined) {
+                updateMouseCursor(data.mouseX, data.mouseY);
+            }
+        } else {
                 console.warn('⚠️ No image data received');
             }
         });
@@ -568,6 +642,12 @@
                 previousWidth = newWidth;
                 previousHeight = newHeight;
             }
+        });
+
+        // Update mouse cursor position when window is resized
+        window.addEventListener('resize', () => {
+            // Mouse cursor position will be updated on next screen data
+            // This ensures it stays in sync with the scaled image
         });
 
         // Initialize
