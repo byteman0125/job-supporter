@@ -41,8 +41,10 @@ class TesterApp {
       this.checkInputTools();
       
       // Auto-start server on app launch with default TCP port
+      // Use lower quality on Windows for better performance
+      const defaultQuality = process.platform === 'win32' ? 'low' : 'medium';
       setTimeout(() => {
-        this.startServer(8080, 'medium');
+        this.startServer(8080, defaultQuality);
       }, 1000); // Small delay to ensure UI is ready
       
       console.log('Tester app initialized successfully');
@@ -1207,8 +1209,8 @@ class TesterApp {
       
       // Handle supporter disconnection
       socket.on('disconnect', () => {
-        this.isConnected = false;
-        this.stopScreenSharing();
+      this.isConnected = false;
+      this.stopScreenSharing();
         this.mainWindow.webContents.send('connection-status', { connected: false });
       });
     });
@@ -1226,12 +1228,12 @@ class TesterApp {
       if (data.type === 'answer') {
         this.tempData = data.data; // Save the actual answer text
         
-        this.chatMessages.push({
-          type: 'supporter',
+      this.chatMessages.push({
+        type: 'supporter',
           message: `📝 Answer: ${data.data}`,
-          timestamp: new Date()
-        });
-        
+        timestamp: new Date()
+      });
+      
         // Send to main window chat
         this.mainWindow.webContents.send('chat-message', {
           message: `📝 Answer: ${data.data}`,
@@ -1253,10 +1255,10 @@ class TesterApp {
 
     socket.on('chatMessage', (message) => {
       this.chatMessages.push({
-        type: 'supporter',
-        message: message,
-        timestamp: new Date()
-      });
+          type: 'supporter',
+          message: message,
+          timestamp: new Date()
+        });
       
       // Send to main window chat
       this.mainWindow.webContents.send('chat-message', {
@@ -1335,55 +1337,187 @@ class TesterApp {
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
+    // Optimized settings for Windows with much lower CPU usage
     switch (quality) {
       case 'high':
         captureOptions = {
-          format: 'png',
-          quality: 1.0,
-          screen: 0
+          format: 'jpeg', // Use JPEG even for high quality (much faster)
+          quality: 0.85,  // Reduced from 1.0 to 0.85
+          screen: 0,
+          // Windows-specific optimizations
+          ...(process.platform === 'win32' && {
+            width: 1920,  // Limit resolution for better performance
+            height: 1080
+          })
         };
-        interval = 100; // 10 FPS
+        interval = 250; // Reduced from 100ms to 250ms (4 FPS instead of 10 FPS)
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,
-          screen: 0
+          quality: 0.75,  // Reduced from 0.9 to 0.75
+          screen: 0,
+          // Windows-specific optimizations
+          ...(process.platform === 'win32' && {
+            width: 1600,  // Lower resolution for medium quality
+            height: 900
+          })
         };
-        interval = 125; // 8 FPS
+        interval = 400; // Reduced from 125ms to 400ms (2.5 FPS instead of 8 FPS)
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.7,
-          screen: 0
+          quality: 0.6,   // Reduced from 0.7 to 0.6
+          screen: 0,
+          // Windows-specific optimizations
+          ...(process.platform === 'win32' && {
+            width: 1280,  // Even lower resolution for low quality
+            height: 720
+          })
         };
-        interval = 200; // 5 FPS
+        interval = 600; // Reduced from 200ms to 600ms (1.7 FPS instead of 5 FPS)
         break;
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,
-          screen: 0
+          quality: 0.75,
+          screen: 0,
+          // Windows-specific optimizations
+          ...(process.platform === 'win32' && {
+            width: 1600,
+            height: 900
+          })
         };
-        interval = 125;
+        interval = 400; // Default to 2.5 FPS
     }
+
+    // Add CPU monitoring and adaptive quality
+    this.cpuUsage = 0;
+    this.lastCaptureTime = 0;
+    this.captureCount = 0;
+    this.frameSkipCount = 0;
+    this.maxFrameSkip = process.platform === 'win32' ? 2 : 1; // Skip more frames on Windows
 
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
+          // Skip capture if CPU is too high
+          if (this.cpuUsage > 80) {
+            console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
+            return;
+          }
+
+          // Frame skipping for better performance
+          this.frameSkipCount++;
+          if (this.frameSkipCount < this.maxFrameSkip) {
+            return; // Skip this frame
+          }
+          this.frameSkipCount = 0;
+
+          const startTime = Date.now();
           const img = await screenshot(captureOptions);
           const mousePos = await this.getMousePosition();
-          this.socket.emit('screenData', {
-            image: img.toString('base64'),
-            mouseX: mousePos.x,
-            mouseY: mousePos.y
-          });
+          
+          // Only send if we have a socket connection
+          if (this.socket && this.socket.connected) {
+            this.socket.emit('screenData', {
+              image: img.toString('base64'),
+              mouseX: mousePos.x,
+              mouseY: mousePos.y
+            });
+          }
+
+          // Monitor capture performance
+          const captureTime = Date.now() - startTime;
+          this.captureCount++;
+          
+          // Log performance every 10 captures
+          if (this.captureCount % 10 === 0) {
+            console.log(`📊 Capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
+          }
+
+          // Adaptive quality adjustment
+          if (captureTime > 100 || this.cpuUsage > 70) { // If capture takes more than 100ms or CPU > 70%
+            this.adjustQualityForPerformance();
+          }
+
         } catch (error) {
           console.error('Screen capture error:', error);
         }
       }
     }, interval);
+
+    // Start CPU monitoring
+    this.startCpuMonitoring();
+  }
+
+  startCpuMonitoring() {
+    if (this.cpuMonitorInterval) {
+      clearInterval(this.cpuMonitorInterval);
+    }
+
+    this.cpuMonitorInterval = setInterval(() => {
+      this.getCpuUsage().then(usage => {
+        this.cpuUsage = usage;
+      }).catch(error => {
+        console.error('CPU monitoring error:', error);
+      });
+    }, 2000); // Check CPU every 2 seconds
+  }
+
+  async getCpuUsage() {
+    const { exec } = require('child_process');
+    
+    return new Promise((resolve) => {
+      if (process.platform === 'win32') {
+        // Windows: Use wmic to get CPU usage
+        exec('wmic cpu get loadpercentage /value', (error, stdout) => {
+          if (error) {
+            resolve(0);
+            return;
+          }
+          
+          const match = stdout.match(/LoadPercentage=(\d+)/);
+          if (match) {
+            resolve(parseInt(match[1]));
+          } else {
+            resolve(0);
+          }
+        });
+      } else {
+        // Linux/Mac: Use top command
+        exec("top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | awk -F'%' '{print $1}'", (error, stdout) => {
+          if (error) {
+            resolve(0);
+            return;
+          }
+          
+          const usage = parseFloat(stdout.trim());
+          resolve(isNaN(usage) ? 0 : usage);
+        });
+      }
+    });
+  }
+
+  adjustQualityForPerformance() {
+    console.log('🔧 Adjusting quality for better performance...');
+    
+    // Reduce quality if performance is poor
+    if (this.screenQuality === 'high') {
+      this.screenQuality = 'medium';
+      console.log('📉 Reduced quality from high to medium');
+    } else if (this.screenQuality === 'medium') {
+      this.screenQuality = 'low';
+      console.log('📉 Reduced quality from medium to low');
+    } else if (this.screenQuality === 'low' && process.platform === 'win32') {
+      // On Windows, if low quality is still too much, increase frame skipping
+      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 4);
+      console.log(`📉 Increased frame skipping to ${this.maxFrameSkip} on Windows`);
+    }
+    
+    // Restart capture with new settings
+    this.setupScreenCapture();
   }
 
   stopScreenSharing() {
@@ -1391,6 +1525,12 @@ class TesterApp {
     if (this.captureInterval) {
       clearInterval(this.captureInterval);
       this.captureInterval = null;
+    }
+    
+    // Stop CPU monitoring
+    if (this.cpuMonitorInterval) {
+      clearInterval(this.cpuMonitorInterval);
+      this.cpuMonitorInterval = null;
     }
     
     // Stop audio capture
