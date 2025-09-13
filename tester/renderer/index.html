@@ -24,7 +24,7 @@
         .header {
             background: rgba(45, 45, 68, 0.95);
             backdrop-filter: blur(10px);
-            padding: 16px 24px;
+            padding: 8px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -33,7 +33,7 @@
         }
 
         .header h1 {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 700;
             background: linear-gradient(135deg, #2ed573, #26d065);
             -webkit-background-clip: text;
@@ -44,17 +44,17 @@
         .connection-status {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 14px;
+            gap: 8px;
+            font-size: 11px;
             font-weight: 500;
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #ff4757;
-            box-shadow: 0 0 10px rgba(255, 71, 87, 0.5);
+            box-shadow: 0 0 8px rgba(255, 71, 87, 0.5);
             animation: pulse 2s infinite;
         }
 
@@ -74,8 +74,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
-            gap: 16px;
+            padding: 12px;
+            gap: 8px;
             overflow: hidden;
             min-height: 0; /* Important for flex child to shrink */
         }
@@ -84,22 +84,22 @@
         .server-status-bar {
             background: rgba(45, 45, 68, 0.8);
             backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 16px 20px;
+            border-radius: 8px;
+            padding: 8px 12px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             flex-shrink: 0; /* Don't shrink the status bar */
             border: 1px solid rgba(64, 64, 64, 0.2);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .server-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: #ffa502;
-            box-shadow: 0 0 8px rgba(255, 165, 2, 0.5);
+            box-shadow: 0 0 6px rgba(255, 165, 2, 0.5);
         }
 
         .server-dot.running {
@@ -115,25 +115,25 @@
         }
 
         .server-title {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 600;
             color: #ffffff;
         }
 
         .server-details {
-            font-size: 12px;
+            font-size: 10px;
             color: #a0a0a0;
         }
 
         /* Quality Selector */
         .quality-select {
-            padding: 8px 12px;
+            padding: 4px 8px;
             border: 1px solid rgba(64, 64, 64, 0.3);
-            border-radius: 8px;
+            border-radius: 6px;
             background: rgba(26, 26, 26, 0.8);
             color: #ffffff;
-            font-size: 12px;
-            min-width: 140px;
+            font-size: 10px;
+            min-width: 100px;
             transition: all 0.2s ease;
         }
 
@@ -147,27 +147,27 @@
         .capture-controls {
             background: rgba(45, 45, 68, 0.8);
             backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 8px;
+            padding: 8px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 6px;
             flex-shrink: 0;
             border: 1px solid rgba(64, 64, 64, 0.2);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .capture-buttons {
             display: flex;
-            gap: 12px;
+            gap: 6px;
             align-items: center;
         }
 
         .capture-buttons .btn {
             flex: 1;
-            font-size: 13px;
-            padding: 12px 16px;
-            border-radius: 8px;
+            font-size: 10px;
+            padding: 6px 8px;
+            border-radius: 6px;
             font-weight: 500;
             transition: all 0.2s ease;
         }
@@ -175,13 +175,13 @@
         .capture-info {
             background: rgba(46, 213, 115, 0.1);
             border: 1px solid rgba(46, 213, 115, 0.3);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 6px;
+            padding: 6px;
             display: none;
         }
 
         .capture-info p {
-            font-size: 12px;
+            font-size: 10px;
             color: #2ed573;
             margin: 0;
             font-weight: 500;
@@ -192,33 +192,33 @@
             flex: 1;
             background: rgba(45, 45, 68, 0.8);
             backdrop-filter: blur(10px);
-            border-radius: 12px;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             min-height: 0;
             border: 1px solid rgba(64, 64, 64, 0.2);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .tab-header {
             display: flex;
             background: rgba(26, 26, 26, 0.8);
             border-bottom: 1px solid rgba(64, 64, 64, 0.2);
-            border-radius: 12px 12px 0 0;
+            border-radius: 8px 8px 0 0;
         }
 
         .tab-button {
             flex: 1;
-            padding: 16px 20px;
+            padding: 8px 12px;
             background: transparent;
             border: none;
             color: #888;
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            border-bottom: 3px solid transparent;
+            border-bottom: 2px solid transparent;
         }
 
         .tab-button:hover {
@@ -236,8 +236,8 @@
             flex: 1;
             display: none;
             flex-direction: column;
-            padding: 20px;
-            gap: 16px;
+            padding: 8px;
+            gap: 8px;
             min-height: 0;
         }
 
@@ -249,23 +249,23 @@
         .chat-messages {
             flex: 1;
             background: rgba(26, 26, 26, 0.6);
-            border-radius: 8px;
-            padding: 16px;
+            border-radius: 6px;
+            padding: 8px;
             overflow-y: auto;
-            margin-bottom: 16px;
-            font-size: 14px;
+            margin-bottom: 6px;
+            font-size: 11px;
             min-height: 0;
             border: 1px solid rgba(64, 64, 64, 0.2);
         }
 
         .chat-message {
-            margin-bottom: 12px;
-            padding: 12px 16px;
-            border-radius: 8px;
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            border-radius: 6px;
             max-width: 80%;
             word-wrap: break-word;
-            font-size: 14px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 11px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
         }
 
         .chat-message.tester {
@@ -339,18 +339,18 @@
 
         .chat-input-area {
             display: flex;
-            gap: 8px;
+            gap: 4px;
             flex-shrink: 0;
         }
 
         .chat-input {
             flex: 1;
-            padding: 12px 16px;
+            padding: 6px 8px;
             border: 1px solid rgba(64, 64, 64, 0.3);
-            border-radius: 8px;
+            border-radius: 6px;
             background: rgba(26, 26, 26, 0.8);
             color: #ffffff;
-            font-size: 14px;
+            font-size: 11px;
             transition: all 0.2s ease;
         }
 
@@ -388,40 +388,40 @@
 
         .settings-section {
             background: rgba(26, 26, 26, 0.6);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 8px;
             border: 1px solid rgba(64, 64, 64, 0.2);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
         }
 
         .settings-section h4 {
-            font-size: 14px;
+            font-size: 11px;
             font-weight: 600;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             color: #fff;
         }
 
         .input-group {
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
 
         .input-group label {
             display: block;
-            font-size: 12px;
+            font-size: 10px;
             color: #ccc;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             font-weight: 500;
         }
 
         .input-group select {
             width: 100%;
-            padding: 8px 12px;
+            padding: 4px 6px;
             background: rgba(45, 45, 68, 0.8);
             border: 1px solid rgba(64, 64, 64, 0.3);
-            border-radius: 6px;
+            border-radius: 4px;
             color: #fff;
-            font-size: 12px;
+            font-size: 10px;
             transition: all 0.2s ease;
         }
 
@@ -434,17 +434,17 @@
         .checkbox-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .checkbox-group input[type="checkbox"] {
             accent-color: #2ed573;
-            width: 16px;
-            height: 16px;
+            width: 12px;
+            height: 12px;
         }
 
         .checkbox-group label {
-            font-size: 12px;
+            font-size: 10px;
             color: #ccc;
             margin: 0;
             font-weight: 500;
@@ -519,14 +519,14 @@
         }
 
         .btn {
-            padding: 12px 20px;
+            padding: 6px 12px;
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 6px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
         }
 
         .btn-primary {
