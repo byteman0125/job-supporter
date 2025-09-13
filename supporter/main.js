@@ -189,39 +189,6 @@ class SupporterApp {
       });
     });
 
-    this.socket.on('area-screenshot-data', (data) => {
-      // Save the area screenshot
-      const imageDir = path.join(__dirname, 'images');
-      if (!fs.existsSync(imageDir)) {
-        fs.mkdirSync(imageDir, { recursive: true });
-      }
-      
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `area-screenshot-${timestamp}.png`;
-      const filepath = path.join(imageDir, filename);
-      
-      const buffer = Buffer.from(data.base64Data, 'base64');
-      fs.writeFileSync(filepath, buffer);
-      
-      // Copy image to clipboard
-      try {
-        const { clipboard, nativeImage } = require('electron');
-        const image = nativeImage.createFromBuffer(buffer);
-        clipboard.writeImage(image);
-        console.log('✅ Area screenshot copied to clipboard');
-      } catch (error) {
-        console.error('❌ Failed to copy area screenshot to clipboard:', error);
-      }
-      
-      // Notify the renderer that area screenshot was saved and copied to clipboard
-      this.mainWindow.webContents.send('screenshot-saved', { 
-        success: true, 
-        filepath,
-        clipboardSuccess: true,
-        isAreaScreenshot: true,
-        area: data.area
-      });
-    });
     this.socket.on('chatMessage', (message) => {
       // Store message locally
       if (!this.chatMessages.has('tester')) {
@@ -382,18 +349,11 @@ class SupporterApp {
       return false;
     });
 
-    ipcMain.handle('capture-screenshot', (event, selectedArea) => {
+    ipcMain.handle('capture-screenshot', (event) => {
       if (this.socket && this.isConnected) {
-        if (selectedArea) {
-          // Request screenshot of specific area
-          console.log('📷 Requesting area screenshot:', selectedArea);
-          this.socket.emit('request-area-screenshot', selectedArea);
-          return { success: true, message: 'Area screenshot requested from tester' };
-        } else {
-          // Request a fresh, full-quality screenshot from tester
-          this.socket.emit('request-screenshot');
-          return { success: true, message: 'Screenshot requested from tester' };
-        }
+        // Request a fresh, full-quality screenshot from tester
+        this.socket.emit('request-screenshot');
+        return { success: true, message: 'Screenshot requested from tester' };
       }
       return { success: false, message: 'Not connected to tester' };
     });

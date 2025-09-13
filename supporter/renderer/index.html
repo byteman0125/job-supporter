@@ -232,26 +232,6 @@
             background: #2ed573;
         }
 
-        /* Selection Rectangle */
-        .selection-rectangle {
-            position: absolute;
-            border: 2px solid #2ed573;
-            background: rgba(46, 213, 115, 0.1);
-            pointer-events: none;
-            display: none;
-        }
-
-        .selection-info {
-            position: absolute;
-            top: -25px;
-            left: 0;
-            background: #2ed573;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            white-space: nowrap;
-        }
     </style>
 </head>
 <body>
@@ -295,10 +275,6 @@
         </div>
     </div>
 
-    <!-- Selection Rectangle -->
-    <div class="selection-rectangle" id="selectionRectangle">
-        <div class="selection-info" id="selectionInfo"></div>
-    </div>
 
     <script>
         const { ipcRenderer } = require('electron');
@@ -314,15 +290,9 @@
         const testerPort = document.getElementById('testerPort');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
-        const selectionRectangle = document.getElementById('selectionRectangle');
-        const selectionInfo = document.getElementById('selectionInfo');
 
         // State
         let isConnected = false;
-        let isSelectingArea = false;
-        let selectionStart = null;
-        let selectionEnd = null;
-        let selectedArea = null;
 
         // Keyboard Shortcuts
         document.addEventListener('keydown', (e) => {
@@ -385,7 +355,6 @@
             if (existingImg) {
                 existingImg.remove();
             }
-            clearAreaSelection();
         }
 
         // Connection Status
@@ -404,80 +373,12 @@
             }
         }
 
-        // Area Selection
-        function startAreaSelection(e) {
-            if (!isConnected) return;
-            
-            isSelectingArea = true;
-            selectionStart = { x: e.clientX, y: e.clientY };
-            selectionRectangle.style.display = 'block';
-            updateSelectionRectangle();
-        }
-
-        function updateSelectionRectangle() {
-            if (!isSelectingArea || !selectionStart) return;
-            
-            const rect = screenViewer.getBoundingClientRect();
-            const x = Math.min(selectionStart.x, selectionEnd?.x || selectionStart.x) - rect.left;
-            const y = Math.min(selectionStart.y, selectionEnd?.y || selectionStart.y) - rect.top;
-            const width = Math.abs((selectionEnd?.x || selectionStart.x) - selectionStart.x);
-            const height = Math.abs((selectionEnd?.y || selectionStart.y) - selectionStart.y);
-            
-            selectionRectangle.style.left = x + 'px';
-            selectionRectangle.style.top = y + 'px';
-            selectionRectangle.style.width = width + 'px';
-            selectionRectangle.style.height = height + 'px';
-            
-            selectionInfo.textContent = `${width} × ${height}`;
-        }
-
-        function stopAreaSelection() {
-            if (!isSelectingArea || !selectionStart || !selectionEnd) return;
-            
-            const screenImg = screenViewer.querySelector('.screen-image');
-            if (!screenImg) return;
-            
-            const rect = screenViewer.getBoundingClientRect();
-            const imgRect = screenImg.getBoundingClientRect();
-            
-            const x = Math.min(selectionStart.x, selectionEnd.x) - rect.left;
-            const y = Math.min(selectionStart.y, selectionEnd.y) - rect.top;
-            const width = Math.abs(selectionEnd.x - selectionStart.x);
-            const height = Math.abs(selectionEnd.y - selectionStart.y);
-            
-            const imgLeft = imgRect.left - rect.left;
-            const imgTop = imgRect.top - rect.top;
-            
-            const relativeX = x - imgLeft;
-            const relativeY = y - imgTop;
-            
-            const scaleX = screenImg.naturalWidth / imgRect.width;
-            const scaleY = screenImg.naturalHeight / imgRect.height;
-            
-            selectedArea = {
-                x: Math.round(relativeX * scaleX),
-                y: Math.round(relativeY * scaleY),
-                width: Math.round(width * scaleX),
-                height: Math.round(height * scaleY)
-            };
-            
-            isSelectingArea = false;
-            selectionRectangle.style.display = 'none';
-        }
-
-        function clearAreaSelection() {
-            isSelectingArea = false;
-            selectionStart = null;
-            selectionEnd = null;
-            selectedArea = null;
-            selectionRectangle.style.display = 'none';
-        }
 
         // Event Listeners
         connectBtn.addEventListener('click', connectToTester);
         cancelBtn.addEventListener('click', hideConnectionModal);
 
-        // Title bar controls
+      // Title bar controls
         document.getElementById('minimizeBtn').addEventListener('click', () => {
             ipcRenderer.send('window-minimize');
         });
@@ -503,22 +404,12 @@
         });
 
         // Screen viewer events
-        screenViewer.addEventListener('mousedown', (e) => {
-            if (e.button === 0) { // Left click
-                startAreaSelection(e);
-            }
-        });
-
-        screenViewer.addEventListener('mousemove', (e) => {
-            if (isSelectingArea) {
-                selectionEnd = { x: e.clientX, y: e.clientY };
-                updateSelectionRectangle();
-            }
-        });
-
-        screenViewer.addEventListener('mouseup', (e) => {
-            if (e.button === 0) { // Left click
-                stopAreaSelection();
+        screenViewer.addEventListener('click', (e) => {
+            if (isConnected && e.button === 0) { // Left click
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'left' });
+                }
             }
         });
 
@@ -543,7 +434,7 @@
 
         // Mouse movement for control
         screenViewer.addEventListener('mousemove', (e) => {
-            if (isConnected && !isSelectingArea) {
+            if (isConnected) {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     ipcRenderer.send('send-mouse-move', { x: mousePos.x, y: mousePos.y });
