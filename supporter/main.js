@@ -105,6 +105,10 @@ class SupporterApp {
       console.log('Socket ID:', this.socket.id);
       this.isConnected = true;
       this.mainWindow.webContents.send('connection-status', { connected: true, testerIP });
+      
+      // Automatically start screen sharing when connected
+      console.log('🖥️ Starting screen sharing...');
+      this.socket.emit('start-screen-sharing');
     });
 
     this.socket.on('connecting', () => {
@@ -146,7 +150,7 @@ class SupporterApp {
       
       // Send screen data to renderer with delta compression support
       this.mainWindow.webContents.send('screen-data', {
-        data: data.image || data, // Handle both old and new format
+        image: data.image || data, // Handle both old and new format
         mouseX: data.mouseX || 0,
         mouseY: data.mouseY || 0,
         timestamp: data.timestamp || Date.now(),

@@ -332,6 +332,7 @@
 
         // Screen Display
         function displayScreenImage(imageData) {
+            console.log('📺 Displaying screen image, data length:', imageData ? imageData.length : 0);
             noConnection.style.display = 'none';
             
             // Remove existing image
@@ -345,6 +346,14 @@
             img.src = `data:image/jpeg;base64,${imageData}`;
             img.className = 'screen-image';
             img.draggable = false;
+            
+            img.onload = () => {
+                console.log('✅ Screen image loaded successfully');
+            };
+            
+            img.onerror = (error) => {
+                console.error('❌ Failed to load screen image:', error);
+            };
             
             screenViewer.appendChild(img);
         }
@@ -495,7 +504,18 @@
         });
 
         ipcRenderer.on('screen-data', (event, data) => {
-            displayScreenImage(data.image);
+            console.log('📡 Received screen data:', {
+                hasImage: !!data.image,
+                imageLength: data.image ? data.image.length : 0,
+                mouseX: data.mouseX,
+                mouseY: data.mouseY,
+                timestamp: data.timestamp
+            });
+            if (data.image) {
+                displayScreenImage(data.image);
+            } else {
+                console.warn('⚠️ No image data received');
+            }
         });
 
         ipcRenderer.on('screenshot-saved', (event, data) => {
