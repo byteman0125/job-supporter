@@ -35,7 +35,7 @@ class TesterApp {
     this.chatMessages = [];
     this.audioRecorder = null;
     this.isAudioEnabled = true; // Audio enabled by default
-    this.useElectronCapture = false; // Disable WebRTC to focus on optimized screenshot method
+    this.useElectronCapture = false; // Use only screenshot method for simplicity and reliability
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     
     // Delta compression for efficient screen sharing
@@ -1508,17 +1508,7 @@ class TesterApp {
     }
 
     // Try to use Electron's efficient capture method first
-    if (this.useElectronCapture) {
-      try {
-        await this.setupElectronCapture();
-        return; // If successful, use Electron capture
-      } catch (error) {
-        console.log('⚠️ Electron capture failed, falling back to screenshot-desktop:', error.message);
-        this.useElectronCapture = false;
-      }
-    }
-
-    // Fallback to screenshot-desktop method
+    // Use only screenshot-desktop method for simplicity and reliability
     this.setupScreenshotCapture();
   }
 
@@ -1713,7 +1703,7 @@ class TesterApp {
   setupScreenshotCapture() {
     console.log('📸 Using optimized screenshot-desktop method...');
     
-    const quality = this.screenQuality || 'medium';
+    const quality = this.screenQuality || 'high';
     let captureOptions, interval;
 
     // Optimized settings for higher frame rates with good quality
@@ -1721,12 +1711,12 @@ class TesterApp {
       case 'high':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,   // High quality (reduced from 0.95 for better performance)
+          quality: 0.95,  // Maximum quality for high mode
           screen: 0,
           width: 1920,    // Full HD resolution
           height: 1080
         };
-        interval = 100; // 10 FPS for smooth high quality
+        interval = 50; // 20 FPS for high performance
         break;
       case 'medium':
         captureOptions = {
@@ -1736,7 +1726,7 @@ class TesterApp {
           width: 1920,
           height: 1080
         };
-        interval = 150; // 6.7 FPS for balanced performance
+        interval = 100; // 10 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
@@ -1944,14 +1934,8 @@ class TesterApp {
     
     // Restart with new settings
     setTimeout(() => {
-      if (this.useElectronCapture) {
-        this.setupElectronCapture().catch(() => {
-          this.useElectronCapture = false;
-          this.setupScreenshotCapture();
-        });
-      } else {
-        this.setupScreenshotCapture();
-      }
+      // Always use screenshot method for simplicity
+      this.setupScreenshotCapture();
     }, 1000); // Wait 1 second before restarting
   }
 
