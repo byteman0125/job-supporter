@@ -26,7 +26,8 @@
     ],
     "win": {
       "target": "nsis",
-      "publisherName": "Code Supporter"
+      "publisherName": "Code Supporter",
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,

