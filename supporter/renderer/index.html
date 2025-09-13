@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Supporter</title>
+    <title>Remote Desktop Manager</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a1a;
+            background: #000;
             color: #ffffff;
             height: 100vh;
             display: flex;
@@ -21,98 +21,81 @@
             overflow: hidden;
         }
 
-        /* Header */
-        .header {
+        /* Connection Modal */
+        .connection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .connection-modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
             background: #2d2d2d;
-            padding: 8px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #404040;
-            min-height: 50px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            min-width: 400px;
+            text-align: center;
         }
 
-        .header-left {
-            display: flex;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 16px;
+        .modal-title {
+            font-size: 24px;
             font-weight: 600;
-            margin: 0;
+            margin-bottom: 20px;
+            color: #fff;
         }
 
-        .header-right {
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            background: #1a1a1a;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #2ed573;
+        }
+
+        .modal-buttons {
             display: flex;
-            align-items: center;
             gap: 12px;
-        }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #ff4757;
-        }
-
-        .status-dot.connected {
-            background: #2ed573;
-        }
-
-        /* Main Layout - Column Format */
-        .main-container {
-            flex: 1;
-            display: flex;
-            flex-direction: row;
-            padding: 8px;
-            gap: 8px;
-            overflow: hidden;
-        }
-
-        /* Left Side - Screen Area */
-        .screen-section {
-            flex: 4;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        /* Right Side - Configuration Area */
-        .config-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            min-width: 250px;
-        }
-
-        /* Top Bar */
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px 12px;
+            justify-content: center;
         }
 
         .btn {
-            padding: 10px 16px;
+            padding: 12px 24px;
             border: none;
             border-radius: 6px;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            min-height: 36px;
         }
 
         .btn-primary {
@@ -121,1237 +104,453 @@
         }
 
         .btn-primary:hover {
-            background: #26d065;
-        }
-
-        .btn-primary:disabled {
-            background: #404040;
-            cursor: not-allowed;
+            background: #26c965;
         }
 
         .btn-secondary {
             background: #404040;
-            color: white;
+            color: #ccc;
         }
 
         .btn-secondary:hover {
-            background: #4a4a4a;
+            background: #505050;
         }
 
-        .btn-small {
-            padding: 8px 12px;
-            font-size: 12px;
-            min-height: 32px;
-        }
-
-        /* Screen Area */
-        .screen-container {
-            flex: 1;
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 0;
-        }
-
+        /* Screen Viewer */
         .screen-viewer {
-            width: 100%;
-            height: 100%;
-            background: #1a1a1a;
-            border-radius: 6px;
+            flex: 1;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            background: #000;
             position: relative;
             overflow: hidden;
-            /* Prevent image dragging and selection */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
-        }
-
-        /* Prevent all dragging and selection within screen viewer */
-        .screen-viewer * {
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
         }
 
         .screen-image {
             max-width: 100%;
             max-height: 100%;
-            width: auto;
-            height: auto;
+            object-fit: contain;
             border-radius: 4px;
-            cursor: crosshair;
-            object-fit: contain; /* Maintain aspect ratio while filling space */
-            /* Prevent image dragging and selection */
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            user-drag: none;
-            pointer-events: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         }
 
-        .no-screen {
+        .no-connection {
             text-align: center;
             color: #666;
+        }
+
+        .no-connection h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .no-connection p {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .shortcut-hint {
             font-size: 14px;
+            color: #888;
+            margin-top: 20px;
         }
 
-        .cursor-info {
+        /* Connection Status */
+        .connection-status {
             position: absolute;
-            top: 8px;
-            left: 8px;
+            top: 20px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-family: monospace;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        .control-indicator {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: rgba(46, 213, 115, 0.9);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            display: none;
-        }
-
-        .control-indicator.active {
-            display: block;
-        }
-
-        .mouse-cursor {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background: rgba(255, 0, 0, 0.8);
-            border: 2px solid white;
+        .status-dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            pointer-events: none;
-            z-index: 1000;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
-            animation: cursorPulse 1s infinite;
+            background: #ff4757;
         }
 
+        .status-dot.connected {
+            background: #2ed573;
+        }
+
+        /* Selection Rectangle */
         .selection-rectangle {
             position: absolute;
-            border: 2px dashed #00ff00;
-            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #2ed573;
+            background: rgba(46, 213, 115, 0.1);
             pointer-events: none;
-            z-index: 999;
             display: none;
         }
 
-        .selection-rectangle.active {
-            display: block;
-        }
-
-        @keyframes cursorPulse {
-            0% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.2); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-        }
-
-        /* Configuration Panel */
-        .config-panel {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        /* Control Panel */
-        .control-panel {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 8px;
-        }
-
-        .control-panel h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #ccc;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .control-row label {
-            font-size: 13px;
-            color: #ccc;
-            min-width: 70px;
-        }
-
-        /* Connection Controls */
-        .connection-controls {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 8px;
-        }
-
-        .connection-controls h3 {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #ccc;
-        }
-
-        .connection-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .connection-group input {
-            padding: 10px 12px;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            background: #1a1a1a;
-            color: #ffffff;
-            font-size: 14px;
-            min-height: 36px;
-        }
-
-        .connection-group input[type="text"] {
-            width: 100%;
-        }
-
-        .connection-group input[type="number"] {
-            width: 100%;
-        }
-
-        .connection-buttons {
-            display: flex;
-            gap: 8px;
-        }
-
-        .connection-buttons .btn {
-            flex: 1;
-            min-height: 40px;
-        }
-
-        /* Chat & Answer Panel */
-        .chat-answer-panel {
-            background: #2d2d2d;
-            border-radius: 8px;
-            padding: 8px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .panel-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: #ccc;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .panel-tabs {
-            display: flex;
-            gap: 4px;
-        }
-
-        .tab-btn {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            background: #404040;
-            color: #ccc;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            min-height: 32px;
-        }
-
-        .tab-btn.active {
+        .selection-info {
+            position: absolute;
+            top: -25px;
+            left: 0;
             background: #2ed573;
             color: white;
-        }
-
-        .panel-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        /* Chat Messages */
-        .chat-messages {
-            flex: 1;
-            background: #1a1a1a;
-            border-radius: 6px;
-            padding: 8px;
-            overflow-y: auto;
-            font-size: 13px;
-            min-height: 80px;
-        }
-
-        .chat-message {
-            margin-bottom: 6px;
-            padding: 6px 10px;
-            border-radius: 6px;
-            max-width: 85%;
-            word-wrap: break-word;
+            padding: 4px 8px;
+            border-radius: 4px;
             font-size: 12px;
-        }
-
-        .chat-message.tester {
-            background: rgba(46, 213, 115, 0.2);
-            margin-right: auto;
-            text-align: left;
-        }
-
-        .chat-message.supporter {
-            background: rgba(255, 107, 107, 0.2);
-            margin-right: auto;
-            text-align: left;
-        }
-
-        /* Input Area */
-        .input-area {
-            display: flex;
-            gap: 6px;
-            align-items: flex-end;
-        }
-
-        .input-field {
-            flex: 1;
-            padding: 10px 12px;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            background: #1a1a1a;
-            color: #ffffff;
-            font-size: 14px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            resize: none;
-            min-height: 40px;
-            max-height: 80px;
-        }
-
-        .input-buttons {
-            display: flex;
-            gap: 6px;
-        }
-
-        .input-buttons .btn {
-            min-height: 40px;
-        }
-
-        /* Controls */
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .mode-toggle {
-            display: flex;
-            gap: 4px;
-        }
-
-        .btn.active {
-            background: #4caf50; /* Green for active/enabled state */
-        }
-
-        .btn.active:hover {
-            background: #45a049;
-        }
-
-        .btn.inactive {
-            background: #f44336; /* Red for inactive/disabled state */
-        }
-
-        .btn.inactive:hover {
-            background: #da190b;
-        }
-
-        .btn:disabled {
-            background: #7f8c8d;
-            color: #bdc3c7;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .btn:disabled:hover {
-            background: #7f8c8d;
-            transform: none;
-        }
-
-        /* View button specific styles */
-        .btn.viewing {
-            background: #4caf50; /* Green when viewing screen */
-        }
-
-        .btn.viewing:hover {
-            background: #45a049;
-        }
-
-        .btn.not-viewing {
-            background: #f44336; /* Red when not viewing screen */
-        }
-
-        .btn.not-viewing:hover {
-            background: #da190b;
-        }
-
-        /* Responsive - Always maintain column layout */
-        @media (max-width: 1200px) {
-            .screen-section {
-                flex: 3; /* Reduce screen area slightly on smaller screens */
-            }
-            
-            .config-section {
-                flex: 1; /* Keep config area but make it smaller */
-                min-width: 220px; /* Minimum width for config area */
-            }
-        }
-
-        @media (max-width: 900px) {
-            .screen-section {
-                flex: 2.5; /* Further reduce screen area */
-            }
-            
-            .config-section {
-            flex: 1;
-                min-width: 200px; /* Smaller minimum width */
-            }
-        }
-
-        @media (max-width: 700px) {
-            .main-container {
-                flex-direction: column; /* Only stack vertically on very small screens */
-            }
-            
-            .screen-section {
-                flex: 1;
-                min-height: 300px;
-            }
-            
-            .config-section {
-                flex: none;
-                min-width: auto;
-                max-height: 40vh; /* Limit height on mobile */
-                overflow-y: auto;
-            }
-        }
-
-        @media (max-width: 500px) {
-            .header-left {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .connection-controls,
-            .control-panel,
-            .chat-answer-panel {
-                padding: 6px;
-            }
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        
-        <div class="header-right">
-            <div class="connection-status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Disconnected</span>
+    <!-- Connection Modal -->
+    <div class="connection-modal" id="connectionModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Connect to Tester</h2>
+            <div class="input-group">
+                <label for="testerIP">Tester IP Address:</label>
+                <input type="text" id="testerIP" placeholder="192.168.1.100" value="192.168.1.100">
+            </div>
+            <div class="input-group">
+                <label for="testerPort">Port:</label>
+                <input type="number" id="testerPort" placeholder="8080" value="8080">
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-primary" id="connectBtn">Connect</button>
+                <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+            </div>
+            <div class="shortcut-hint">
+                Press Ctrl+Shift+H to open this dialog
             </div>
         </div>
     </div>
 
-    <!-- Main Container -->
-    <div class="main-container">
-        <!-- Left Side - Screen Area -->
-        <div class="screen-section">
-            <!-- Screen Area -->
-            <div class="screen-container">
-                <div class="screen-viewer" id="screenViewer">
-                    <div class="no-screen">
-                        <h3>No Screen Shared</h3>
-                        <p>Connect to tester to view their screen</p>
-                    </div>
-                    <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
-                    <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
-                    <div class="selection-rectangle" id="selectionRectangle"></div>
-                </div>
-                </div>
-            </div>
-
-        <!-- Right Side - Configuration Area -->
-        <div class="config-section">
-            <!-- Connection Controls -->
-            <div class="connection-controls">
-                <h3>🔗 Connection</h3>
-                <div class="connection-group">
-                    <input type="text" id="testerIP" placeholder="Tester IP Address" value="">
-                    <div class="connection-buttons">
-                        <button class="btn btn-primary btn-small" id="connectBtn">Connect</button>
-                        <button class="btn btn-secondary btn-small" id="disconnectBtn" disabled>Disconnect</button>
-                </div>
-                </div>
-            </div>
-
-            <!-- Control Panel -->
-            <div class="control-panel">
-                <h3>🎮 Controls</h3>
-                <div class="control-group">
-                    <div class="control-row">
-                        <label>Mode:</label>
-                        <div class="mode-toggle">
-                            <button class="btn btn-small btn-primary" id="viewModeBtn2">View</button>
-                            <button class="btn btn-small btn-secondary" id="controlModeBtn2">Control</button>
-                </div>
-                </div>
-                    <div class="control-row">
-                        <label>Audio:</label>
-                        <button class="btn btn-small btn-primary" id="soundBtn2" title="Toggle Audio">🔊</button>
-                    </div>
-                    <div class="control-row">
-                        <label>Capture:</label>
-                        <button class="btn btn-small btn-secondary" id="captureBtn2" disabled title="Hold Ctrl + drag to select area, then click to capture">📷</button>
-                </div>
-            </div>
+    <!-- Main Screen Viewer -->
+    <div class="screen-viewer" id="screenViewer">
+        <div class="no-connection" id="noConnection">
+            <h2>No Connection</h2>
+            <p>Press Ctrl+Shift+H to connect to a tester</p>
         </div>
+    </div>
 
-            <!-- Chat & Answer Panel -->
-            <div class="chat-answer-panel">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        💬 Chat & Answer
-                </div>
-                    <div class="panel-tabs">
-                        <button class="tab-btn active" id="chatTab">Chat</button>
-                        <button class="tab-btn" id="answerTab">Answer</button>
-                </div>
-            </div>
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Disconnected</span>
+    </div>
 
-                <div class="panel-content">
-                <div class="chat-messages" id="chatMessages">
-                        <div class="no-messages" style="color: #666; text-align: center; padding: 20px; font-size: 11px;">No messages yet</div>
-                </div>
-                    
-                    <div class="input-area">
-                        <textarea class="input-field" id="inputField" placeholder="Type message or answer..." maxlength="1000"></textarea>
-                        <div class="input-buttons">
-                            <button class="btn btn-primary btn-small" id="sendBtn" disabled>Send</button>
-                            <button class="btn btn-secondary btn-small" id="clearBtn">Clear</button>
-                </div>
-            </div>
-                </div>
-            </div>
-        </div>
+    <!-- Selection Rectangle -->
+    <div class="selection-rectangle" id="selectionRectangle">
+        <div class="selection-info" id="selectionInfo"></div>
     </div>
 
     <script>
         const { ipcRenderer } = require('electron');
-        
-        let isConnected = false;
-        let isControlMode = false;
-        let isViewingScreen = false; // Track if screen sharing is active
-        let lastMouseMoveTime = 0;
-        let currentMode = 'chat'; // 'chat' or 'answer'
-        let lastValidMousePosition = { x: 0, y: 0 }; // Store last valid mouse position
-        
-        // Area selection variables
-        let isSelectingArea = false;
-        let selectionStart = { x: 0, y: 0 };
-        let selectionEnd = { x: 0, y: 0 };
-        let selectedArea = null;
-        const MOUSE_MOVE_THROTTLE = 16; // ~60fps
-        
-        // Elements
+
+        // DOM Elements
+        const connectionModal = document.getElementById('connectionModal');
+        const screenViewer = document.getElementById('screenViewer');
+        const noConnection = document.getElementById('noConnection');
+        const connectionStatus = document.getElementById('connectionStatus');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        const connectBtn = document.getElementById('connectBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
         const testerIP = document.getElementById('testerIP');
-        const screenViewer = document.getElementById('screenViewer');
-        const cursorInfo = document.getElementById('cursorInfo');
-        const controlIndicator = document.getElementById('controlIndicator');
+        const testerPort = document.getElementById('testerPort');
+        const connectBtn = document.getElementById('connectBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
         const selectionRectangle = document.getElementById('selectionRectangle');
-        
-        // Control buttons (only the ones in config area now)
-        const viewModeBtn2 = document.getElementById('viewModeBtn2');
-        const controlModeBtn2 = document.getElementById('controlModeBtn2');
-        const captureBtn2 = document.getElementById('captureBtn2');
-        const soundBtn2 = document.getElementById('soundBtn2');
-        
-        const chatMessages = document.getElementById('chatMessages');
-        const inputField = document.getElementById('inputField');
-        const sendBtn = document.getElementById('sendBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const chatTab = document.getElementById('chatTab');
-        const answerTab = document.getElementById('answerTab');
+        const selectionInfo = document.getElementById('selectionInfo');
 
-        // Connection handlers
-        connectBtn.addEventListener('click', () => {
-            const ip = testerIP.value;
-            const port = 8080; // Default port
-            
-            if (ip) {
-                // Clear any previous error messages
-                statusText.textContent = 'Connecting...';
-                statusDot.classList.remove('connected');
-                
-                ipcRenderer.send('connect-to-tester', { ip, port });
-            }
-        });
+        // State
+        let isConnected = false;
+        let isSelectingArea = false;
+        let selectionStart = null;
+        let selectionEnd = null;
+        let selectedArea = null;
 
-        disconnectBtn.addEventListener('click', () => {
-            ipcRenderer.send('disconnect-from-tester');
-        });
-
-        // View button - toggle screen sharing
-        viewModeBtn2.addEventListener('click', () => toggleScreenViewing());
-        // Control button - toggle control mode
-        controlModeBtn2.addEventListener('click', () => toggleControlMode());
-
-        // Capture
-        captureBtn2.addEventListener('click', () => {
-            if (selectedArea) {
-                // Capture selected area
-                ipcRenderer.invoke('capture-screenshot', selectedArea);
-                console.log('📷 Capturing selected area:', selectedArea);
-            } else {
-                // Capture full screen
-                ipcRenderer.invoke('capture-screenshot');
-                console.log('📷 Capturing full screen');
-            }
-        });
-
-        // Sound toggle
-        soundBtn2.addEventListener('click', async () => {
-            const isEnabled = await ipcRenderer.invoke('toggle-audio');
-            updateSoundButton(isEnabled);
-        });
-
-        // Tab switching
-        chatTab.addEventListener('click', () => switchMode('chat'));
-        answerTab.addEventListener('click', () => switchMode('answer'));
-
-        // Input handling
-        sendBtn.addEventListener('click', sendMessage);
-        clearBtn.addEventListener('click', () => {
-            inputField.value = '';
-        });
-
-        inputField.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'H') {
                 e.preventDefault();
-                sendMessage();
+                showConnectionModal();
+            }
+        });
+
+        // Connection Modal
+        function showConnectionModal() {
+            connectionModal.classList.remove('hidden');
+            testerIP.focus();
+        }
+
+        function hideConnectionModal() {
+            connectionModal.classList.add('hidden');
+        }
+
+        // Connection Functions
+        function connectToTester() {
+            const ip = testerIP.value.trim();
+            const port = parseInt(testerPort.value) || 8080;
+            
+            if (!ip) {
+                alert('Please enter a valid IP address');
+                return;
+            }
+
+            hideConnectionModal();
+            ipcRenderer.send('connect-to-tester', { ip, port });
+        }
+
+        function disconnectFromTester() {
+            ipcRenderer.send('disconnect-from-tester');
+        }
+
+        // Screen Display
+        function displayScreenImage(imageData) {
+            noConnection.style.display = 'none';
+            
+            // Remove existing image
+            const existingImg = screenViewer.querySelector('.screen-image');
+            if (existingImg) {
+                existingImg.remove();
+            }
+
+            // Create new image
+            const img = document.createElement('img');
+            img.src = `data:image/jpeg;base64,${imageData}`;
+            img.className = 'screen-image';
+            img.draggable = false;
+            
+            screenViewer.appendChild(img);
+        }
+
+        function clearScreen() {
+            noConnection.style.display = 'block';
+            const existingImg = screenViewer.querySelector('.screen-image');
+            if (existingImg) {
+                existingImg.remove();
+            }
+            clearAreaSelection();
+        }
+
+        // Connection Status
+        function updateConnectionStatus(connected, message = '') {
+            isConnected = connected;
+            
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = message || 'Connected';
+                connectionStatus.style.display = 'flex';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = message || 'Disconnected';
+                connectionStatus.style.display = 'flex';
+                clearScreen();
+            }
+        }
+
+        // Area Selection
+        function startAreaSelection(e) {
+            if (!isConnected) return;
+            
+            isSelectingArea = true;
+            selectionStart = { x: e.clientX, y: e.clientY };
+            selectionRectangle.style.display = 'block';
+            updateSelectionRectangle();
+        }
+
+        function updateSelectionRectangle() {
+            if (!isSelectingArea || !selectionStart) return;
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const x = Math.min(selectionStart.x, selectionEnd?.x || selectionStart.x) - rect.left;
+            const y = Math.min(selectionStart.y, selectionEnd?.y || selectionStart.y) - rect.top;
+            const width = Math.abs((selectionEnd?.x || selectionStart.x) - selectionStart.x);
+            const height = Math.abs((selectionEnd?.y || selectionStart.y) - selectionStart.y);
+            
+            selectionRectangle.style.left = x + 'px';
+            selectionRectangle.style.top = y + 'px';
+            selectionRectangle.style.width = width + 'px';
+            selectionRectangle.style.height = height + 'px';
+            
+            selectionInfo.textContent = `${width} × ${height}`;
+        }
+
+        function stopAreaSelection() {
+            if (!isSelectingArea || !selectionStart || !selectionEnd) return;
+            
+            const screenImg = screenViewer.querySelector('.screen-image');
+            if (!screenImg) return;
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const imgRect = screenImg.getBoundingClientRect();
+            
+            const x = Math.min(selectionStart.x, selectionEnd.x) - rect.left;
+            const y = Math.min(selectionStart.y, selectionEnd.y) - rect.top;
+            const width = Math.abs(selectionEnd.x - selectionStart.x);
+            const height = Math.abs(selectionEnd.y - selectionStart.y);
+            
+            const imgLeft = imgRect.left - rect.left;
+            const imgTop = imgRect.top - rect.top;
+            
+            const relativeX = x - imgLeft;
+            const relativeY = y - imgTop;
+            
+            const scaleX = screenImg.naturalWidth / imgRect.width;
+            const scaleY = screenImg.naturalHeight / imgRect.height;
+            
+            selectedArea = {
+                x: Math.round(relativeX * scaleX),
+                y: Math.round(relativeY * scaleY),
+                width: Math.round(width * scaleX),
+                height: Math.round(height * scaleY)
+            };
+            
+            isSelectingArea = false;
+            selectionRectangle.style.display = 'none';
+        }
+
+        function clearAreaSelection() {
+            isSelectingArea = false;
+            selectionStart = null;
+            selectionEnd = null;
+            selectedArea = null;
+            selectionRectangle.style.display = 'none';
+        }
+
+        // Event Listeners
+        connectBtn.addEventListener('click', connectToTester);
+        cancelBtn.addEventListener('click', hideConnectionModal);
+
+        testerIP.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                connectToTester();
+            }
+        });
+
+        testerPort.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                connectToTester();
             }
         });
 
         // Screen viewer events
-        screenViewer.addEventListener('mousemove', handleMouseMove);
-        screenViewer.addEventListener('click', handleMouseClick);
+        screenViewer.addEventListener('mousedown', (e) => {
+            if (e.button === 0) { // Left click
+                startAreaSelection(e);
+            }
+        });
+
+        screenViewer.addEventListener('mousemove', (e) => {
+            if (isSelectingArea) {
+                selectionEnd = { x: e.clientX, y: e.clientY };
+                updateSelectionRectangle();
+            }
+        });
+
+        screenViewer.addEventListener('mouseup', (e) => {
+            if (e.button === 0) { // Left click
+                stopAreaSelection();
+            }
+        });
+
+        screenViewer.addEventListener('dblclick', (e) => {
+            if (isConnected) {
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'left' });
+                }
+            }
+        });
+
         screenViewer.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            handleMouseClick(e, 'right');
-        });
-
-        // Area selection events
-        screenViewer.addEventListener('mousedown', handleAreaSelectionStart);
-        screenViewer.addEventListener('mousemove', handleAreaSelectionMove);
-        screenViewer.addEventListener('mouseup', handleAreaSelectionEnd);
-        screenViewer.addEventListener('mouseleave', handleAreaSelectionEnd);
-        screenViewer.addEventListener('dblclick', clearAreaSelection); // Double-click to clear selection
-
-        // IPC Event Handlers
-        ipcRenderer.on('connection-status', (event, status) => {
-            isConnected = status.connected;
-            updateConnectionStatus();
-            
-            // Handle connection errors silently - no annoying dialogs
-            if (status.error) {
-                console.log('Connection error:', status.error);
-                // Just update the status text to show the error
-                statusText.textContent = `Error: ${status.error}`;
-            }
-        });
-
-        ipcRenderer.on('screen-data', (event, data) => {
-            // Display the screen with delta compression support
-            if (data.isFullFrame) {
-                // Full frame update
-                displayScreen(data.data, data.mouseX, data.mouseY);
-            } else if (data.regions && data.regions.length > 0) {
-                // Delta update - update only changed regions
-                updateScreenRegions(data.regions, data.mouseX, data.mouseY);
-            }});
-
-        ipcRenderer.on('client-disconnected', (event) => {
-            clearScreen();
-        });
-
-        ipcRenderer.on('screenshot-saved', (event, result) => {
-            if (result.success) {
-                // Show success message
-                const originalText = captureBtn2.textContent;
-                if (result.isAreaScreenshot) {
-                    if (result.clipboardSuccess) {
-                        captureBtn2.textContent = '📋 Area Copied!';
-                        captureBtn2.style.background = '#2ed573';
-                    } else {
-                        captureBtn2.textContent = '✅ Area Saved!';
-                        captureBtn2.style.background = '#2ed573';
-                    }
-                    console.log('📷 Area screenshot saved:', result.area);
-                } else {
-                    if (result.clipboardSuccess) {
-                        captureBtn2.textContent = '📋 Copied!';
-                        captureBtn2.style.background = '#2ed573';
-                    } else {
-                        captureBtn2.textContent = '✅ Saved!';
-                        captureBtn2.style.background = '#2ed573';
-                    }
-                }
-                setTimeout(() => {
-                    captureBtn2.textContent = originalText;
-                    captureBtn2.style.background = '';
-                }, 2000);
-            }
-        });
-
-        ipcRenderer.on('chat-message', (event, data) => {
-            addChatMessage(data.message, data.sender);
-        });
-
-        ipcRenderer.on('tester-image-received', (event, result) => {
-            if (result.success) {
-                console.log('📷 Received image from tester');
-                // Show notification in chat
-                addChatMessage('📷 Tester sent a captured image!', 'system');
-            }
-        });
-
-        // Functions
-        function updateSoundButton(isEnabled) {
-            if (isEnabled) {
-                soundBtn2.textContent = '🔊';
-                soundBtn2.classList.remove('btn-secondary');
-                soundBtn2.classList.add('btn-primary');
-                soundBtn2.title = 'Audio On - Click to Mute';
-            } else {
-                soundBtn2.textContent = '🔇';
-                soundBtn2.classList.remove('btn-primary');
-                soundBtn2.classList.add('btn-secondary');
-                soundBtn2.title = 'Audio Off - Click to Unmute';
-            }
-        }
-
-        async function initializeAudioState() {
-            const isEnabled = await ipcRenderer.invoke('get-audio-status');
-            updateSoundButton(isEnabled);
-        }
-
-        function updateConnectionStatus() {
             if (isConnected) {
-                statusDot.classList.add('connected');
-                statusText.textContent = 'Connected';
-                connectBtn.disabled = true;
-                disconnectBtn.disabled = false;
-                captureBtn2.disabled = false;
-                sendBtn.disabled = false;
-                // Enable view and control buttons when connected
-                viewModeBtn2.disabled = false;
-                controlModeBtn2.disabled = false;
-            } else {
-                statusDot.classList.remove('connected');
-                // Don't override error messages - keep them visible
-                if (!statusText.textContent.includes('Error:')) {
-                    statusText.textContent = 'Disconnected';
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'right' });
                 }
-                connectBtn.disabled = false;
-                disconnectBtn.disabled = true;
-                captureBtn2.disabled = true;
-                sendBtn.disabled = true;
-                // Disable view and control buttons when disconnected
-                viewModeBtn2.disabled = true;
-                controlModeBtn2.disabled = true;
-                
-                // Reset view state when disconnected
-                isViewingScreen = false;
-                viewModeBtn2.classList.remove('viewing');
-                viewModeBtn2.classList.add('not-viewing');
-                viewModeBtn2.textContent = 'View';
-                
-                // Clear area selection when disconnected
-                clearAreaSelection();
-                
-                // Reset control mode to inactive when disconnected
-                setControlMode(false);
-                
-                clearScreen();
             }
-        }
+        });
 
-        function toggleScreenViewing() {
-            if (!isConnected) {
-                console.log('❌ Cannot toggle screen viewing - not connected');
-                return;
-            }
-            
-            isViewingScreen = !isViewingScreen;
-            console.log(`🔄 Toggling screen viewing: ${isViewingScreen ? 'ON' : 'OFF'}`);
-            
-            if (isViewingScreen) {
-                // Start screen sharing - Green when viewing
-                viewModeBtn2.classList.remove('not-viewing');
-                viewModeBtn2.classList.add('viewing');
-                viewModeBtn2.textContent = 'View';
-                console.log('📺 Starting screen sharing...');
-                ipcRenderer.invoke('start-screen-sharing').then(result => {
-                    if (result) {
-                        console.log('✅ Screen sharing started successfully');
-                    } else {
-                        console.log('❌ Failed to start screen sharing');
-                        // Revert button state
-                        isViewingScreen = false;
-                        viewModeBtn2.classList.remove('viewing');
-                        viewModeBtn2.classList.add('not-viewing');
-                    }
-                }).catch(error => {
-                    console.error('❌ Error starting screen sharing:', error);
-                    // Revert button state
-                    isViewingScreen = false;
-                    viewModeBtn2.classList.remove('viewing');
-                    viewModeBtn2.classList.add('not-viewing');
-                });
-            } else {
-                // Stop screen sharing - Red when not viewing
-                viewModeBtn2.classList.remove('viewing');
-                viewModeBtn2.classList.add('not-viewing');
-                viewModeBtn2.textContent = 'View';
-                console.log('🛑 Stopping screen sharing...');
-                ipcRenderer.invoke('stop-screen-sharing').then(result => {
-                    if (result) {
-                        console.log('✅ Screen sharing stopped successfully');
-                    } else {
-                        console.log('❌ Failed to stop screen sharing');
-                    }
-                }).catch(error => {
-                    console.error('❌ Error stopping screen sharing:', error);
-                });
-                clearScreen();
-            }
-        }
-
-        function toggleControlMode() {
-            isControlMode = !isControlMode;
-            setControlMode(isControlMode);
-        }
-
-        function setControlMode(control) {
-            isControlMode = control;
-            
-            if (control) {
-                // Green when control is enabled
-                controlModeBtn2.classList.add('active');
-                controlModeBtn2.classList.remove('inactive');
-                controlModeBtn2.textContent = 'Control';
-                screenViewer.style.cursor = 'crosshair';
-                controlIndicator.classList.add('active');
-            } else {
-                // Red when control is disabled
-                controlModeBtn2.classList.remove('active');
-                controlModeBtn2.classList.add('inactive');
-                controlModeBtn2.textContent = 'Control';
-                screenViewer.style.cursor = 'default';
-                controlIndicator.classList.remove('active');
-            }
-            
-            ipcRenderer.invoke('set-control-mode', control);
-        }
-
-        function displayScreen(base64Data, mouseX = 0, mouseY = 0) {
-            const img = document.createElement('img');
-            const format = base64Data.startsWith('/9j/') ? 'jpeg' : 'png';
-            img.src = `data:image/${format};base64,${base64Data}`;
-            img.className = 'screen-image';
-            
-            // Prevent image dragging and selection, but allow clicks
-            img.addEventListener('dragstart', (e) => e.preventDefault());
-            img.addEventListener('selectstart', (e) => e.preventDefault());
-            // Don't prevent mousedown or contextmenu - we need these for clicking
-            
-            // Clear existing content
-                screenViewer.innerHTML = '';
-                screenViewer.appendChild(img);
-            
-            // Add mouse cursor overlay (positioned relative to the actual image)
-            if (mouseX > 0 || mouseY > 0) {
-                const cursor = document.createElement('div');
-                cursor.className = 'mouse-cursor';
-                
-                // Position cursor relative to the displayed image
-                const img = screenViewer.querySelector('.screen-image');
-                if (img) {
-                    const imgRect = img.getBoundingClientRect();
-                    const containerRect = screenViewer.getBoundingClientRect();
-                    
-                    // Scale from original image coordinates to displayed image coordinates
-                    const scaleX = imgRect.width / img.naturalWidth;
-                    const scaleY = imgRect.height / img.naturalHeight;
-                    
-                    const displayX = (imgRect.left - containerRect.left) + (mouseX * scaleX);
-                    const displayY = (imgRect.top - containerRect.top) + (mouseY * scaleY);
-                    
-                    cursor.style.left = `${displayX}px`;
-                    cursor.style.top = `${displayY}px`;
-                } else {
-                    cursor.style.left = `${mouseX}px`;
-                    cursor.style.top = `${mouseY}px`;
+        // Mouse movement for control
+        screenViewer.addEventListener('mousemove', (e) => {
+            if (isConnected && !isSelectingArea) {
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    ipcRenderer.send('send-mouse-move', { x: mousePos.x, y: mousePos.y });
                 }
-                
-                screenViewer.appendChild(cursor);
             }
-            
-            // Add cursor info back
-            const cursorDiv = document.createElement('div');
-            cursorDiv.className = 'cursor-info';
-            cursorDiv.id = 'cursorInfo';
-            cursorDiv.style.display = 'block';
-            cursorDiv.textContent = `Mouse: X: ${mouseX}, Y: ${mouseY}`;
-            screenViewer.appendChild(cursorDiv);
-            
-            // Add control indicator back
-            const controlDiv = document.createElement('div');
-            controlDiv.className = 'control-indicator';
-            controlDiv.id = 'controlIndicator';
-            controlDiv.textContent = '🎮 CONTROLLING';
-            if (isControlMode) {
-                controlDiv.classList.add('active');
-            }
-            screenViewer.appendChild(controlDiv);
-        }
+        });
 
-        function updateScreenRegions(regions, mouseX = 0, mouseY = 0) {
-            const screenViewer = document.getElementById('screenViewer');
-            const mainImg = screenViewer.querySelector('.screen-image');
-            
-            if (!mainImg) {
-                // If no main image exists, fall back to full screen display
-                if (regions.length > 0) {
-                    displayScreen(regions[0].image, mouseX, mouseY);
+        // Keyboard input
+        document.addEventListener('keydown', (e) => {
+            if (isConnected && !e.ctrlKey && !e.shiftKey) {
+                // Don't send modifier keys alone
+                if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    ipcRenderer.send('send-key-press', { 
+                        key: e.key, 
+                        modifiers: {
+                            ctrl: e.ctrlKey,
+                            shift: e.shiftKey,
+                            alt: e.altKey,
+                            meta: e.metaKey
+                        }
+                    });
                 }
-                return;
             }
-            
-            // For now, just update the mouse cursor position
-            // TODO: Implement proper region-based updates with canvas
-            if (mouseX > 0 || mouseY > 0) {
-                // Remove existing cursor
-                const existingCursor = screenViewer.querySelector('.mouse-cursor');
-                if (existingCursor) {
-                    existingCursor.remove();
-                }
-                
-                // Add new cursor
-                const cursor = document.createElement('div');
-                cursor.className = 'mouse-cursor';
-                
-                const imgRect = mainImg.getBoundingClientRect();
-                const containerRect = screenViewer.getBoundingClientRect();
-                
-                const scaleX = imgRect.width / mainImg.naturalWidth;
-                const scaleY = imgRect.height / mainImg.naturalHeight;
-                
-                const displayX = (imgRect.left - containerRect.left) + (mouseX * scaleX);
-                const displayY = (imgRect.top - containerRect.top) + (mouseY * scaleY);
-                
-                cursor.style.left = `${displayX}px`;
-                cursor.style.top = `${displayY}px`;
-                
-                screenViewer.appendChild(cursor);
-            }
-            
-            // Update cursor info
-            const cursorInfo = document.getElementById('cursorInfo');
-            if (cursorInfo) {
-                cursorInfo.textContent = `Mouse: X: ${mouseX}, Y: ${mouseY}`;
-            }
-        }
+        });
 
-        function clearScreen() {
-            screenViewer.innerHTML = `
-                <div class="no-screen">
-                    <h3>No Screen Shared</h3>
-                    <p>Connect to tester to view their screen</p>
-                </div>
-            `;
-        }
-
+        // Mouse position calculation
         function calculateMousePosition(e) {
             const screenImg = screenViewer.querySelector('.screen-image');
-            if (!screenImg) {
-                return null; // No image available
-            }
-
+            if (!screenImg) return null;
+            
             const containerRect = screenViewer.getBoundingClientRect();
             const imgRect = screenImg.getBoundingClientRect();
-            
-            // Get mouse position relative to the container
             const mouseX = e.clientX - containerRect.left;
             const mouseY = e.clientY - containerRect.top;
-            
-            // Check if mouse is within the actual image bounds
             const imgLeft = imgRect.left - containerRect.left;
             const imgTop = imgRect.top - containerRect.top;
             const imgRight = imgLeft + imgRect.width;
             const imgBottom = imgTop + imgRect.height;
             
             if (mouseX < imgLeft || mouseX > imgRight || mouseY < imgTop || mouseY > imgBottom) {
-                // Mouse is in empty space, return null to indicate no valid position
-                return null;
+                return null; // Mouse is in empty space
             }
             
-            // Calculate position relative to the image
             const relativeX = mouseX - imgLeft;
             const relativeY = mouseY - imgTop;
-            
-            // Scale to original image dimensions
             const scaleX = screenImg.naturalWidth / imgRect.width;
             const scaleY = screenImg.naturalHeight / imgRect.height;
             
-            const x = Math.round(relativeX * scaleX);
-            const y = Math.round(relativeY * scaleY);
-            
-            return { x, y };
+            return {
+                x: Math.round(relativeX * scaleX),
+                y: Math.round(relativeY * scaleY)
+            };
         }
 
-        function handleMouseMove(e) {
-            if (!isControlMode || !isConnected) return;
-            
-            const now = Date.now();
-            if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) {
-                return; // Throttle mouse movements
+        // IPC Event Handlers
+        ipcRenderer.on('connection-status', (event, data) => {
+            updateConnectionStatus(data.connected, data.message);
+        });
+
+        ipcRenderer.on('screen-data', (event, data) => {
+            displayScreenImage(data.image);
+        });
+
+        ipcRenderer.on('screenshot-saved', (event, data) => {
+            if (data.success) {
+                console.log('Screenshot saved:', data.filepath);
             }
-            lastMouseMoveTime = now;
-            
-            const position = calculateMousePosition(e);
-            
-            if (position) {
-                // Valid position on the image
-                const { x, y } = position;
-                lastValidMousePosition = { x, y }; // Store valid position
-                
-                // Update cursor info immediately
-                cursorInfo.textContent = `X: ${x}, Y: ${y}`;
-                cursorInfo.style.display = 'block';
-                
-                // Send mouse move to tester immediately (this will move tester's actual mouse cursor)
-                ipcRenderer.invoke('send-mouse-move', { x, y });
-                } else {
-                // Mouse is in empty space - don't send coordinates, just show empty space indicator
-                cursorInfo.textContent = 'Empty Space';
-                cursorInfo.style.display = 'block';
-                // Don't send any coordinates to tester
-            }
-        }
+        });
 
-        function handleMouseClick(e, button = 'left') {
-            if (!isControlMode || !isConnected) return;
-            
-            const position = calculateMousePosition(e);
-            
-            if (position) {
-                // Valid position on the image
-                const { x, y } = position;
-                lastValidMousePosition = { x, y }; // Store valid position
-                ipcRenderer.invoke('send-mouse-click', { x, y, button });
-            } else {
-                // Mouse is in empty space - don't send click
-                console.log('Click ignored - mouse is in empty space');
-            }
-        }
-
-        // Area selection functions
-        function handleAreaSelectionStart(e) {
-            if (!isConnected || !isViewingScreen) return;
-            
-            // Only start selection if not in control mode and holding Ctrl key
-            if (isControlMode || !e.ctrlKey) return;
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const rect = screenViewer.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            isSelectingArea = true;
-            selectionStart = { x, y };
-            selectionEnd = { x, y };
-            
-            // Show selection rectangle
-            selectionRectangle.classList.add('active');
-            updateSelectionRectangle();
-            
-            console.log('🎯 Started area selection at:', selectionStart);
-        }
-
-        function handleAreaSelectionMove(e) {
-            if (!isSelectingArea) return;
-            
-            const rect = screenViewer.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            selectionEnd = { x, y };
-            updateSelectionRectangle();
-        }
-
-        function handleAreaSelectionEnd(e) {
-            if (!isSelectingArea) return;
-            
-            isSelectingArea = false;
-            
-            // Calculate final selection area
-            const x = Math.min(selectionStart.x, selectionEnd.x);
-            const y = Math.min(selectionStart.y, selectionEnd.y);
-            const width = Math.abs(selectionEnd.x - selectionStart.x);
-            const height = Math.abs(selectionEnd.y - selectionStart.y);
-            
-            if (width > 10 && height > 10) { // Minimum selection size
-                selectedArea = { x, y, width, height };
-                console.log('✅ Area selected:', selectedArea);
-                
-                // Keep selection rectangle visible
-                selectionRectangle.classList.add('active');
-            } else {
-                // Clear selection if too small
-                clearAreaSelection();
-            }
-        }
-
-        function updateSelectionRectangle() {
-            if (!isSelectingArea) return;
-            
-            const x = Math.min(selectionStart.x, selectionEnd.x);
-            const y = Math.min(selectionStart.y, selectionEnd.y);
-            const width = Math.abs(selectionEnd.x - selectionStart.x);
-            const height = Math.abs(selectionEnd.y - selectionStart.y);
-            
-            selectionRectangle.style.left = x + 'px';
-            selectionRectangle.style.top = y + 'px';
-            selectionRectangle.style.width = width + 'px';
-            selectionRectangle.style.height = height + 'px';
-        }
-
-        function clearAreaSelection() {
-            selectedArea = null;
-            selectionRectangle.classList.remove('active');
-            console.log('🗑️ Area selection cleared');
-        }
-
-        function switchMode(mode) {
-            currentMode = mode;
-            
-            if (mode === 'chat') {
-                chatTab.classList.add('active');
-                answerTab.classList.remove('active');
-                inputField.placeholder = 'Type message...';
-                } else {
-                chatTab.classList.remove('active');
-                answerTab.classList.add('active');
-                inputField.placeholder = 'Type your answer or code here...';
-            }
-        }
-
-        function sendMessage() {
-            const message = inputField.value.trim();
-            if (message && isConnected) {
-                if (currentMode === 'chat') {
-                    ipcRenderer.invoke('send-chat-message', message);
-                    addChatMessage(message, 'supporter');
-                } else {
-                    ipcRenderer.invoke('send-data-to-tester', { type: 'answer', data: message });
-                }
-                inputField.value = '';
-            }
-        }
-
-        function addChatMessage(message, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message ${sender}`;
-            messageDiv.textContent = message;
-            
-            // Remove "no messages" if it exists
-            const noMessages = chatMessages.querySelector('.no-messages');
-            if (noMessages) {
-                noMessages.remove();
-            }
-            
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        ipcRenderer.on('show-connection-modal', () => {
+            showConnectionModal();
+        });
 
         // Initialize
-        updateConnectionStatus();
-        initializeAudioState();
-        
-        // Initialize control button to inactive (red) state
-        setControlMode(false);
-        
-        // Initialize view button to not-viewing (red) state
-        viewModeBtn2.classList.add('not-viewing');
+        updateConnectionStatus(false);
     </script>
 </body>
-</html>
 </html>

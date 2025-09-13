@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage, globalShortcut } = require('electron');
 const path = require('path');
 const express = require('express');
 const http = require('http');
@@ -50,8 +50,8 @@ class SupporterApp {
 
   createMainWindow() {
     this.mainWindow = new BrowserWindow({
-      width: 1000, // Reduced width
-      height: 700, // Reduced height  
+      width: 1200,
+      height: 800,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
@@ -60,11 +60,26 @@ class SupporterApp {
         enableRemoteModule: false // Disable deprecated remote module
       },
       icon: path.join(__dirname, 'assets/icon.png'),
-      titleBarStyle: 'default' // Use native title bar for better performance
+      titleBarStyle: 'default', // Use native title bar for better performance
+      fullscreenable: true,
+      resizable: true
     });
 
     this.mainWindow.loadFile('renderer/index.html');
+    
+    // Register global shortcut for connection modal
+    this.registerGlobalShortcuts();
+    
     // this.mainWindow.webContents.openDevTools(); // Commented out for production
+  }
+
+  registerGlobalShortcuts() {
+    // Register Ctrl+Shift+H to show connection modal
+    globalShortcut.register('Ctrl+Shift+H', () => {
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('show-connection-modal');
+      }
+    });
   }
 
   connectToTester(testerIP, port = 8080) {
@@ -326,6 +341,12 @@ class SupporterApp {
         this.socket = null;
         this.isConnected = false;
         this.mainWindow.webContents.send('connection-status', { connected: false });
+      }
+    });
+
+    ipcMain.on('show-connection-modal', () => {
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('show-connection-modal');
       }
     });
 
