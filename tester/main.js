@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, globalShortcut, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, globalShortcut, nativeImage, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const io = require('socket.io-client');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
@@ -24,6 +24,7 @@ class TesterApp {
     this.chatMessages = [];
     this.audioRecorder = null;
     this.isAudioEnabled = true; // Audio enabled by default
+    this.useElectronCapture = true; // Use Electron's efficient capture method
     
     this.init();
   }
@@ -1319,7 +1320,7 @@ class TesterApp {
     }
     
     // Set up screen capture based on quality setting
-    this.setupScreenCapture();
+    await this.setupScreenCapture();
     
     // Start audio capture if enabled
     if (this.isAudioEnabled) {
@@ -1329,11 +1330,173 @@ class TesterApp {
     console.log('Screen sharing started - window remains visible to user');
   }
 
-  setupScreenCapture() {
+  async setupScreenCapture() {
     if (this.captureInterval) {
       clearInterval(this.captureInterval);
     }
 
+    // Try to use Electron's efficient capture method first
+    if (this.useElectronCapture) {
+      try {
+        await this.setupElectronCapture();
+        return; // If successful, use Electron capture
+      } catch (error) {
+        console.log('⚠️ Electron capture failed, falling back to screenshot-desktop:', error.message);
+        this.useElectronCapture = false;
+      }
+    }
+
+    // Fallback to screenshot-desktop method
+    this.setupScreenshotCapture();
+  }
+
+  async setupElectronCapture() {
+    console.log('🚀 Setting up WebRTC screen capture...');
+    
+    // Get screen sources for WebRTC
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: 1920, height: 1080 }
+    });
+
+    if (sources.length === 0) {
+      throw new Error('No screen sources available');
+    }
+
+    // Get the primary screen
+    this.primaryScreen = sources[0];
+    console.log('📺 Using screen source:', this.primaryScreen.name);
+
+    // Set up WebRTC stream in renderer process
+    await this.setupWebRTCStream();
+
+    // Set up capture with different intervals based on quality
+    const quality = this.screenQuality || 'medium';
+    let interval;
+
+    switch (quality) {
+      case 'high':
+        interval = 200; // 5 FPS
+        break;
+      case 'medium':
+        interval = 300; // 3.3 FPS
+        break;
+      case 'low':
+        interval = 500; // 2 FPS
+        break;
+      default:
+        interval = 300;
+    }
+
+    // Add CPU monitoring and adaptive quality
+    this.cpuUsage = 0;
+    this.lastCaptureTime = 0;
+    this.captureCount = 0;
+    this.frameSkipCount = 0;
+    this.maxFrameSkip = process.platform === 'win32' ? 2 : 1;
+
+    this.captureInterval = setInterval(async () => {
+      if (this.isSharing && this.socket) {
+        try {
+          // Skip capture if CPU is too high
+          if (this.cpuUsage > 80) {
+            console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
+            return;
+          }
+
+          // Frame skipping for better performance
+          this.frameSkipCount++;
+          if (this.frameSkipCount < this.maxFrameSkip) {
+            return; // Skip this frame
+          }
+          this.frameSkipCount = 0;
+
+          const startTime = Date.now();
+          
+          // Use Electron's efficient capture
+          const img = await this.captureScreenElectron();
+          const mousePos = await this.getMousePosition();
+          
+          // Only send if we have a socket connection
+          if (this.socket && this.socket.connected) {
+            this.socket.emit('screenData', {
+              image: img,
+              mouseX: mousePos.x,
+              mouseY: mousePos.y
+            });
+          }
+
+          // Monitor capture performance
+          const captureTime = Date.now() - startTime;
+          this.captureCount++;
+          
+          // Log performance every 10 captures
+          if (this.captureCount % 10 === 0) {
+            console.log(`📊 Electron capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
+          }
+
+          // Adaptive quality adjustment
+          if (captureTime > 100 || this.cpuUsage > 70) {
+            this.adjustQualityForPerformance();
+          }
+
+        } catch (error) {
+          console.error('Electron capture error:', error);
+          // Fallback to screenshot-desktop
+          this.useElectronCapture = false;
+          this.setupScreenshotCapture();
+        }
+      }
+    }, interval);
+
+    // Start CPU monitoring
+    this.startCpuMonitoring();
+  }
+
+  async setupWebRTCStream() {
+    // Send screen source info to renderer process for WebRTC setup
+    if (this.mainWindow && this.primaryScreen) {
+      this.mainWindow.webContents.send('setup-webrtc-capture', {
+        sourceId: this.primaryScreen.id,
+        sourceName: this.primaryScreen.name
+      });
+    }
+  }
+
+  async captureScreenElectron() {
+    // Request WebRTC capture from renderer process
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('WebRTC capture timeout'));
+      }, 1000);
+
+      // Listen for WebRTC capture result
+      const handleCaptureResult = (event, result) => {
+        clearTimeout(timeout);
+        ipcMain.removeListener('webrtc-capture-result', handleCaptureResult);
+        
+        if (result.success) {
+          resolve(result.imageData);
+        } else {
+          reject(new Error(result.error || 'WebRTC capture failed'));
+        }
+      };
+
+      ipcMain.once('webrtc-capture-result', handleCaptureResult);
+      
+      // Request capture from renderer
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('request-webrtc-capture');
+      } else {
+        clearTimeout(timeout);
+        reject(new Error('Main window not available'));
+      }
+    });
+  }
+
+  setupScreenshotCapture() {
+    console.log('📸 Using screenshot-desktop fallback method...');
+    
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
@@ -1500,7 +1663,7 @@ class TesterApp {
     });
   }
 
-  adjustQualityForPerformance() {
+  async adjustQualityForPerformance() {
     console.log('🔧 Adjusting quality for better performance...');
     
     // Reduce quality if performance is poor
@@ -1517,7 +1680,7 @@ class TesterApp {
     }
     
     // Restart capture with new settings
-    this.setupScreenCapture();
+    await this.setupScreenCapture();
   }
 
   stopScreenSharing() {
@@ -1663,10 +1826,10 @@ class TesterApp {
   setupIpcHandlers() {
     // Server auto-starts, no manual start/stop needed
 
-    ipcMain.on('change-quality', (event, quality) => {
+    ipcMain.on('change-quality', async (event, quality) => {
       this.screenQuality = quality;
       if (this.isSharing) {
-        this.setupScreenCapture();
+        await this.setupScreenCapture();
       }
     });
 

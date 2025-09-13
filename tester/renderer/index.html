@@ -520,6 +520,10 @@
         const { ipcRenderer } = require('electron');
         
         let isConnected = false;
+        let webrtcStream = null;
+        let webrtcVideo = null;
+        let webrtcCanvas = null;
+        let webrtcCtx = null;
         
         // Elements
         const statusDot = document.getElementById('statusDot');
@@ -717,6 +721,90 @@
                 option.textContent = device.label || device.deviceId;
                 outputDevice.appendChild(option);
             });
+        });
+
+        // WebRTC Screen Capture Functions
+        async function setupWebRTCCapture(sourceData) {
+            try {
+                console.log('🚀 Setting up WebRTC capture with source:', sourceData.sourceName);
+                
+                // Create video element for WebRTC stream
+                webrtcVideo = document.createElement('video');
+                webrtcVideo.style.display = 'none';
+                document.body.appendChild(webrtcVideo);
+                
+                // Create canvas for capturing frames
+                webrtcCanvas = document.createElement('canvas');
+                webrtcCanvas.width = 1920;
+                webrtcCanvas.height = 1080;
+                webrtcCtx = webrtcCanvas.getContext('2d');
+                
+                // Get WebRTC stream
+                webrtcStream = await navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: {
+                        mandatory: {
+                            chromeMediaSource: 'desktop',
+                            chromeMediaSourceId: sourceData.sourceId,
+                            minWidth: 1280,
+                            maxWidth: 1920,
+                            minHeight: 720,
+                            maxHeight: 1080
+                        }
+                    }
+                });
+                
+                // Set up video element
+                webrtcVideo.srcObject = webrtcStream;
+                webrtcVideo.play();
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    webrtcVideo.onloadedmetadata = resolve;
+                });
+                
+                console.log('✅ WebRTC capture stream established');
+                
+            } catch (error) {
+                console.error('❌ WebRTC setup failed:', error);
+                throw error;
+            }
+        }
+        
+        function captureWebRTCFrame() {
+            if (!webrtcVideo || !webrtcCanvas || !webrtcCtx) {
+                throw new Error('WebRTC not initialized');
+            }
+            
+            // Draw current video frame to canvas
+            webrtcCtx.drawImage(webrtcVideo, 0, 0, webrtcCanvas.width, webrtcCanvas.height);
+            
+            // Convert to base64 JPEG
+            return webrtcCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+        }
+        
+        // IPC Event Handlers
+        ipcRenderer.on('setup-webrtc-capture', async (event, sourceData) => {
+            try {
+                await setupWebRTCCapture(sourceData);
+            } catch (error) {
+                console.error('WebRTC setup failed:', error);
+            }
+        });
+        
+        ipcRenderer.on('request-webrtc-capture', (event) => {
+            try {
+                const imageData = captureWebRTCFrame();
+                ipcRenderer.send('webrtc-capture-result', {
+                    success: true,
+                    imageData: imageData
+                });
+            } catch (error) {
+                ipcRenderer.send('webrtc-capture-result', {
+                    success: false,
+                    error: error.message
+                });
+            }
         });
 
         // Initialize
