@@ -191,12 +191,14 @@
 
         .chat-message.tester {
             background: rgba(46, 213, 115, 0.3);
-            margin-left: auto;
-            text-align: right;
+            margin-right: auto;
+            text-align: left;
         }
 
         .chat-message.supporter {
             background: rgba(255, 107, 107, 0.3);
+            margin-right: auto;
+            text-align: left;
         }
 
         .chat-message.system {
@@ -463,24 +465,24 @@
                 
                 <div class="settings-section">
                     <h4>🔗 Connection Settings</h4>
-                    <div class="input-group">
+            <div class="input-group">
                         <label for="serverPort">Server Port:</label>
                         <select id="serverPort">
                             <option value="8080" selected>8080 (Default)</option>
                             <option value="8081">8081</option>
                             <option value="8082">8082</option>
                         </select>
-                    </div>
-                </div>
-                
+            </div>
+        </div>
+
                 <div class="settings-section">
                     <h4>🔒 Privacy Settings</h4>
                     <div class="checkbox-group">
                         <input type="checkbox" id="stealthMode" checked disabled>
                         <label for="stealthMode">Always Invisible Mode (Always Active)</label>
                     </div>
-                </div>
-                
+        </div>
+
                 <div class="settings-section">
                     <h4>🔔 Notifications</h4>
                     <div class="checkbox-group">
@@ -490,7 +492,7 @@
                     <div class="checkbox-group">
                         <input type="checkbox" id="trayNotifications" checked>
                         <label for="trayNotifications">Tray Notifications</label>
-                    </div>
+            </div>
             </div>
             </div>
         </div>
@@ -711,21 +713,29 @@
         // WebRTC Screen Capture Functions
         async function setupWebRTCCapture(sourceData) {
             try {
-                console.log('🚀 Setting up WebRTC capture with source:', sourceData.sourceName);
+                console.log('🚀 Setting up professional WebRTC capture (Zoom approach)');
+                console.log('📺 Source:', sourceData.sourceName);
+                console.log('🆔 Source ID:', sourceData.sourceId);
                 
                 // Create video element for WebRTC stream
                 webrtcVideo = document.createElement('video');
                 webrtcVideo.style.display = 'none';
+                webrtcVideo.muted = true;
+                webrtcVideo.playsInline = true;
                 document.body.appendChild(webrtcVideo);
                 
-                // Create canvas for capturing frames
+                // Create canvas for capturing frames with optimal settings
                 webrtcCanvas = document.createElement('canvas');
                 webrtcCanvas.width = 1920;
                 webrtcCanvas.height = 1080;
-                webrtcCtx = webrtcCanvas.getContext('2d');
+                webrtcCtx = webrtcCanvas.getContext('2d', {
+                    alpha: false,
+                    desynchronized: true, // Better performance
+                    willReadFrequently: false
+                });
                 
-                // Get WebRTC stream
-                webrtcStream = await navigator.mediaDevices.getUserMedia({
+                // Professional WebRTC constraints (Zoom-like)
+                const constraints = {
                     audio: false,
                     video: {
                         mandatory: {
@@ -734,25 +744,62 @@
                             minWidth: 1280,
                             maxWidth: 1920,
                             minHeight: 720,
-                            maxHeight: 1080
+                            maxHeight: 1080,
+                            minFrameRate: 15,
+                            maxFrameRate: 30
                         }
                     }
-                });
+                };
                 
-                // Set up video element
+                console.log('🎥 Requesting WebRTC stream with constraints:', constraints);
+                
+                // Get WebRTC stream with error handling
+                webrtcStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // Set up video element with optimal settings
                 webrtcVideo.srcObject = webrtcStream;
-                webrtcVideo.play();
+                webrtcVideo.autoplay = true;
+                webrtcVideo.muted = true;
                 
-                // Wait for video to be ready
-                await new Promise((resolve) => {
-                    webrtcVideo.onloadedmetadata = resolve;
+                // Wait for video to be ready with timeout
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Video loading timeout'));
+                    }, 5000);
+                    
+                    webrtcVideo.onloadedmetadata = () => {
+                        clearTimeout(timeout);
+                        console.log('📺 Video metadata loaded:', {
+                            videoWidth: webrtcVideo.videoWidth,
+                            videoHeight: webrtcVideo.videoHeight,
+                            duration: webrtcVideo.duration
+                        });
+                        resolve();
+                    };
+                    
+                    webrtcVideo.onerror = (error) => {
+                        clearTimeout(timeout);
+                        reject(error);
+                    };
                 });
                 
-                console.log('✅ WebRTC capture stream established');
+                // Start playing the video
+                await webrtcVideo.play();
+                
+                console.log('✅ Professional WebRTC capture stream established');
+                console.log('🎯 Stream settings:', {
+                    width: webrtcVideo.videoWidth,
+                    height: webrtcVideo.videoHeight,
+                    frameRate: webrtcStream.getVideoTracks()[0]?.getSettings().frameRate
+                });
+                
+                // Notify main process that WebRTC is ready
+                ipcRenderer.send('webrtc-ready');
                 
             } catch (error) {
-                console.error('❌ WebRTC setup failed:', error);
-                throw error;
+                console.error('❌ Professional WebRTC setup failed:', error);
+                // Notify main process of error instead of throwing
+                ipcRenderer.send('webrtc-error', error.message);
             }
         }
         
@@ -761,11 +808,51 @@
                 throw new Error('WebRTC not initialized');
             }
             
-            // Draw current video frame to canvas
-            webrtcCtx.drawImage(webrtcVideo, 0, 0, webrtcCanvas.width, webrtcCanvas.height);
+            // Check if video is ready
+            if (webrtcVideo.readyState < 2) {
+                throw new Error('Video not ready');
+            }
             
-            // Convert to base64 JPEG
-            return webrtcCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            // Professional frame capture with optimization
+            const startTime = performance.now();
+            
+            // Draw current video frame to canvas with optimal settings
+            webrtcCtx.drawImage(
+                webrtcVideo, 
+                0, 0, 
+                webrtcCanvas.width, 
+                webrtcCanvas.height
+            );
+            
+            // Convert to base64 with adaptive quality
+            const quality = getAdaptiveQuality();
+            const imageData = webrtcCanvas.toDataURL('image/jpeg', quality).split(',')[1];
+            
+            const captureTime = performance.now() - startTime;
+            console.log(`📸 Frame captured in ${captureTime.toFixed(2)}ms, quality: ${quality}`);
+            
+            return imageData;
+        }
+        
+        function getAdaptiveQuality() {
+            // Adaptive quality based on performance
+            const now = Date.now();
+            if (!window.lastFrameTime) {
+                window.lastFrameTime = now;
+                return 0.8;
+            }
+            
+            const frameInterval = now - window.lastFrameTime;
+            window.lastFrameTime = now;
+            
+            // Adjust quality based on frame rate
+            if (frameInterval > 100) { // Low frame rate
+                return 0.6; // Lower quality for better performance
+            } else if (frameInterval < 50) { // High frame rate
+                return 0.9; // Higher quality
+            } else {
+                return 0.8; // Balanced quality
+            }
         }
         
         // IPC Event Handlers

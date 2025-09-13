@@ -105,13 +105,14 @@
         }
 
         .btn {
-            padding: 6px 12px;
+            padding: 10px 16px;
             border: none;
-            border-radius: 4px;
-            font-size: 12px;
+            border-radius: 6px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 36px;
         }
 
         .btn-primary {
@@ -138,8 +139,9 @@
         }
 
         .btn-small {
-            padding: 4px 8px;
-            font-size: 11px;
+            padding: 8px 12px;
+            font-size: 12px;
+            min-height: 32px;
         }
 
         /* Screen Area */
@@ -164,6 +166,29 @@
             justify-content: center;
             position: relative;
             overflow: hidden;
+            /* Prevent image dragging and selection */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+        }
+
+        /* Prevent all dragging and selection within screen viewer */
+        .screen-viewer * {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
         }
 
         .screen-image {
@@ -174,6 +199,17 @@
             border-radius: 4px;
             cursor: crosshair;
             object-fit: contain; /* Maintain aspect ratio while filling space */
+            /* Prevent image dragging and selection */
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            pointer-events: auto;
         }
 
         .no-screen {
@@ -250,9 +286,9 @@
         }
 
         .control-panel h3 {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             color: #ccc;
         }
 
@@ -269,9 +305,9 @@
         }
 
         .control-row label {
-            font-size: 11px;
+            font-size: 13px;
             color: #ccc;
-            min-width: 60px;
+            min-width: 70px;
         }
 
         /* Connection Controls */
@@ -283,9 +319,9 @@
         }
 
         .connection-controls h3 {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             color: #ccc;
         }
 
@@ -296,12 +332,13 @@
         }
 
         .connection-group input {
-            padding: 6px 8px;
+            padding: 10px 12px;
             border: 1px solid #404040;
-            border-radius: 4px;
+            border-radius: 6px;
             background: #1a1a1a;
             color: #ffffff;
-            font-size: 11px;
+            font-size: 14px;
+            min-height: 36px;
         }
 
         .connection-group input[type="text"] {
@@ -314,11 +351,12 @@
 
         .connection-buttons {
             display: flex;
-            gap: 6px;
+            gap: 8px;
         }
 
         .connection-buttons .btn {
             flex: 1;
+            min-height: 40px;
         }
 
         /* Chat & Answer Panel */
@@ -340,7 +378,7 @@
         }
 
         .panel-title {
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             color: #ccc;
             display: flex;
@@ -354,14 +392,15 @@
         }
 
         .tab-btn {
-            padding: 4px 8px;
+            padding: 8px 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             background: #404040;
             color: #ccc;
-            font-size: 10px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s;
+            min-height: 32px;
         }
 
         .tab-btn.active {
@@ -380,30 +419,32 @@
         .chat-messages {
             flex: 1;
             background: #1a1a1a;
-            border-radius: 4px;
-            padding: 6px;
+            border-radius: 6px;
+            padding: 8px;
             overflow-y: auto;
-            font-size: 11px;
-            min-height: 60px;
+            font-size: 13px;
+            min-height: 80px;
         }
 
         .chat-message {
-            margin-bottom: 4px;
-            padding: 3px 6px;
-            border-radius: 3px;
+            margin-bottom: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
             max-width: 85%;
             word-wrap: break-word;
-            font-size: 10px;
+            font-size: 12px;
         }
 
         .chat-message.tester {
             background: rgba(46, 213, 115, 0.2);
-            margin-left: auto;
-            text-align: right;
+            margin-right: auto;
+            text-align: left;
         }
 
         .chat-message.supporter {
             background: rgba(255, 107, 107, 0.2);
+            margin-right: auto;
+            text-align: left;
         }
 
         /* Input Area */
@@ -415,21 +456,25 @@
 
         .input-field {
             flex: 1;
-            padding: 6px 8px;
+            padding: 10px 12px;
             border: 1px solid #404040;
-            border-radius: 4px;
+            border-radius: 6px;
             background: #1a1a1a;
             color: #ffffff;
-            font-size: 11px;
+            font-size: 14px;
             font-family: 'Monaco', 'Menlo', monospace;
             resize: none;
-            min-height: 32px;
-            max-height: 60px;
+            min-height: 40px;
+            max-height: 80px;
         }
 
         .input-buttons {
             display: flex;
-            gap: 4px;
+            gap: 6px;
+        }
+
+        .input-buttons .btn {
+            min-height: 40px;
         }
 
         /* Controls */
@@ -445,11 +490,48 @@
         }
 
         .btn.active {
-            background: #ff6b6b;
+            background: #4caf50; /* Green for active/enabled state */
         }
 
         .btn.active:hover {
-            background: #ff5252;
+            background: #45a049;
+        }
+
+        .btn.inactive {
+            background: #f44336; /* Red for inactive/disabled state */
+        }
+
+        .btn.inactive:hover {
+            background: #da190b;
+        }
+
+        .btn:disabled {
+            background: #7f8c8d;
+            color: #bdc3c7;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .btn:disabled:hover {
+            background: #7f8c8d;
+            transform: none;
+        }
+
+        /* View button specific styles */
+        .btn.viewing {
+            background: #4caf50; /* Green when viewing screen */
+        }
+
+        .btn.viewing:hover {
+            background: #45a049;
+        }
+
+        .btn.not-viewing {
+            background: #f44336; /* Red when not viewing screen */
+        }
+
+        .btn.not-viewing:hover {
+            background: #da190b;
         }
 
         /* Responsive - Always maintain column layout */
@@ -470,7 +552,7 @@
             }
             
             .config-section {
-                flex: 1;
+            flex: 1;
                 min-width: 200px; /* Smaller minimum width */
             }
         }
@@ -533,8 +615,8 @@
                     <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
                     <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
                 </div>
+                </div>
             </div>
-        </div>
 
         <!-- Right Side - Configuration Area -->
         <div class="config-section">
@@ -546,7 +628,7 @@
                     <div class="connection-buttons">
                         <button class="btn btn-primary btn-small" id="connectBtn">Connect</button>
                         <button class="btn btn-secondary btn-small" id="disconnectBtn" disabled>Disconnect</button>
-                    </div>
+                </div>
                 </div>
             </div>
 
@@ -557,10 +639,10 @@
                     <div class="control-row">
                         <label>Mode:</label>
                         <div class="mode-toggle">
-                            <button class="btn btn-small btn-primary active" id="viewModeBtn2">View</button>
+                            <button class="btn btn-small btn-primary" id="viewModeBtn2">View</button>
                             <button class="btn btn-small btn-secondary" id="controlModeBtn2">Control</button>
-                        </div>
-                    </div>
+                </div>
+                </div>
                     <div class="control-row">
                         <label>Audio:</label>
                         <button class="btn btn-small btn-primary" id="soundBtn2" title="Toggle Audio">🔊</button>
@@ -568,34 +650,34 @@
                     <div class="control-row">
                         <label>Capture:</label>
                         <button class="btn btn-small btn-secondary" id="captureBtn2" disabled>📷</button>
-                    </div>
                 </div>
             </div>
+        </div>
 
             <!-- Chat & Answer Panel -->
             <div class="chat-answer-panel">
                 <div class="panel-header">
                     <div class="panel-title">
                         💬 Chat & Answer
-                    </div>
+                </div>
                     <div class="panel-tabs">
                         <button class="tab-btn active" id="chatTab">Chat</button>
                         <button class="tab-btn" id="answerTab">Answer</button>
-                    </div>
                 </div>
-                
+            </div>
+
                 <div class="panel-content">
-                    <div class="chat-messages" id="chatMessages">
+                <div class="chat-messages" id="chatMessages">
                         <div class="no-messages" style="color: #666; text-align: center; padding: 20px; font-size: 11px;">No messages yet</div>
-                    </div>
+                </div>
                     
                     <div class="input-area">
                         <textarea class="input-field" id="inputField" placeholder="Type message or answer..." maxlength="1000"></textarea>
                         <div class="input-buttons">
                             <button class="btn btn-primary btn-small" id="sendBtn" disabled>Send</button>
                             <button class="btn btn-secondary btn-small" id="clearBtn">Clear</button>
-                        </div>
-                    </div>
+                </div>
+            </div>
                 </div>
             </div>
         </div>
@@ -606,8 +688,10 @@
         
         let isConnected = false;
         let isControlMode = false;
+        let isViewingScreen = false; // Track if screen sharing is active
         let lastMouseMoveTime = 0;
         let currentMode = 'chat'; // 'chat' or 'answer'
+        let lastValidMousePosition = { x: 0, y: 0 }; // Store last valid mouse position
         const MOUSE_MOVE_THROTTLE = 16; // ~60fps
         
         // Elements
@@ -651,9 +735,10 @@
             ipcRenderer.send('disconnect-from-tester');
         });
 
-        // Mode toggle
-        viewModeBtn2.addEventListener('click', () => setControlMode(false));
-        controlModeBtn2.addEventListener('click', () => setControlMode(true));
+        // View button - toggle screen sharing
+        viewModeBtn2.addEventListener('click', () => toggleScreenViewing());
+        // Control button - toggle control mode
+        controlModeBtn2.addEventListener('click', () => toggleControlMode());
 
         // Capture
         captureBtn2.addEventListener('click', () => {
@@ -705,8 +790,14 @@
         });
 
         ipcRenderer.on('screen-data', (event, data) => {
-            displayScreen(data.data, data.mouseX, data.mouseY);
-        });
+            // Display the screen with delta compression support
+            if (data.isFullFrame) {
+                // Full frame update
+                displayScreen(data.data, data.mouseX, data.mouseY);
+            } else if (data.regions && data.regions.length > 0) {
+                // Delta update - update only changed regions
+                updateScreenRegions(data.regions, data.mouseX, data.mouseY);
+            }});
 
         ipcRenderer.on('client-disconnected', (event) => {
             clearScreen();
@@ -716,8 +807,13 @@
             if (result.success) {
                 // Show success message
                 const originalText = captureBtn2.textContent;
-                captureBtn2.textContent = '✅ Saved!';
-                captureBtn2.style.background = '#2ed573';
+                if (result.clipboardSuccess) {
+                    captureBtn2.textContent = '📋 Copied!';
+                    captureBtn2.style.background = '#2ed573';
+                } else {
+                    captureBtn2.textContent = '✅ Saved!';
+                    captureBtn2.style.background = '#2ed573';
+                }
                 setTimeout(() => {
                     captureBtn2.textContent = originalText;
                     captureBtn2.style.background = '';
@@ -757,6 +853,9 @@
                 disconnectBtn.disabled = false;
                 captureBtn2.disabled = false;
                 sendBtn.disabled = false;
+                // Enable view and control buttons when connected
+                viewModeBtn2.disabled = false;
+                controlModeBtn2.disabled = false;
             } else {
                 statusDot.classList.remove('connected');
                 // Don't override error messages - keep them visible
@@ -767,20 +866,94 @@
                 disconnectBtn.disabled = true;
                 captureBtn2.disabled = true;
                 sendBtn.disabled = true;
+                // Disable view and control buttons when disconnected
+                viewModeBtn2.disabled = true;
+                controlModeBtn2.disabled = true;
+                
+                // Reset view state when disconnected
+                isViewingScreen = false;
+                viewModeBtn2.classList.remove('viewing');
+                viewModeBtn2.classList.add('not-viewing');
+                viewModeBtn2.textContent = 'View';
+                
+                // Reset control mode to inactive when disconnected
+                setControlMode(false);
+                
+                clearScreen();
             }
+        }
+
+        function toggleScreenViewing() {
+            if (!isConnected) {
+                console.log('❌ Cannot toggle screen viewing - not connected');
+                return;
+            }
+            
+            isViewingScreen = !isViewingScreen;
+            console.log(`🔄 Toggling screen viewing: ${isViewingScreen ? 'ON' : 'OFF'}`);
+            
+            if (isViewingScreen) {
+                // Start screen sharing - Green when viewing
+                viewModeBtn2.classList.remove('not-viewing');
+                viewModeBtn2.classList.add('viewing');
+                viewModeBtn2.textContent = 'View';
+                console.log('📺 Starting screen sharing...');
+                ipcRenderer.invoke('start-screen-sharing').then(result => {
+                    if (result) {
+                        console.log('✅ Screen sharing started successfully');
+                    } else {
+                        console.log('❌ Failed to start screen sharing');
+                        // Revert button state
+                        isViewingScreen = false;
+                        viewModeBtn2.classList.remove('viewing');
+                        viewModeBtn2.classList.add('not-viewing');
+                    }
+                }).catch(error => {
+                    console.error('❌ Error starting screen sharing:', error);
+                    // Revert button state
+                    isViewingScreen = false;
+                    viewModeBtn2.classList.remove('viewing');
+                    viewModeBtn2.classList.add('not-viewing');
+                });
+            } else {
+                // Stop screen sharing - Red when not viewing
+                viewModeBtn2.classList.remove('viewing');
+                viewModeBtn2.classList.add('not-viewing');
+                viewModeBtn2.textContent = 'View';
+                console.log('🛑 Stopping screen sharing...');
+                ipcRenderer.invoke('stop-screen-sharing').then(result => {
+                    if (result) {
+                        console.log('✅ Screen sharing stopped successfully');
+                    } else {
+                        console.log('❌ Failed to stop screen sharing');
+                    }
+                }).catch(error => {
+                    console.error('❌ Error stopping screen sharing:', error);
+                });
+                clearScreen();
+            }
+        }
+
+        function toggleControlMode() {
+            isControlMode = !isControlMode;
+            setControlMode(isControlMode);
         }
 
         function setControlMode(control) {
             isControlMode = control;
             
             if (control) {
-                viewModeBtn2.classList.remove('active');
+                // Green when control is enabled
                 controlModeBtn2.classList.add('active');
+                controlModeBtn2.classList.remove('inactive');
+                controlModeBtn2.textContent = 'Control';
                 screenViewer.style.cursor = 'crosshair';
                 controlIndicator.classList.add('active');
             } else {
-                viewModeBtn2.classList.add('active');
+                // Red when control is disabled
                 controlModeBtn2.classList.remove('active');
+                controlModeBtn2.classList.add('inactive');
+                controlModeBtn2.textContent = 'Control';
                 screenViewer.style.cursor = 'default';
                 controlIndicator.classList.remove('active');
             }
@@ -794,16 +967,40 @@
             img.src = `data:image/${format};base64,${base64Data}`;
             img.className = 'screen-image';
             
-            // Clear existing content
-            screenViewer.innerHTML = '';
-            screenViewer.appendChild(img);
+            // Prevent image dragging and selection, but allow clicks
+            img.addEventListener('dragstart', (e) => e.preventDefault());
+            img.addEventListener('selectstart', (e) => e.preventDefault());
+            // Don't prevent mousedown or contextmenu - we need these for clicking
             
-            // Add mouse cursor overlay
+            // Clear existing content
+                screenViewer.innerHTML = '';
+                screenViewer.appendChild(img);
+            
+            // Add mouse cursor overlay (positioned relative to the actual image)
             if (mouseX > 0 || mouseY > 0) {
                 const cursor = document.createElement('div');
                 cursor.className = 'mouse-cursor';
-                cursor.style.left = `${mouseX}px`;
-                cursor.style.top = `${mouseY}px`;
+                
+                // Position cursor relative to the displayed image
+                const img = screenViewer.querySelector('.screen-image');
+                if (img) {
+                    const imgRect = img.getBoundingClientRect();
+                    const containerRect = screenViewer.getBoundingClientRect();
+                    
+                    // Scale from original image coordinates to displayed image coordinates
+                    const scaleX = imgRect.width / img.naturalWidth;
+                    const scaleY = imgRect.height / img.naturalHeight;
+                    
+                    const displayX = (imgRect.left - containerRect.left) + (mouseX * scaleX);
+                    const displayY = (imgRect.top - containerRect.top) + (mouseY * scaleY);
+                    
+                    cursor.style.left = `${displayX}px`;
+                    cursor.style.top = `${displayY}px`;
+                } else {
+                    cursor.style.left = `${mouseX}px`;
+                    cursor.style.top = `${mouseY}px`;
+                }
+                
                 screenViewer.appendChild(cursor);
             }
             
@@ -826,6 +1023,53 @@
             screenViewer.appendChild(controlDiv);
         }
 
+        function updateScreenRegions(regions, mouseX = 0, mouseY = 0) {
+            const screenViewer = document.getElementById('screenViewer');
+            const mainImg = screenViewer.querySelector('.screen-image');
+            
+            if (!mainImg) {
+                // If no main image exists, fall back to full screen display
+                if (regions.length > 0) {
+                    displayScreen(regions[0].image, mouseX, mouseY);
+                }
+                return;
+            }
+            
+            // For now, just update the mouse cursor position
+            // TODO: Implement proper region-based updates with canvas
+            if (mouseX > 0 || mouseY > 0) {
+                // Remove existing cursor
+                const existingCursor = screenViewer.querySelector('.mouse-cursor');
+                if (existingCursor) {
+                    existingCursor.remove();
+                }
+                
+                // Add new cursor
+                const cursor = document.createElement('div');
+                cursor.className = 'mouse-cursor';
+                
+                const imgRect = mainImg.getBoundingClientRect();
+                const containerRect = screenViewer.getBoundingClientRect();
+                
+                const scaleX = imgRect.width / mainImg.naturalWidth;
+                const scaleY = imgRect.height / mainImg.naturalHeight;
+                
+                const displayX = (imgRect.left - containerRect.left) + (mouseX * scaleX);
+                const displayY = (imgRect.top - containerRect.top) + (mouseY * scaleY);
+                
+                cursor.style.left = `${displayX}px`;
+                cursor.style.top = `${displayY}px`;
+                
+                screenViewer.appendChild(cursor);
+            }
+            
+            // Update cursor info
+            const cursorInfo = document.getElementById('cursorInfo');
+            if (cursorInfo) {
+                cursorInfo.textContent = `Mouse: X: ${mouseX}, Y: ${mouseY}`;
+            }
+        }
+
         function clearScreen() {
             screenViewer.innerHTML = `
                 <div class="no-screen">
@@ -833,6 +1077,44 @@
                     <p>Connect to tester to view their screen</p>
                 </div>
             `;
+        }
+
+        function calculateMousePosition(e) {
+            const screenImg = screenViewer.querySelector('.screen-image');
+            if (!screenImg) {
+                return null; // No image available
+            }
+
+            const containerRect = screenViewer.getBoundingClientRect();
+            const imgRect = screenImg.getBoundingClientRect();
+            
+            // Get mouse position relative to the container
+            const mouseX = e.clientX - containerRect.left;
+            const mouseY = e.clientY - containerRect.top;
+            
+            // Check if mouse is within the actual image bounds
+            const imgLeft = imgRect.left - containerRect.left;
+            const imgTop = imgRect.top - containerRect.top;
+            const imgRight = imgLeft + imgRect.width;
+            const imgBottom = imgTop + imgRect.height;
+            
+            if (mouseX < imgLeft || mouseX > imgRight || mouseY < imgTop || mouseY > imgBottom) {
+                // Mouse is in empty space, return null to indicate no valid position
+                return null;
+            }
+            
+            // Calculate position relative to the image
+            const relativeX = mouseX - imgLeft;
+            const relativeY = mouseY - imgTop;
+            
+            // Scale to original image dimensions
+            const scaleX = screenImg.naturalWidth / imgRect.width;
+            const scaleY = screenImg.naturalHeight / imgRect.height;
+            
+            const x = Math.round(relativeX * scaleX);
+            const y = Math.round(relativeY * scaleY);
+            
+            return { x, y };
         }
 
         function handleMouseMove(e) {
@@ -844,26 +1126,41 @@
             }
             lastMouseMoveTime = now;
             
-            const rect = screenViewer.getBoundingClientRect();
-            const x = Math.round((e.clientX - rect.left) * (screenViewer.offsetWidth / rect.width));
-            const y = Math.round((e.clientY - rect.top) * (screenViewer.offsetHeight / rect.height));
+            const position = calculateMousePosition(e);
             
-            // Update cursor info immediately
-            cursorInfo.textContent = `X: ${x}, Y: ${y}`;
-            cursorInfo.style.display = 'block';
-            
-            // Send mouse move to tester immediately (this will move tester's actual mouse cursor)
-            ipcRenderer.invoke('send-mouse-move', { x, y });
+            if (position) {
+                // Valid position on the image
+                const { x, y } = position;
+                lastValidMousePosition = { x, y }; // Store valid position
+                
+                // Update cursor info immediately
+                cursorInfo.textContent = `X: ${x}, Y: ${y}`;
+                cursorInfo.style.display = 'block';
+                
+                // Send mouse move to tester immediately (this will move tester's actual mouse cursor)
+                ipcRenderer.invoke('send-mouse-move', { x, y });
+                } else {
+                // Mouse is in empty space - don't send coordinates, just show empty space indicator
+                cursorInfo.textContent = 'Empty Space';
+                cursorInfo.style.display = 'block';
+                // Don't send any coordinates to tester
+            }
         }
 
         function handleMouseClick(e, button = 'left') {
             if (!isControlMode || !isConnected) return;
             
-            const rect = screenViewer.getBoundingClientRect();
-            const x = Math.round((e.clientX - rect.left) * (screenViewer.offsetWidth / rect.width));
-            const y = Math.round((e.clientY - rect.top) * (screenViewer.offsetHeight / rect.height));
+            const position = calculateMousePosition(e);
             
-            ipcRenderer.invoke('send-mouse-click', { x, y, button });
+            if (position) {
+                // Valid position on the image
+                const { x, y } = position;
+                lastValidMousePosition = { x, y }; // Store valid position
+                ipcRenderer.invoke('send-mouse-click', { x, y, button });
+            } else {
+                // Mouse is in empty space - don't send click
+                console.log('Click ignored - mouse is in empty space');
+            }
         }
 
         function switchMode(mode) {
@@ -873,7 +1170,7 @@
                 chatTab.classList.add('active');
                 answerTab.classList.remove('active');
                 inputField.placeholder = 'Type message...';
-            } else {
+                } else {
                 chatTab.classList.remove('active');
                 answerTab.classList.add('active');
                 inputField.placeholder = 'Type your answer or code here...';
@@ -911,6 +1208,12 @@
         // Initialize
         updateConnectionStatus();
         initializeAudioState();
+        
+        // Initialize control button to inactive (red) state
+        setControlMode(false);
+        
+        // Initialize view button to not-viewing (red) state
+        viewModeBtn2.classList.add('not-viewing');
     </script>
 </body>
 </html>

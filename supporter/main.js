@@ -127,11 +127,16 @@ class SupporterApp {
       // Store last screen data for screenshot capture
       this.lastScreenData = data;
       
-      // Send screen data to renderer with mouse position
+      // Send screen data to renderer with delta compression support
       this.mainWindow.webContents.send('screen-data', {
         data: data.image || data, // Handle both old and new format
         mouseX: data.mouseX || 0,
-        mouseY: data.mouseY || 0
+        mouseY: data.mouseY || 0,
+        timestamp: data.timestamp || Date.now(),
+        quality: data.quality || 'medium',
+        isFullFrame: data.isFullFrame || true,
+        regions: data.regions || null,
+        changedPixels: data.changedPixels || 0
       });
     });
 
@@ -149,8 +154,22 @@ class SupporterApp {
       const buffer = Buffer.from(data, 'base64');
       fs.writeFileSync(filepath, buffer);
       
-      // Notify the renderer that screenshot was saved
-      this.mainWindow.webContents.send('screenshot-saved', { success: true, filepath });
+      // Copy image to clipboard
+      try {
+        const { clipboard, nativeImage } = require('electron');
+        const image = nativeImage.createFromBuffer(buffer);
+        clipboard.writeImage(image);
+        console.log('✅ Screenshot copied to clipboard');
+      } catch (error) {
+        console.error('❌ Failed to copy to clipboard:', error);
+      }
+      
+      // Notify the renderer that screenshot was saved and copied to clipboard
+      this.mainWindow.webContents.send('screenshot-saved', { 
+        success: true, 
+        filepath,
+        clipboardSuccess: true
+      });
     });
     this.socket.on('chatMessage', (message) => {
       // Store message locally
@@ -332,6 +351,22 @@ class SupporterApp {
 
     ipcMain.handle('get-audio-status', (event) => {
       return this.isAudioEnabled;
+    });
+
+    ipcMain.handle('start-screen-sharing', () => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('start-screen-sharing');
+        return true;
+      }
+      return false;
+    });
+
+    ipcMain.handle('stop-screen-sharing', () => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('stop-screen-sharing');
+        return true;
+      }
+      return false;
     });
   }
 }

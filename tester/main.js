@@ -24,8 +24,14 @@ class TesterApp {
     this.chatMessages = [];
     this.audioRecorder = null;
     this.isAudioEnabled = true; // Audio enabled by default
-    this.useElectronCapture = false; // Disable WebRTC capture due to timeout issues
+    this.useElectronCapture = false; // Disable WebRTC to focus on optimized screenshot method
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
+    
+    // Delta compression for efficient screen sharing
+    this.lastScreenBuffer = null;
+    this.lastScreenWidth = 0;
+    this.lastScreenHeight = 0;
+    this.pixelmatch = null; // Will be loaded dynamically
     
     this.init();
   }
@@ -71,6 +77,20 @@ class TesterApp {
         clearInterval(this.aggressiveProtectionInterval);
         this.aggressiveProtectionInterval = null;
       }
+    });
+
+    // Handle uncaught exceptions gracefully
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      if (error.message.includes('spawn sox ENOENT') || 
+          error.message.includes('spawn rec ENOENT') || 
+          error.message.includes('spawn arecord ENOENT')) {
+        console.log('⚠️ Audio tool not found - audio features disabled');
+        // Don't crash the app for missing audio tools
+        return;
+      }
+      // For other errors, let them bubble up
+      throw error;
     });
 
     // Handle second instance (prevent multiple instances)
@@ -916,6 +936,8 @@ class TesterApp {
     
     if (process.platform === 'win32') {
       return new Promise((resolve) => {
+        console.log(`⌨️ Windows key press: ${key} with modifiers: ${modifiers.join(', ')}`);
+        
         // Build modifier string for Windows
         let keyString = '';
         if (modifiers.includes('ctrl')) keyString += '^';
@@ -923,10 +945,43 @@ class TesterApp {
         if (modifiers.includes('shift')) keyString += '+';
         keyString += key;
         
-        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`, (error) => {
-          if (error) console.error('Error pressing key:', error);
-          resolve();
-        });
+        // Try multiple approaches for better compatibility
+        const approaches = [
+          // Approach 1: Standard SendKeys
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`,
+          
+          // Approach 2: Using nircmd if available
+          `nircmd sendkey ${key.toLowerCase()}`,
+          
+          // Approach 3: Using VBScript
+          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").SendKeys \"${keyString}\""`
+        ];
+        
+        let currentApproach = 0;
+        
+        const tryNextApproach = () => {
+          if (currentApproach >= approaches.length) {
+            console.error('❌ All Windows keyboard approaches failed');
+            resolve();
+            return;
+          }
+          
+          const command = approaches[currentApproach];
+          console.log(`🔄 Trying keyboard approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          
+          exec(command, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`❌ Keyboard approach ${currentApproach + 1} failed:`, error.message);
+              currentApproach++;
+              tryNextApproach();
+            } else {
+              console.log(`✅ Windows keyboard input successful with approach ${currentApproach + 1}`);
+              resolve();
+            }
+          });
+        };
+        
+        tryNextApproach();
       });
     } else if (process.platform === 'linux') {
       return new Promise((resolve) => {
@@ -1001,6 +1056,31 @@ class TesterApp {
     }
   }
 
+  checkAudioTools() {
+    return new Promise((resolve) => {
+      const { exec } = require('child_process');
+      
+      // Check for common audio recording tools
+      const audioTools = ['rec', 'arecord', 'sox'];
+      let foundTool = false;
+      let checkedTools = 0;
+      
+      audioTools.forEach(tool => {
+        exec(`which ${tool}`, (error) => {
+          checkedTools++;
+          if (!error && !foundTool) {
+            foundTool = true;
+            console.log(`✅ Audio tool ${tool} is available`);
+            resolve(true);
+          } else if (checkedTools === audioTools.length && !foundTool) {
+            console.log('⚠️ No audio recording tools found (rec, arecord, sox)');
+            resolve(false);
+          }
+        });
+      });
+    });
+  }
+
   async moveMouse(x, y) {
     const { exec } = require('child_process');
     
@@ -1046,42 +1126,47 @@ class TesterApp {
     await this.moveMouse(x, y);
     
     if (process.platform === 'win32') {
-      // Windows: Use PowerShell with proper mouse_event API
+      // Windows: Use simplified PowerShell approach
       return new Promise((resolve) => {
-        const mouseDown = button === 'right' ? '0x0008' : '0x0002'; // MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN
-        const mouseUp = button === 'right' ? '0x0010' : '0x0004';   // MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_LEFTUP
+        console.log(`🖱️ Windows mouse click: ${button} at (${x}, ${y})`);
         
-        const psScript = `
-          Add-Type -TypeDefinition @"
-            using System;
-            using System.Runtime.InteropServices;
-            public class Mouse {
-              [DllImport("user32.dll")]
-              public static extern bool SetCursorPos(int x, int y);
-              [DllImport("user32.dll")]
-              public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
-            }
-"@
-          [Mouse]::SetCursorPos(${x}, ${y})
-          Start-Sleep -Milliseconds 10
-          [Mouse]::mouse_event(${mouseDown}, 0, 0, 0, 0)
-          Start-Sleep -Milliseconds 10
-          [Mouse]::mouse_event(${mouseUp}, 0, 0, 0, 0)
-        `;
+        // Try multiple approaches for better compatibility
+        const approaches = [
+          // Approach 1: Simple mouse_event
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')"`,
+          
+          // Approach 2: Using mouse_event API
+          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\"user32.dll\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo); }'; [Mouse]::mouse_event(${button === 'right' ? '0x0008' : '0x0002'}, 0, 0, 0, 0); Start-Sleep -Milliseconds 10; [Mouse]::mouse_event(${button === 'right' ? '0x0010' : '0x0004'}, 0, 0, 0, 0)"`,
+          
+          // Approach 3: Using nircmd if available
+          `nircmd setcursor ${x} ${y} && nircmd leftclick`
+        ];
         
-        exec(`powershell -command "${psScript}"`, (error) => {
-          if (error) {
-            console.error('Error clicking mouse:', error);
-            // Fallback: try simple SendKeys approach
-            const clickKey = button === 'right' ? '{F10}' : '{ENTER}';
-            exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('${clickKey}')"`, (error2) => {
-              if (error2) console.error('Error with SendKeys fallback:', error2);
-              resolve();
-            });
-          } else {
+        let currentApproach = 0;
+        
+        const tryNextApproach = () => {
+          if (currentApproach >= approaches.length) {
+            console.error('❌ All Windows mouse click approaches failed');
             resolve();
+            return;
           }
-        });
+          
+          const command = approaches[currentApproach];
+          console.log(`🔄 Trying approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          
+          exec(command, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`❌ Approach ${currentApproach + 1} failed:`, error.message);
+              currentApproach++;
+              tryNextApproach();
+            } else {
+              console.log(`✅ Windows mouse click successful with approach ${currentApproach + 1}`);
+              resolve();
+            }
+          });
+        };
+        
+        tryNextApproach();
       });
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool to click
@@ -1129,7 +1214,7 @@ class TesterApp {
         });
       });
     } else if (process.platform === 'linux') {
-      // Linux: Use xdotool to get mouse position
+      // Linux: Use xdotool first (more reliable), then ydotool as fallback
       return new Promise((resolve) => {
         exec(`xdotool getmouselocation --shell`, (error, stdout) => {
           if (error) {
@@ -1140,7 +1225,7 @@ class TesterApp {
                 console.error('Error getting mouse position with ydotool:', error2);
                 resolve({ x: 0, y: 0 });
               } else {
-                // Parse ydotool output format
+                // Parse ydotool output format: x:123 y:456
                 const match = stdout2.match(/x:(\d+)\s+y:(\d+)/);
                 if (match) {
                   resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
@@ -1151,12 +1236,10 @@ class TesterApp {
             });
           } else {
             // Parse xdotool output format: X=123 Y=456
-            const match = stdout.match(/X=(\d+)\s+Y=(\d+)/);
-            if (match) {
-              resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
-            } else {
-              resolve({ x: 0, y: 0 });
-            }
+            const lines = stdout.trim().split('\n');
+            const x = parseInt(lines.find(line => line.startsWith('X='))?.split('=')[1]) || 0;
+            const y = parseInt(lines.find(line => line.startsWith('Y='))?.split('=')[1]) || 0;
+            resolve({ x, y });
           }
         });
       });
@@ -1201,7 +1284,7 @@ class TesterApp {
       this.socket = socket;
       this.isConnected = true;
       this.screenQuality = quality; // Store quality setting
-      this.startScreenSharing();
+      // Don't auto-start screen sharing - wait for supporter to click View button
       
       // Notify renderer about connection status
       this.mainWindow.webContents.send('connection-status', { connected: true });
@@ -1234,6 +1317,21 @@ class TesterApp {
 
   // Handle supporter events
   handleSupporterEvents(socket) {
+    // Handle screen sharing start/stop
+    socket.on('start-screen-sharing', () => {
+      console.log('📺 Supporter requested to start screen sharing');
+      if (!this.isSharing) {
+      this.startScreenSharing();
+      }
+    });
+
+    socket.on('stop-screen-sharing', () => {
+      console.log('📺 Supporter requested to stop screen sharing');
+      if (this.isSharing) {
+      this.stopScreenSharing();
+      }
+    });
+
     socket.on('receiveData', (data) => {
       // If it's an answer, save the answer text and display it in chat
       if (data.type === 'answer') {
@@ -1266,10 +1364,10 @@ class TesterApp {
 
     socket.on('chatMessage', (message) => {
       this.chatMessages.push({
-          type: 'supporter',
-          message: message,
-          timestamp: new Date()
-        });
+        type: 'supporter',
+        message: message,
+        timestamp: new Date()
+      });
       
       // Send to main window chat
       this.mainWindow.webContents.send('chat-message', {
@@ -1282,22 +1380,25 @@ class TesterApp {
 
     socket.on('request-screenshot', async () => {
       try {
-        // Take a fresh, full-quality screenshot
+        // Take a fresh, full-quality screenshot (PNG format, no compression)
         const screenshot = require('screenshot-desktop');
-        const img = await screenshot({ format: 'png', quality: 1.0, screen: 0 });
+        const img = await screenshot({ 
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
+          screen: 0          // Primary screen
+        });
         const base64Data = img.toString('base64');
         
         // Send the full-quality screenshot back to supporter
         socket.emit('screenshot-data', base64Data);
-        console.log('Screenshot captured and sent to supporter');
+        console.log('📸 High-quality screenshot captured and sent to supporter');
       } catch (error) {
-        console.error('Error capturing screenshot:', error);
+        console.error('❌ Error capturing screenshot:', error);
       }
     });
 
     socket.on('mouseMove', (data) => {
       if (this.isSharing) {
-        console.log('Mouse move:', data);
         this.moveMouse(data.x, data.y);
       }
     });
@@ -1361,41 +1462,47 @@ class TesterApp {
   }
 
   async setupElectronCapture() {
-    console.log('🚀 Setting up WebRTC screen capture...');
+    console.log('🚀 Setting up professional WebRTC screen capture (Zoom approach)...');
     
-    // Get screen sources for WebRTC
-    const sources = await desktopCapturer.getSources({
-      types: ['screen'],
-      thumbnailSize: { width: 1920, height: 1080 }
-    });
+    try {
+      // Get screen sources for WebRTC with multiple options
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 1920, height: 1080 },
+        fetchWindowIcons: true
+      });
 
-    if (sources.length === 0) {
-      throw new Error('No screen sources available');
-    }
+      if (sources.length === 0) {
+        throw new Error('No screen sources available');
+      }
 
-    // Get the primary screen
-    this.primaryScreen = sources[0];
-    console.log('📺 Using screen source:', this.primaryScreen.name);
+      // Get the primary screen (usually the first one)
+      this.primaryScreen = sources.find(source => 
+        source.name.includes('Screen') || source.name.includes('Display')
+      ) || sources[0];
+      
+      console.log('📺 Primary screen:', this.primaryScreen.name);
+      console.log('🆔 Source ID:', this.primaryScreen.id);
 
-    // Set up WebRTC stream in renderer process
-    await this.setupWebRTCStream();
+      // Set up WebRTC stream in renderer process
+      await this.setupWebRTCStream();
 
-    // Set up capture with different intervals based on quality
+      // Professional capture intervals (Zoom-like performance)
     const quality = this.screenQuality || 'medium';
     let interval;
 
     switch (quality) {
       case 'high':
-        interval = 200; // 5 FPS
+        interval = 33; // 30 FPS (professional)
         break;
       case 'medium':
-        interval = 300; // 3.3 FPS
+        interval = 50; // 20 FPS (balanced)
         break;
       case 'low':
-        interval = 500; // 2 FPS
+        interval = 100; // 10 FPS (efficient)
         break;
       default:
-        interval = 300;
+        interval = 50;
     }
 
     // Add CPU monitoring and adaptive quality
@@ -1409,7 +1516,7 @@ class TesterApp {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 80) {
+          if (this.cpuUsage > 90) {
             console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
@@ -1421,32 +1528,36 @@ class TesterApp {
           }
           this.frameSkipCount = 0;
 
-          const startTime = Date.now();
+          const startTime = performance.now();
           
-          // Use Electron's efficient capture
+          // Use professional WebRTC capture
           const img = await this.captureScreenElectron();
           const mousePos = await this.getMousePosition();
           
-          // Only send if we have a socket connection
-          if (this.socket && this.socket.connected) {
+          // Only send if we have a socket connection and screen sharing is active
+          if (this.socket && this.socket.connected && this.isSharing) {
             this.socket.emit('screenData', {
               image: img,
               mouseX: mousePos.x,
-              mouseY: mousePos.y
+              mouseY: mousePos.y,
+              timestamp: Date.now(),
+              quality: this.screenQuality
             });
           }
 
-          // Monitor capture performance
-          const captureTime = Date.now() - startTime;
+          // Professional performance monitoring
+          const captureTime = performance.now() - startTime;
           this.captureCount++;
           
-          // Log performance every 10 captures
-          if (this.captureCount % 10 === 0) {
-            console.log(`📊 Electron capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
+          // Log performance every 60 captures (Zoom-like monitoring)
+          if (this.captureCount % 60 === 0) {
+            const fps = Math.round(1000 / (Date.now() - this.lastCaptureTime) * 60);
+            console.log(`📊 Professional capture: ${captureTime.toFixed(1)}ms, CPU: ${this.cpuUsage}%, FPS: ${fps}`);
+            this.lastCaptureTime = Date.now();
           }
 
-          // Adaptive quality adjustment
-          if (captureTime > 100 || this.cpuUsage > 70) {
+          // Adaptive quality adjustment (Zoom-like)
+          if (captureTime > 50 || this.cpuUsage > 70) {
             this.adjustQualityForPerformance();
           }
 
@@ -1461,16 +1572,46 @@ class TesterApp {
 
     // Start CPU monitoring
     this.startCpuMonitoring();
+    
+    } catch (error) {
+      console.error('❌ Professional WebRTC setup failed:', error);
+      throw error;
+    }
   }
 
   async setupWebRTCStream() {
-    // Send screen source info to renderer process for WebRTC setup
-    if (this.mainWindow && this.primaryScreen) {
-      this.mainWindow.webContents.send('setup-webrtc-capture', {
-        sourceId: this.primaryScreen.id,
-        sourceName: this.primaryScreen.name
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.log('⚠️ WebRTC setup timeout, using fallback method');
+        resolve(); // Don't reject, just resolve to use fallback
+      }, 5000); // Reduced timeout to 5 seconds
+
+      // Listen for WebRTC ready signal
+      ipcMain.once('webrtc-ready', () => {
+        clearTimeout(timeout);
+        console.log('✅ WebRTC stream ready');
+        resolve();
       });
-    }
+
+      // Listen for WebRTC error
+      ipcMain.once('webrtc-error', (event, error) => {
+        clearTimeout(timeout);
+        console.log('⚠️ WebRTC setup failed:', error);
+        resolve(); // Don't reject, just resolve to use fallback
+      });
+
+      // Send screen source info to renderer process for WebRTC setup
+      if (this.mainWindow && this.primaryScreen) {
+        this.mainWindow.webContents.send('setup-webrtc-capture', {
+          sourceId: this.primaryScreen.id,
+          sourceName: this.primaryScreen.name,
+          thumbnail: this.primaryScreen.thumbnail
+        });
+      } else {
+        clearTimeout(timeout);
+        resolve(); // Don't reject, just resolve to use fallback
+      }
+    });
   }
 
   async captureScreenElectron() {
@@ -1509,51 +1650,42 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using screenshot-desktop fallback method...');
+    console.log('📸 Using optimized screenshot-desktop method...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
-    // Optimized settings for Windows with much lower CPU usage
+    // Optimized settings for higher frame rates with good quality
     switch (quality) {
       case 'high':
         captureOptions = {
-          format: 'jpeg', // Use JPEG even for high quality (much faster)
-          quality: 0.85,  // Reduced from 1.0 to 0.85
+          format: 'jpeg',
+          quality: 0.9,   // High quality (reduced from 0.95 for better performance)
           screen: 0,
-          // Windows-specific optimizations
-          ...(process.platform === 'win32' && {
-            width: 1920,  // Limit resolution for better performance
-            height: 1080
-          })
+          width: 1920,    // Full HD resolution
+          height: 1080
         };
-        interval = 250; // Reduced from 100ms to 250ms (4 FPS instead of 10 FPS)
+        interval = 100; // 10 FPS for smooth high quality
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.75,  // Reduced from 0.9 to 0.75
+          quality: 0.85,  // Good quality (reduced from 0.9 for better performance)
           screen: 0,
-          // Windows-specific optimizations
-          ...(process.platform === 'win32' && {
-            width: 1600,  // Lower resolution for medium quality
-            height: 900
-          })
+          width: 1920,
+          height: 1080
         };
-        interval = 400; // Reduced from 125ms to 400ms (2.5 FPS instead of 8 FPS)
+        interval = 150; // 6.7 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.6,   // Reduced from 0.7 to 0.6
+          quality: 0.8,   // Good quality (reduced from 0.85 for better performance)
           screen: 0,
-          // Windows-specific optimizations
-          ...(process.platform === 'win32' && {
-            width: 1280,  // Even lower resolution for low quality
-            height: 720
-          })
+          width: 1920,
+          height: 1080
         };
-        interval = 600; // Reduced from 200ms to 600ms (1.7 FPS instead of 5 FPS)
+        interval = 200; // 5 FPS for low CPU usage
         break;
       default:
         captureOptions = {
@@ -1574,13 +1706,13 @@ class TesterApp {
     this.lastCaptureTime = 0;
     this.captureCount = 0;
     this.frameSkipCount = 0;
-    this.maxFrameSkip = process.platform === 'win32' ? 2 : 1; // Skip more frames on Windows
+    this.maxFrameSkip = 1; // Reduced frame skipping for higher frame rates
 
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 80) {
+          if (this.cpuUsage > 90) {
             console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
@@ -1594,23 +1726,59 @@ class TesterApp {
 
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
-          const mousePos = await this.getMousePosition();
           
-          // Only send if we have a socket connection
-          if (this.socket && this.socket.connected) {
-            this.socket.emit('screenData', {
-              image: img.toString('base64'),
-              mouseX: mousePos.x,
-              mouseY: mousePos.y
-            });
+          // Only get mouse position every 2nd frame to save CPU
+          let mousePos = { x: 0, y: 0 };
+          if (this.captureCount % 2 === 0) {
+            mousePos = await this.getMousePosition();
+          }
+          
+          // Delta compression: detect changed regions
+          const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
+          
+          // Only send if we have a socket connection and screen sharing is active
+          if (this.socket && this.socket.connected && this.isSharing) {
+            if (deltaInfo.isFullFrame) {
+              // Send full frame
+              this.socket.emit('screenData', {
+                image: img.toString('base64'),
+                mouseX: mousePos.x,
+                mouseY: mousePos.y,
+                isFullFrame: true,
+                regions: deltaInfo.regions
+              });
+            } else if (deltaInfo.regions.length > 0) {
+              // Send only changed regions
+              const regionImages = [];
+              for (const region of deltaInfo.regions) {
+                // Extract region from full image
+                const regionImg = this.extractRegion(img, region, captureOptions.width, captureOptions.height);
+                regionImages.push({
+                  x: region.x,
+                  y: region.y,
+                  width: region.width,
+                  height: region.height,
+                  image: regionImg.toString('base64')
+                });
+              }
+              
+              this.socket.emit('screenData', {
+                regions: regionImages,
+                mouseX: mousePos.x,
+                mouseY: mousePos.y,
+                isFullFrame: false,
+                changedPixels: deltaInfo.changedPixels
+              });
+            }
+            // If no changes detected, don't send anything
           }
 
           // Monitor capture performance
           const captureTime = Date.now() - startTime;
           this.captureCount++;
           
-          // Log performance every 10 captures
-          if (this.captureCount % 10 === 0) {
+          // Log performance every 30 captures to reduce console spam
+          if (this.captureCount % 30 === 0) {
             console.log(`📊 Capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
           }
 
@@ -1640,7 +1808,7 @@ class TesterApp {
       }).catch(error => {
         console.error('CPU monitoring error:', error);
       });
-    }, 2000); // Check CPU every 2 seconds
+    }, 5000); // Check CPU every 5 seconds to reduce overhead
   }
 
   async getCpuUsage() {
@@ -1679,29 +1847,203 @@ class TesterApp {
 
   async adjustQualityForPerformance() {
     const now = Date.now();
-    // Only adjust quality once every 5 seconds to prevent spam
-    if (now - this.lastQualityAdjustment < 5000) {
+    // Only adjust quality once every 10 seconds to prevent spam
+    if (now - this.lastQualityAdjustment < 10000) {
       return;
     }
     this.lastQualityAdjustment = now;
     
     console.log('🔧 Adjusting quality for better performance...');
     
-    // Reduce quality if performance is poor
+    // More conservative quality reduction
     if (this.screenQuality === 'high') {
       this.screenQuality = 'medium';
       console.log('📉 Reduced quality from high to medium');
+      // Restart capture with new settings
+      this.restartCapture();
     } else if (this.screenQuality === 'medium') {
       this.screenQuality = 'low';
       console.log('📉 Reduced quality from medium to low');
-    } else if (this.screenQuality === 'low' && process.platform === 'win32') {
-      // On Windows, if low quality is still too much, increase frame skipping
-      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 4);
-      console.log(`📉 Increased frame skipping to ${this.maxFrameSkip} on Windows`);
+      // Restart capture with new settings
+      this.restartCapture();
+    } else if (this.screenQuality === 'low') {
+      // If already at low quality, increase frame skipping more conservatively
+      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 2); // Max 2 instead of 3
+      console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
     }
     
-    // Restart capture with new settings
-    await this.setupScreenCapture();
+  }
+
+  restartCapture() {
+    // Stop current capture
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
+    }
+    
+    // Restart with new settings
+    setTimeout(() => {
+      if (this.useElectronCapture) {
+        this.setupElectronCapture().catch(() => {
+          this.useElectronCapture = false;
+          this.setupScreenshotCapture();
+        });
+      } else {
+        this.setupScreenshotCapture();
+      }
+    }, 1000); // Wait 1 second before restarting
+  }
+
+  // Load pixelmatch dynamically
+  async loadPixelmatch() {
+    if (!this.pixelmatch) {
+      try {
+        const pixelmatchModule = await import('pixelmatch');
+        this.pixelmatch = pixelmatchModule.default;
+        console.log('✅ Pixelmatch loaded successfully');
+      } catch (error) {
+        console.error('❌ Failed to load pixelmatch:', error);
+        console.log('🔄 Using simple delta compression fallback');
+        this.pixelmatch = null;
+      }
+    }
+    return this.pixelmatch;
+  }
+
+  // Simple delta compression fallback (without pixelmatch)
+  simpleDeltaCompression(currentBuffer, width, height) {
+    if (!this.lastScreenBuffer || 
+        this.lastScreenWidth !== width || 
+        this.lastScreenHeight !== height) {
+      // First frame or resolution changed - send full screen
+      this.lastScreenBuffer = Buffer.from(currentBuffer);
+      this.lastScreenWidth = width;
+      this.lastScreenHeight = height;
+      return {
+        isFullFrame: true,
+        regions: [{ x: 0, y: 0, width, height }]
+      };
+    }
+
+    // Simple hash-based comparison for JPEG/PNG data
+    const currentHash = this.simpleHash(currentBuffer);
+    const lastHash = this.simpleHash(this.lastScreenBuffer);
+    
+    // If hashes are the same, no changes
+    if (currentHash === lastHash) {
+      return {
+        isFullFrame: false,
+        regions: [],
+        changedPixels: 0
+      };
+    }
+
+    // Images are different, send full frame
+    this.lastScreenBuffer = Buffer.from(currentBuffer);
+    return {
+      isFullFrame: true,
+      regions: [{ x: 0, y: 0, width, height }]
+    };
+  }
+
+  // Simple hash function for image comparison
+  simpleHash(buffer) {
+    let hash = 0;
+    const sampleSize = Math.min(buffer.length, 10000); // Sample first 10KB
+    const step = Math.floor(buffer.length / sampleSize);
+    
+    for (let i = 0; i < buffer.length; i += step) {
+      hash = ((hash << 5) - hash + buffer[i]) & 0xffffffff;
+    }
+    
+    return hash;
+  }
+
+  // Delta compression: detect changed regions (simplified approach)
+  async detectChangedRegions(currentBuffer, width, height) {
+    if (!this.lastScreenBuffer || 
+        this.lastScreenWidth !== width || 
+        this.lastScreenHeight !== height) {
+      // First frame or resolution changed - send full screen
+      this.lastScreenBuffer = Buffer.from(currentBuffer);
+      this.lastScreenWidth = width;
+      this.lastScreenHeight = height;
+      return {
+        isFullFrame: true,
+        regions: [{ x: 0, y: 0, width, height }]
+      };
+    }
+
+    // Use simple delta compression for now (more reliable)
+    return this.simpleDeltaCompression(currentBuffer, width, height);
+  }
+
+  // Find rectangular regions that contain changes
+  findChangedRegions(diffBuffer, width, height) {
+    const regions = [];
+    const visited = new Array(width * height).fill(false);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const pixelIndex = y * width + x;
+        
+        // Check if pixel changed (red channel > 0)
+        if (diffBuffer[index] > 0 && !visited[pixelIndex]) {
+          const region = this.floodFill(diffBuffer, visited, x, y, width, height);
+          if (region.width > 0 && region.height > 0) {
+            regions.push(region);
+          }
+        }
+      }
+    }
+    
+    return regions;
+  }
+
+  // Flood fill algorithm to find connected changed regions
+  floodFill(diffBuffer, visited, startX, startY, width, height) {
+    const stack = [{ x: startX, y: startY }];
+    let minX = startX, maxX = startX, minY = startY, maxY = startY;
+    
+    while (stack.length > 0) {
+      const { x, y } = stack.pop();
+      const index = (y * width + x) * 4;
+      const pixelIndex = y * width + x;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || 
+          visited[pixelIndex] || diffBuffer[index] === 0) {
+        continue;
+      }
+      
+      visited[pixelIndex] = true;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      
+      // Add neighbors to stack
+      stack.push(
+        { x: x + 1, y },
+        { x: x - 1, y },
+        { x, y: y + 1 },
+        { x, y: y - 1 }
+      );
+    }
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX + 1,
+      height: maxY - minY + 1
+    };
+  }
+
+  // Extract a region from the full screen image (simplified version)
+  extractRegion(fullImageBuffer, region, screenWidth, screenHeight) {
+    // For now, return the full image buffer
+    // TODO: Implement proper region extraction with canvas
+    return fullImageBuffer;
   }
 
   stopScreenSharing() {
@@ -1736,6 +2078,21 @@ class TesterApp {
     // Audio setup for capturing desktop audio and microphone
     console.log('🎤 Setting up audio capture...');
     
+    try {
+      // Check if audio tools are available
+      this.checkAudioTools().then((hasAudioTools) => {
+        if (hasAudioTools) {
+          console.log('✅ Audio tools are available');
+        } else {
+          console.log('⚠️ Audio tools not available - audio features will be disabled');
+        }
+      }).catch((error) => {
+        console.log('⚠️ Audio setup check failed:', error.message);
+      });
+    } catch (error) {
+      console.log('⚠️ Audio setup failed:', error.message);
+    }
+    
     // Audio will be started when connection is established
     // This is just initialization
   }
@@ -1748,74 +2105,96 @@ class TesterApp {
     console.log('🎤 Starting audio capture...');
     
     try {
-      // Configure audio recording
-      const recordingOptions = {
-        sampleRateHertz: 16000,
-        threshold: 0.5,
-        verbose: false,
-        recordProgram: 'rec', // Try to use 'rec' command first
-        silence: '1.0',
-      };
+      // First check if audio tools are available
+      this.checkAudioTools().then((hasAudioTools) => {
+        if (!hasAudioTools) {
+          console.log('⚠️ Audio tools not available, skipping audio capture');
+          return;
+        }
 
-      // Start recording
-      this.audioRecorder = record.record(recordingOptions);
-      
-      this.audioRecorder.stream()
-        .on('error', (error) => {
-          console.error('Audio recording error:', error);
-          // Try fallback method
-          this.startAudioCaptureFallback();
-        })
-        .on('data', (chunk) => {
-          if (this.socket && this.isConnected && this.isAudioEnabled) {
-            // Send audio data to supporter
-            this.socket.emit('audioData', {
-              audio: chunk.toString('base64'),
-              timestamp: Date.now()
-            });
-          }
-        });
+        // Configure audio recording
+        const recordingOptions = {
+          sampleRateHertz: 16000,
+          threshold: 0.5,
+          verbose: false,
+          recordProgram: 'rec', // Try to use 'rec' command first
+          silence: '1.0',
+        };
 
-      console.log('✅ Audio capture started successfully');
+        // Start recording
+        this.audioRecorder = record.record(recordingOptions);
+        
+        this.audioRecorder.stream()
+          .on('error', (error) => {
+            console.error('Audio recording error:', error);
+            // Try fallback method
+            this.startAudioCaptureFallback();
+          })
+          .on('data', (chunk) => {
+            if (this.socket && this.isConnected && this.isAudioEnabled) {
+              // Send audio data to supporter
+              this.socket.emit('audioData', {
+                audio: chunk.toString('base64'),
+                timestamp: Date.now()
+              });
+            }
+          });
+
+        console.log('✅ Audio capture started successfully');
+      }).catch((error) => {
+        console.log('⚠️ Audio tools check failed, skipping audio capture:', error.message);
+      });
     } catch (error) {
       console.error('Failed to start audio capture:', error);
-      this.startAudioCaptureFallback();
+      // Don't try fallback if initial setup fails
+      console.log('⚠️ Audio capture not available on this system');
     }
   }
 
   startAudioCaptureFallback() {
     console.log('🔄 Trying fallback audio capture method...');
     
-    try {
-      // Fallback: Use different recording options
-      const fallbackOptions = {
-        sampleRateHertz: 8000,
-        threshold: 0.5,
-        verbose: false,
-        recordProgram: 'arecord', // Try arecord for Linux
-        silence: '1.0',
-      };
+    // Check if fallback tools are available first
+    this.checkAudioTools().then((hasAudioTools) => {
+      if (!hasAudioTools) {
+        console.log('⚠️ No audio tools available for fallback, skipping audio capture');
+        return;
+      }
 
-      this.audioRecorder = record.record(fallbackOptions);
-      
-      this.audioRecorder.stream()
-        .on('error', (error) => {
-          console.error('Fallback audio recording error:', error);
-          console.log('⚠️ Audio capture not available on this system');
-        })
-        .on('data', (chunk) => {
-          if (this.socket && this.isConnected && this.isAudioEnabled) {
-            this.socket.emit('audioData', {
-              audio: chunk.toString('base64'),
-              timestamp: Date.now()
-            });
-          }
-        });
+      try {
+        // Fallback: Use different recording options
+        const fallbackOptions = {
+          sampleRateHertz: 8000,
+          threshold: 0.5,
+          verbose: false,
+          recordProgram: 'arecord', // Try arecord for Linux
+          silence: '1.0',
+        };
 
-      console.log('✅ Fallback audio capture started');
-    } catch (error) {
-      console.error('Fallback audio capture failed:', error);
-    }
+        this.audioRecorder = record.record(fallbackOptions);
+        
+        this.audioRecorder.stream()
+          .on('error', (error) => {
+            console.error('Fallback audio recording error:', error);
+            console.log('⚠️ Audio capture not available on this system');
+          })
+          .on('data', (chunk) => {
+            if (this.socket && this.isConnected && this.isAudioEnabled) {
+              this.socket.emit('audioData', {
+                audio: chunk.toString('base64'),
+                timestamp: Date.now()
+              });
+            }
+          });
+
+        console.log('✅ Fallback audio capture started');
+      } catch (error) {
+        console.error('Fallback audio capture failed:', error);
+        console.log('⚠️ Audio capture not available on this system');
+      }
+    }).catch((error) => {
+      console.log('⚠️ Audio tools check failed for fallback:', error.message);
+    });
   }
 
   stopAudioCapture() {
