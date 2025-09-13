@@ -152,25 +152,14 @@
             position: absolute;
             width: 20px;
             height: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            border: 2px solid #007acc;
-            border-radius: 50%;
             pointer-events: none;
             z-index: 1000;
             transition: all 0.1s ease-out;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .mouse-cursor::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 6px;
-            height: 6px;
-            background: #007acc;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2 2l8 6-2 2-6-8z" fill="%23000" stroke="%23fff" stroke-width="0.5"/><circle cx="2" cy="2" r="1" fill="%23fff"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: top left;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.7));
         }
 
         .mouse-cursor.hidden {
