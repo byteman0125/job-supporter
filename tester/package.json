@@ -26,7 +26,13 @@
     ],
     "win": {
       "target": "nsis",
-      "publisherName": "Code Supporter"
+      "publisherName": "Code Supporter",
+      "extraResources": [
+        {
+          "from": "app.manifest",
+          "to": "app.manifest"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
