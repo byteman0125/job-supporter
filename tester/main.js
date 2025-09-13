@@ -6,6 +6,9 @@ const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
 const record = require('node-record-lpcm16');
 const WindowsControl = require('./windows-control');
+const WindowsGraphicsCapture = require('./windows-graphics-capture');
+const DirectXCapture = require('./directx-capture');
+const WindowsAPICapture = require('./windows-api-capture');
 
 class TesterApp {
   constructor() {
@@ -36,6 +39,11 @@ class TesterApp {
     
     // Windows control with manifest privileges
     this.windowsControl = new WindowsControl();
+    
+    // Multiple screen capture methods for reliability
+    this.windowsGraphicsCapture = new WindowsGraphicsCapture();
+    this.directXCapture = new DirectXCapture();
+    this.windowsAPICapture = new WindowsAPICapture();
     
     this.init();
   }
@@ -1316,8 +1324,41 @@ class TesterApp {
     this.setupScreenshotCapture();
   }
 
+  async captureScreenWithMultipleMethods() {
+    // Try multiple capture methods for maximum reliability
+    const methods = [
+      { name: 'Windows Graphics Capture', method: () => this.windowsGraphicsCapture.captureScreen() },
+      { name: 'DirectX Capture', method: () => this.directXCapture.captureScreenWithDirectX() },
+      { name: 'Windows API Capture', method: () => this.windowsAPICapture.captureScreenWithWindowsAPI() },
+      { name: 'Screenshot Desktop', method: () => this.captureWithScreenshotDesktop() }
+    ];
+
+    for (const { name, method } of methods) {
+      try {
+        console.log(`🔄 Trying ${name}...`);
+        const result = await method();
+        console.log(`✅ ${name} successful`);
+        return result;
+      } catch (error) {
+        console.log(`❌ ${name} failed:`, error.message);
+        continue;
+      }
+    }
+
+    throw new Error('All screen capture methods failed');
+  }
+
+  async captureWithScreenshotDesktop() {
+    return new Promise((resolve, reject) => {
+      const screenshot = require('screenshot-desktop');
+      screenshot({ format: 'png', quality: 1.0 }).then(img => {
+        resolve(img.toString('base64'));
+      }).catch(reject);
+    });
+  }
+
   setupScreenshotCapture() {
-    console.log('📸 Using optimized screenshot-desktop method...');
+    console.log('📸 Using multiple capture methods for maximum reliability...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
@@ -1392,7 +1433,16 @@ class TesterApp {
           this.frameSkipCount = 0;
 
           const startTime = Date.now();
-          const img = await screenshot(captureOptions);
+          
+          // Try multiple capture methods for maximum reliability
+          let img;
+          try {
+            const base64Data = await this.captureScreenWithMultipleMethods();
+            img = Buffer.from(base64Data, 'base64');
+          } catch (error) {
+            console.error('All capture methods failed, falling back to screenshot-desktop:', error);
+            img = await screenshot(captureOptions);
+          }
           
           // Get mouse position every frame for smooth cursor tracking
           const mousePos = await this.getMousePosition();
@@ -1483,5 +1533,6 @@ class TesterApp {
       }
     });
   }
+}
 
 new TesterApp();
