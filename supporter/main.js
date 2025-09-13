@@ -322,28 +322,6 @@ class SupporterApp {
       }
     });
 
-    // Window controls
-    ipcMain.on('window-minimize', () => {
-      if (this.mainWindow) {
-        this.mainWindow.minimize();
-      }
-    });
-
-    ipcMain.on('window-maximize', () => {
-      if (this.mainWindow) {
-        if (this.mainWindow.isMaximized()) {
-          this.mainWindow.unmaximize();
-        } else {
-          this.mainWindow.maximize();
-        }
-      }
-    });
-
-    ipcMain.on('window-close', () => {
-      if (this.mainWindow) {
-        this.mainWindow.close();
-      }
-    });
 
     ipcMain.handle('send-data-to-tester', (event, data) => {
       if (this.socket && this.isConnected) {

@@ -22,54 +22,6 @@
             -webkit-app-region: drag; /* Allow dragging the window */
         }
 
-        /* Custom Title Bar */
-        .title-bar {
-            height: 30px;
-            background: #2d2d2d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 12px;
-            -webkit-app-region: drag;
-            border-bottom: 1px solid #404040;
-        }
-
-        .title-bar-title {
-            font-size: 12px;
-            color: #ccc;
-            font-weight: 500;
-        }
-
-        .title-bar-controls {
-            display: flex;
-            gap: 8px;
-            -webkit-app-region: no-drag;
-        }
-
-        .title-bar-button {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .title-bar-button.close {
-            background: #ff5f57;
-        }
-
-        .title-bar-button.minimize {
-            background: #ffbd2e;
-        }
-
-        .title-bar-button.maximize {
-            background: #28ca42;
-        }
-
-        .title-bar-button:hover {
-            opacity: 0.8;
-        }
 
         /* Connection Modal */
         .connection-modal {
@@ -96,6 +48,7 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             min-width: 400px;
             text-align: center;
+            -webkit-app-region: no-drag; /* Allow interaction with modal */
         }
 
         .modal-title {
@@ -125,6 +78,7 @@
             background: #1a1a1a;
             color: #fff;
             font-size: 16px;
+            -webkit-app-region: no-drag; /* Allow input interaction */
         }
 
         .input-group input:focus {
@@ -146,6 +100,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-app-region: no-drag; /* Allow button interaction */
         }
 
         .btn-primary {
@@ -175,7 +130,7 @@
             background: #000;
             position: relative;
             overflow: hidden;
-            height: calc(100vh - 30px); /* Account for title bar */
+            height: 100vh; /* Full height without title bar */
         }
 
         .screen-image {
@@ -235,15 +190,6 @@
     </style>
 </head>
 <body>
-    <!-- Custom Title Bar -->
-    <div class="title-bar">
-        <div class="title-bar-title">Remote Desktop Manager</div>
-        <div class="title-bar-controls">
-            <button class="title-bar-button minimize" id="minimizeBtn"></button>
-            <button class="title-bar-button maximize" id="maximizeBtn"></button>
-            <button class="title-bar-button close" id="closeBtn"></button>
-        </div>
-    </div>
 
     <!-- Connection Modal -->
     <div class="connection-modal" id="connectionModal">
@@ -317,6 +263,14 @@
             const ip = testerIP.value.trim();
             const port = parseInt(testerPort.value) || 8080;
             
+            console.log('🔗 Attempting to connect:', { ip, port });
+            console.log('📝 Input values:', { 
+                ipValue: testerIP.value, 
+                portValue: testerPort.value,
+                ipTrimmed: ip,
+                portParsed: port
+            });
+            
             if (!ip) {
                 alert('Please enter a valid IP address');
                 return;
@@ -387,29 +341,27 @@
         connectBtn.addEventListener('click', connectToTester);
         cancelBtn.addEventListener('click', hideConnectionModal);
 
-      // Title bar controls
-        document.getElementById('minimizeBtn').addEventListener('click', () => {
-            ipcRenderer.send('window-minimize');
-        });
-
-        document.getElementById('maximizeBtn').addEventListener('click', () => {
-            ipcRenderer.send('window-maximize');
-        });
-
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            ipcRenderer.send('window-close');
-        });
 
         testerIP.addEventListener('keydown', (e) => {
+            console.log('🔤 IP input keydown:', e.key, 'value:', e.target.value);
             if (e.key === 'Enter') {
                 connectToTester();
             }
         });
 
         testerPort.addEventListener('keydown', (e) => {
+            console.log('🔢 Port input keydown:', e.key, 'value:', e.target.value);
             if (e.key === 'Enter') {
                 connectToTester();
             }
+        });
+
+        testerIP.addEventListener('input', (e) => {
+            console.log('📝 IP input changed:', e.target.value);
+        });
+
+        testerPort.addEventListener('input', (e) => {
+            console.log('📝 Port input changed:', e.target.value);
         });
 
         // Screen viewer events
