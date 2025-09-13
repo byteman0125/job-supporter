@@ -309,8 +309,22 @@
             img.onload = () => {
                 console.log('✅ Screen image loaded successfully');
                 console.log('📐 Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-                console.log('📐 Container dimensions:', screenViewer.clientWidth, 'x', screenViewer.clientHeight);
-                console.log('🖼️ Image will fill entire container area');
+                
+                // Resize supporter window to match tester's screen resolution
+                const imageWidth = img.naturalWidth;
+                const imageHeight = img.naturalHeight;
+                
+                console.log('🖼️ Resizing supporter window to match tester screen:', imageWidth, 'x', imageHeight);
+                
+                // Send resize request to main process
+                ipcRenderer.send('resize-window-to-screen', {
+                    width: imageWidth,
+                    height: imageHeight
+                });
+                
+                // Set image to fill the entire container
+                img.style.width = '100%';
+                img.style.height = '100%';
             };
             
             img.onerror = (error) => {
@@ -326,6 +340,9 @@
             if (existingImg) {
                 existingImg.remove();
             }
+            
+            // Reset window to default size when disconnecting
+            ipcRenderer.send('reset-window-size');
         }
 
         // Connection Status
@@ -488,10 +505,6 @@
             showConnectionModal();
         });
 
-        // Window resize handler - no calculation needed, CSS handles full area fill
-        window.addEventListener('resize', () => {
-            console.log('🔄 Window resized, image will automatically fill new area');
-        });
 
         // Initialize
         updateConnectionStatus(false);
