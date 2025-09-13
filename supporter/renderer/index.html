@@ -310,19 +310,21 @@
                 console.log('✅ Screen image loaded successfully');
                 console.log('📐 Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
                 
-                // Calculate proportional width to maintain 600px height
-                const imageWidth = img.naturalWidth;
-                const imageHeight = img.naturalHeight;
-                const targetHeight = 600;
-                const proportionalWidth = Math.round((imageWidth * targetHeight) / imageHeight);
+                // Store original screen dimensions for proportional calculations
+                originalScreenWidth = img.naturalWidth;
+                originalScreenHeight = img.naturalHeight;
                 
-                console.log('🖼️ Resizing supporter window to:', proportionalWidth, 'x', targetHeight);
-                console.log('📊 Original ratio:', imageWidth, 'x', imageHeight, '→ Scaled to:', proportionalWidth, 'x', targetHeight);
+                // Use current window height or default to 600px if first connection
+                const currentHeight = window.innerHeight > 100 ? window.innerHeight : 600;
+                const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
+                
+                console.log('🖼️ Resizing supporter window to:', proportionalWidth, 'x', currentHeight);
+                console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ Scaled to:', proportionalWidth, 'x', currentHeight);
                 
                 // Send resize request to main process
                 ipcRenderer.send('resize-window-to-screen', {
                     width: proportionalWidth,
-                    height: targetHeight
+                    height: currentHeight
                 });
                 
                 // Set image to fill the entire container
@@ -343,6 +345,10 @@
             if (existingImg) {
                 existingImg.remove();
             }
+            
+            // Reset stored dimensions
+            originalScreenWidth = 0;
+            originalScreenHeight = 0;
             
             // Reset window to default size when disconnecting
             ipcRenderer.send('reset-window-size');
@@ -508,6 +514,27 @@
             showConnectionModal();
         });
 
+
+        // Store original screen dimensions for proportional calculations
+        let originalScreenWidth = 0;
+        let originalScreenHeight = 0;
+
+        // Window resize handler to maintain aspect ratio
+        window.addEventListener('resize', () => {
+            if (originalScreenWidth > 0 && originalScreenHeight > 0) {
+                const currentHeight = window.innerHeight;
+                const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
+                
+                console.log('🔄 Window resized - Height:', currentHeight, '→ Calculating proportional width:', proportionalWidth);
+                console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ New size:', proportionalWidth, 'x', currentHeight);
+                
+                // Send resize request to main process
+                ipcRenderer.send('resize-window-to-screen', {
+                    width: proportionalWidth,
+                    height: currentHeight
+                });
+            }
+        });
 
         // Initialize
         updateConnectionStatus(false);
