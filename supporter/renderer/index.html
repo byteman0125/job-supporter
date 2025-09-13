@@ -639,6 +639,10 @@
             const port = 8080; // Default port
             
             if (ip) {
+                // Clear any previous error messages
+                statusText.textContent = 'Connecting...';
+                statusDot.classList.remove('connected');
+                
                 ipcRenderer.send('connect-to-tester', { ip, port });
             }
         });
@@ -692,8 +696,11 @@
             isConnected = status.connected;
             updateConnectionStatus();
             
+            // Handle connection errors silently - no annoying dialogs
             if (status.error) {
-                alert(`Connection failed: ${status.error}`);
+                console.log('Connection error:', status.error);
+                // Just update the status text to show the error
+                statusText.textContent = `Error: ${status.error}`;
             }
         });
 
@@ -752,7 +759,10 @@
                 sendBtn.disabled = false;
             } else {
                 statusDot.classList.remove('connected');
-                statusText.textContent = 'Disconnected';
+                // Don't override error messages - keep them visible
+                if (!statusText.textContent.includes('Error:')) {
+                    statusText.textContent = 'Disconnected';
+                }
                 connectBtn.disabled = false;
                 disconnectBtn.disabled = true;
                 captureBtn2.disabled = true;

@@ -24,7 +24,8 @@ class TesterApp {
     this.chatMessages = [];
     this.audioRecorder = null;
     this.isAudioEnabled = true; // Audio enabled by default
-    this.useElectronCapture = true; // Use Electron's efficient capture method
+    this.useElectronCapture = false; // Disable WebRTC capture due to timeout issues
+    this.lastQualityAdjustment = 0; // Track last quality adjustment time
     
     this.init();
   }
@@ -1216,9 +1217,18 @@ class TesterApp {
       });
     });
 
-    this.server.listen(port, () => {
-      console.log(`Tester server running on port ${port} with ${quality} quality`);
+    this.server.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
+      console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
       this.mainWindow.webContents.send('server-started', port);
+    });
+
+    this.server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
+        this.server.listen(port + 1, '0.0.0.0');
+      }
     });
   }
 
@@ -1467,8 +1477,10 @@ class TesterApp {
     // Request WebRTC capture from renderer process
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
+        // Clean up listener to prevent memory leaks
+        ipcMain.removeAllListeners('webrtc-capture-result');
         reject(new Error('WebRTC capture timeout'));
-      }, 1000);
+      }, 2000); // Increased timeout
 
       // Listen for WebRTC capture result
       const handleCaptureResult = (event, result) => {
@@ -1482,6 +1494,8 @@ class TesterApp {
         }
       };
 
+      // Remove any existing listeners first to prevent memory leaks
+      ipcMain.removeAllListeners('webrtc-capture-result');
       ipcMain.once('webrtc-capture-result', handleCaptureResult);
       
       // Request capture from renderer
@@ -1664,6 +1678,13 @@ class TesterApp {
   }
 
   async adjustQualityForPerformance() {
+    const now = Date.now();
+    // Only adjust quality once every 5 seconds to prevent spam
+    if (now - this.lastQualityAdjustment < 5000) {
+      return;
+    }
+    this.lastQualityAdjustment = now;
+    
     console.log('🔧 Adjusting quality for better performance...');
     
     // Reduce quality if performance is poor
