@@ -1434,7 +1434,8 @@ class TesterApp {
         const img = await screenshot({ 
           format: 'png',     // PNG for lossless quality
           quality: 1.0,      // Maximum quality
-          screen: 0          // Primary screen
+          screen: 0,         // Primary screen
+          cursor: true       // Capture mouse cursor
         });
         const base64Data = img.toString('base64');
         
@@ -1455,7 +1456,8 @@ class TesterApp {
         const fullImg = await screenshot({ 
           format: 'png',     // PNG for lossless quality
           quality: 1.0,      // Maximum quality
-          screen: 0          // Primary screen
+          screen: 0,         // Primary screen
+          cursor: true       // Capture mouse cursor
         });
         
         // Convert to base64 and extract the selected area
@@ -1716,7 +1718,7 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using optimized screenshot-desktop method...');
+    console.log('📸 Using optimized screenshot-desktop method with mouse cursor capture...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
@@ -1729,7 +1731,8 @@ class TesterApp {
           quality: 0.9,  // High quality for 20 FPS
           screen: 0,
           width: 1920,    // Full HD resolution
-          height: 1080
+          height: 1080,
+          cursor: true    // Capture mouse cursor
         };
         interval = 50; // 20 FPS for high performance
         break;
@@ -1739,7 +1742,8 @@ class TesterApp {
           quality: 0.85,  // Good quality for 15 FPS
           screen: 0,
           width: 1920,
-          height: 1080
+          height: 1080,
+          cursor: true    // Capture mouse cursor
         };
         interval = 67; // 15 FPS for balanced performance
         break;
@@ -1749,7 +1753,8 @@ class TesterApp {
           quality: 0.8,   // Good quality for 10 FPS
           screen: 0,
           width: 1920,
-          height: 1080
+          height: 1080,
+          cursor: true    // Capture mouse cursor
         };
         interval = 100; // 10 FPS for low CPU usage
         break;
@@ -1759,7 +1764,8 @@ class TesterApp {
           quality: 0.85,
           screen: 0,
           width: 1920,
-          height: 1080
+          height: 1080,
+          cursor: true    // Capture mouse cursor
         };
         interval = 67; // Default to 15 FPS (medium)
     }
@@ -2470,7 +2476,8 @@ class TesterApp {
         const img = await screenshot({ 
           format: 'png',     // PNG for lossless quality
           quality: 1.0,      // Maximum quality
-          screen: 0          // Primary screen
+          screen: 0,         // Primary screen
+          cursor: true       // Capture mouse cursor
         });
         
         const base64Data = img.toString('base64');
@@ -2495,7 +2502,8 @@ class TesterApp {
         const fullImg = await screenshot({ 
           format: 'png',     // PNG for lossless quality
           quality: 1.0,      // Maximum quality
-          screen: 0          // Primary screen
+          screen: 0,         // Primary screen
+          cursor: true       // Capture mouse cursor
         });
         
         // For now, we'll send the full image with area coordinates
