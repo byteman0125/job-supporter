@@ -114,6 +114,43 @@
             min-width: 120px;
         }
 
+        /* Capture Controls */
+        .capture-controls {
+            background: #2d2d2d;
+            border-radius: 6px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .capture-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .capture-buttons .btn {
+            flex: 1;
+            font-size: 12px;
+            padding: 10px 12px;
+        }
+
+        .capture-info {
+            background: #1a1a1a;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            padding: 8px;
+            display: none;
+        }
+
+        .capture-info p {
+            font-size: 11px;
+            color: #2ed573;
+            margin: 0;
+        }
+
         /* Tab Interface */
         .tab-container {
             flex: 1;
@@ -329,6 +366,74 @@
             margin: 0;
         }
 
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .button-group .btn {
+            flex: 1;
+            font-size: 11px;
+            padding: 8px 12px;
+        }
+
+        .capture-info {
+            background: #2d2d2d;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        .capture-info p {
+            font-size: 11px;
+            color: #2ed573;
+            margin: 0;
+        }
+
+        .area-selection-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            display: none;
+            cursor: crosshair;
+        }
+
+        .area-selection-overlay.active {
+            display: block;
+        }
+
+        .selection-rectangle {
+            position: absolute;
+            border: 2px dashed #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        .selection-info {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            z-index: 10001;
+            display: none;
+        }
+
+        .selection-info.active {
+            display: block;
+        }
+
         .btn {
             padding: 8px 16px;
             border: none;
@@ -349,6 +454,20 @@
         }
 
         .btn-primary:disabled {
+            background: #404040;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-secondary:disabled {
             background: #404040;
             cursor: not-allowed;
         }
@@ -427,6 +546,32 @@
 
     <!-- Main Container -->
     <div class="main-container">
+        <!-- Server Status Bar -->
+        <div class="server-status-bar">
+            <div class="server-dot" id="serverDot"></div>
+            <div class="server-info">
+                <div class="server-title">Tester Server</div>
+                <div class="server-details" id="serverDetails">Starting...</div>
+            </div>
+            <select class="quality-select" id="qualitySelect">
+                <option value="high">High Quality</option>
+                <option value="medium" selected>Medium Quality</option>
+                <option value="low">Low Quality</option>
+            </select>
+        </div>
+
+        <!-- Capture Controls -->
+        <div class="capture-controls">
+            <div class="capture-buttons">
+                <button class="btn btn-primary" id="captureScreenBtn" disabled>📷 Full Screen</button>
+                <button class="btn btn-primary" id="selectAreaBtn" disabled>🎯 Select Area</button>
+                <button class="btn btn-secondary" id="sendImageBtn" disabled>📤 Send Image</button>
+            </div>
+            <div class="capture-info" id="captureInfo" style="display: none;">
+                <p>✅ Screen captured! Click "Send Image" to send to supporter.</p>
+            </div>
+        </div>
+
         <!-- Tab Container - Main Area -->
         <div class="tab-container">
             <div class="tab-header">
@@ -492,7 +637,9 @@
                     <div class="checkbox-group">
                         <input type="checkbox" id="trayNotifications" checked>
                         <label for="trayNotifications">Tray Notifications</label>
-            </div>
+                    </div>
+                </div>
+
             </div>
             </div>
         </div>
@@ -503,11 +650,26 @@
         <p>Server auto-starts on launch • Right-click tray icon for options</p>
     </div>
 
+    <!-- Area Selection Overlay -->
+    <div class="area-selection-overlay" id="areaSelectionOverlay">
+        <div class="selection-rectangle" id="selectionRectangle"></div>
+        <div class="selection-info" id="selectionInfo">
+            Drag to select area • Press ESC to cancel • Right-click to capture
+        </div>
+    </div>
+
     <script>
         const { ipcRenderer } = require('electron');
         
         let isConnected = false;
         let webrtcStream = null;
+        let capturedImage = null; // Store captured screenshot data
+        
+        // Area selection variables
+        let isSelectingArea = false;
+        let selectionStart = { x: 0, y: 0 };
+        let selectionEnd = { x: 0, y: 0 };
+        let selectedArea = null;
         let webrtcVideo = null;
         let webrtcCanvas = null;
         let webrtcCtx = null;
@@ -533,11 +695,43 @@
         const stealthMode = document.getElementById('stealthMode');
         const soundNotifications = document.getElementById('soundNotifications');
         const trayNotifications = document.getElementById('trayNotifications');
+        
+        // Capture elements
+        const captureScreenBtn = document.getElementById('captureScreenBtn');
+        const selectAreaBtn = document.getElementById('selectAreaBtn');
+        const sendImageBtn = document.getElementById('sendImageBtn');
+        const captureInfo = document.getElementById('captureInfo');
+        
+        // Area selection elements
+        const areaSelectionOverlay = document.getElementById('areaSelectionOverlay');
+        const selectionRectangle = document.getElementById('selectionRectangle');
+        const selectionInfo = document.getElementById('selectionInfo');
 
         // IPC Event Handlers
         ipcRenderer.on('connection-status', (event, status) => {
             isConnected = status.connected;
             updateConnectionStatus();
+        });
+
+        // Capture screen result handler
+        ipcRenderer.on('screen-captured', (event, imageData) => {
+            capturedImage = imageData;
+            captureInfo.style.display = 'block';
+            sendImageBtn.disabled = false;
+            console.log('✅ Screen captured successfully');
+        });
+
+        // Image sent result handler
+        ipcRenderer.on('image-sent', (event, result) => {
+            if (result.success) {
+                console.log('✅ Image sent to supporter successfully');
+                // Reset the buttons
+                capturedImage = null;
+                captureInfo.style.display = 'none';
+                sendImageBtn.disabled = true;
+            } else {
+                console.log('❌ Failed to send image:', result.error);
+            }
         });
 
         // Removed temp-data-updated handler since we don't show received data anymore
@@ -548,6 +742,26 @@
             if (e.key === 'Enter') {
                 e.preventDefault();
                 sendChatMessage();
+            }
+        });
+
+        // Capture and send button event handlers
+        captureScreenBtn.addEventListener('click', () => {
+            console.log('📷 Capturing full screen...');
+            ipcRenderer.invoke('capture-screen');
+        });
+
+        selectAreaBtn.addEventListener('click', () => {
+            console.log('🎯 Starting area selection...');
+            startAreaSelection();
+        });
+
+        sendImageBtn.addEventListener('click', () => {
+            if (capturedImage) {
+                console.log('📤 Sending captured image to supporter...');
+                ipcRenderer.invoke('send-captured-image', capturedImage);
+            } else {
+                console.log('❌ No image captured yet');
             }
         });
         chatInput.addEventListener('keydown', (e) => {
@@ -619,11 +833,116 @@
                 statusDot.classList.add('connected');
                 statusText.textContent = 'Supporter Connected';
                 sendChatBtn.disabled = false;
+                captureScreenBtn.disabled = false;
+                selectAreaBtn.disabled = false;
             } else {
                 statusDot.classList.remove('connected');
                 statusText.textContent = 'Waiting for Supporter';
                 sendChatBtn.disabled = true;
+                captureScreenBtn.disabled = true;
+                selectAreaBtn.disabled = true;
+                sendImageBtn.disabled = true;
+                // Clear any captured image when disconnected
+                capturedImage = null;
+                captureInfo.style.display = 'none';
             }
+        }
+
+        // Area selection functions
+        function startAreaSelection() {
+            isSelectingArea = true;
+            areaSelectionOverlay.classList.add('active');
+            selectionInfo.classList.add('active');
+            
+            // Add event listeners for area selection
+            areaSelectionOverlay.addEventListener('mousedown', handleAreaSelectionStart);
+            areaSelectionOverlay.addEventListener('mousemove', handleAreaSelectionMove);
+            areaSelectionOverlay.addEventListener('mouseup', handleAreaSelectionEnd);
+            areaSelectionOverlay.addEventListener('contextmenu', handleAreaSelectionCapture);
+            
+            // Add keyboard listener for ESC
+            document.addEventListener('keydown', handleAreaSelectionKeydown);
+            
+            console.log('🎯 Area selection started');
+        }
+
+        function stopAreaSelection() {
+            isSelectingArea = false;
+            areaSelectionOverlay.classList.remove('active');
+            selectionInfo.classList.remove('active');
+            
+            // Remove event listeners
+            areaSelectionOverlay.removeEventListener('mousedown', handleAreaSelectionStart);
+            areaSelectionOverlay.removeEventListener('mousemove', handleAreaSelectionMove);
+            areaSelectionOverlay.removeEventListener('mouseup', handleAreaSelectionEnd);
+            areaSelectionOverlay.removeEventListener('contextmenu', handleAreaSelectionCapture);
+            
+            document.removeEventListener('keydown', handleAreaSelectionKeydown);
+            
+            console.log('🎯 Area selection stopped');
+        }
+
+        function handleAreaSelectionStart(e) {
+            e.preventDefault();
+            selectionStart = { x: e.clientX, y: e.clientY };
+            selectionEnd = { x: e.clientX, y: e.clientY };
+            updateSelectionRectangle();
+        }
+
+        function handleAreaSelectionMove(e) {
+            if (!isSelectingArea) return;
+            selectionEnd = { x: e.clientX, y: e.clientY };
+            updateSelectionRectangle();
+        }
+
+        function handleAreaSelectionEnd(e) {
+            if (!isSelectingArea) return;
+            
+            const width = Math.abs(selectionEnd.x - selectionStart.x);
+            const height = Math.abs(selectionEnd.y - selectionStart.y);
+            
+            if (width > 10 && height > 10) {
+                selectedArea = {
+                    x: Math.min(selectionStart.x, selectionEnd.x),
+                    y: Math.min(selectionStart.y, selectionEnd.y),
+                    width: width,
+                    height: height
+                };
+                console.log('✅ Area selected:', selectedArea);
+            } else {
+                console.log('❌ Selection too small, minimum 10x10 pixels');
+            }
+        }
+
+        function handleAreaSelectionCapture(e) {
+            e.preventDefault();
+            if (selectedArea) {
+                console.log('📷 Capturing selected area...');
+                ipcRenderer.invoke('capture-area', selectedArea);
+                stopAreaSelection();
+            }
+        }
+
+        function handleAreaSelectionKeydown(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                stopAreaSelection();
+                console.log('❌ Area selection cancelled');
+            }
+        }
+
+        function updateSelectionRectangle() {
+            if (!isSelectingArea) return;
+            
+            const x = Math.min(selectionStart.x, selectionEnd.x);
+            const y = Math.min(selectionStart.y, selectionEnd.y);
+            const width = Math.abs(selectionEnd.x - selectionStart.x);
+            const height = Math.abs(selectionEnd.y - selectionStart.y);
+            
+            selectionRectangle.style.left = x + 'px';
+            selectionRectangle.style.top = y + 'px';
+            selectionRectangle.style.width = width + 'px';
+            selectionRectangle.style.height = height + 'px';
         }
 
         // Quality change handler

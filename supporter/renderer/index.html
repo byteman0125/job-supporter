@@ -261,6 +261,19 @@
             animation: cursorPulse 1s infinite;
         }
 
+        .selection-rectangle {
+            position: absolute;
+            border: 2px dashed #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+            z-index: 999;
+            display: none;
+        }
+
+        .selection-rectangle.active {
+            display: block;
+        }
+
         @keyframes cursorPulse {
             0% { transform: translate(-50%, -50%) scale(1); }
             50% { transform: translate(-50%, -50%) scale(1.2); }
@@ -614,6 +627,7 @@
                     </div>
                     <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
                     <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
+                    <div class="selection-rectangle" id="selectionRectangle"></div>
                 </div>
                 </div>
             </div>
@@ -649,7 +663,7 @@
                     </div>
                     <div class="control-row">
                         <label>Capture:</label>
-                        <button class="btn btn-small btn-secondary" id="captureBtn2" disabled>📷</button>
+                        <button class="btn btn-small btn-secondary" id="captureBtn2" disabled title="Hold Ctrl + drag to select area, then click to capture">📷</button>
                 </div>
             </div>
         </div>
@@ -692,6 +706,12 @@
         let lastMouseMoveTime = 0;
         let currentMode = 'chat'; // 'chat' or 'answer'
         let lastValidMousePosition = { x: 0, y: 0 }; // Store last valid mouse position
+        
+        // Area selection variables
+        let isSelectingArea = false;
+        let selectionStart = { x: 0, y: 0 };
+        let selectionEnd = { x: 0, y: 0 };
+        let selectedArea = null;
         const MOUSE_MOVE_THROTTLE = 16; // ~60fps
         
         // Elements
@@ -703,6 +723,7 @@
         const screenViewer = document.getElementById('screenViewer');
         const cursorInfo = document.getElementById('cursorInfo');
         const controlIndicator = document.getElementById('controlIndicator');
+        const selectionRectangle = document.getElementById('selectionRectangle');
         
         // Control buttons (only the ones in config area now)
         const viewModeBtn2 = document.getElementById('viewModeBtn2');
@@ -742,7 +763,15 @@
 
         // Capture
         captureBtn2.addEventListener('click', () => {
-            ipcRenderer.invoke('capture-screenshot');
+            if (selectedArea) {
+                // Capture selected area
+                ipcRenderer.invoke('capture-screenshot', selectedArea);
+                console.log('📷 Capturing selected area:', selectedArea);
+            } else {
+                // Capture full screen
+                ipcRenderer.invoke('capture-screenshot');
+                console.log('📷 Capturing full screen');
+            }
         });
 
         // Sound toggle
@@ -776,6 +805,13 @@
             handleMouseClick(e, 'right');
         });
 
+        // Area selection events
+        screenViewer.addEventListener('mousedown', handleAreaSelectionStart);
+        screenViewer.addEventListener('mousemove', handleAreaSelectionMove);
+        screenViewer.addEventListener('mouseup', handleAreaSelectionEnd);
+        screenViewer.addEventListener('mouseleave', handleAreaSelectionEnd);
+        screenViewer.addEventListener('dblclick', clearAreaSelection); // Double-click to clear selection
+
         // IPC Event Handlers
         ipcRenderer.on('connection-status', (event, status) => {
             isConnected = status.connected;
@@ -807,12 +843,23 @@
             if (result.success) {
                 // Show success message
                 const originalText = captureBtn2.textContent;
-                if (result.clipboardSuccess) {
-                    captureBtn2.textContent = '📋 Copied!';
-                    captureBtn2.style.background = '#2ed573';
+                if (result.isAreaScreenshot) {
+                    if (result.clipboardSuccess) {
+                        captureBtn2.textContent = '📋 Area Copied!';
+                        captureBtn2.style.background = '#2ed573';
+                    } else {
+                        captureBtn2.textContent = '✅ Area Saved!';
+                        captureBtn2.style.background = '#2ed573';
+                    }
+                    console.log('📷 Area screenshot saved:', result.area);
                 } else {
-                    captureBtn2.textContent = '✅ Saved!';
-                    captureBtn2.style.background = '#2ed573';
+                    if (result.clipboardSuccess) {
+                        captureBtn2.textContent = '📋 Copied!';
+                        captureBtn2.style.background = '#2ed573';
+                    } else {
+                        captureBtn2.textContent = '✅ Saved!';
+                        captureBtn2.style.background = '#2ed573';
+                    }
                 }
                 setTimeout(() => {
                     captureBtn2.textContent = originalText;
@@ -823,6 +870,14 @@
 
         ipcRenderer.on('chat-message', (event, data) => {
             addChatMessage(data.message, data.sender);
+        });
+
+        ipcRenderer.on('tester-image-received', (event, result) => {
+            if (result.success) {
+                console.log('📷 Received image from tester');
+                // Show notification in chat
+                addChatMessage('📷 Tester sent a captured image!', 'system');
+            }
         });
 
         // Functions
@@ -875,6 +930,9 @@
                 viewModeBtn2.classList.remove('viewing');
                 viewModeBtn2.classList.add('not-viewing');
                 viewModeBtn2.textContent = 'View';
+                
+                // Clear area selection when disconnected
+                clearAreaSelection();
                 
                 // Reset control mode to inactive when disconnected
                 setControlMode(false);
@@ -1161,6 +1219,85 @@
                 // Mouse is in empty space - don't send click
                 console.log('Click ignored - mouse is in empty space');
             }
+        }
+
+        // Area selection functions
+        function handleAreaSelectionStart(e) {
+            if (!isConnected || !isViewingScreen) return;
+            
+            // Only start selection if not in control mode and holding Ctrl key
+            if (isControlMode || !e.ctrlKey) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            isSelectingArea = true;
+            selectionStart = { x, y };
+            selectionEnd = { x, y };
+            
+            // Show selection rectangle
+            selectionRectangle.classList.add('active');
+            updateSelectionRectangle();
+            
+            console.log('🎯 Started area selection at:', selectionStart);
+        }
+
+        function handleAreaSelectionMove(e) {
+            if (!isSelectingArea) return;
+            
+            const rect = screenViewer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            selectionEnd = { x, y };
+            updateSelectionRectangle();
+        }
+
+        function handleAreaSelectionEnd(e) {
+            if (!isSelectingArea) return;
+            
+            isSelectingArea = false;
+            
+            // Calculate final selection area
+            const x = Math.min(selectionStart.x, selectionEnd.x);
+            const y = Math.min(selectionStart.y, selectionEnd.y);
+            const width = Math.abs(selectionEnd.x - selectionStart.x);
+            const height = Math.abs(selectionEnd.y - selectionStart.y);
+            
+            if (width > 10 && height > 10) { // Minimum selection size
+                selectedArea = { x, y, width, height };
+                console.log('✅ Area selected:', selectedArea);
+                
+                // Keep selection rectangle visible
+                selectionRectangle.classList.add('active');
+            } else {
+                // Clear selection if too small
+                clearAreaSelection();
+            }
+        }
+
+        function updateSelectionRectangle() {
+            if (!isSelectingArea) return;
+            
+            const x = Math.min(selectionStart.x, selectionEnd.x);
+            const y = Math.min(selectionStart.y, selectionEnd.y);
+            const width = Math.abs(selectionEnd.x - selectionStart.x);
+            const height = Math.abs(selectionEnd.y - selectionStart.y);
+            
+            selectionRectangle.style.left = x + 'px';
+            selectionRectangle.style.top = y + 'px';
+            selectionRectangle.style.width = width + 'px';
+            selectionRectangle.style.height = height + 'px';
+        }
+
+        function clearAreaSelection() {
+            selectedArea = null;
+            selectionRectangle.classList.remove('active');
+            console.log('🗑️ Area selection cleared');
         }
 
         function switchMode(mode) {

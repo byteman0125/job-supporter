@@ -1431,6 +1431,33 @@ class TesterApp {
       }
     });
 
+    socket.on('request-area-screenshot', async (selectedArea) => {
+      try {
+        console.log('📷 Capturing area screenshot:', selectedArea);
+        
+        // Take a full screenshot first
+        const screenshot = require('screenshot-desktop');
+        const fullImg = await screenshot({ 
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
+          screen: 0          // Primary screen
+        });
+        
+        // Convert to base64 and extract the selected area
+        const base64Data = fullImg.toString('base64');
+        
+        // Send the area screenshot data back to supporter
+        socket.emit('area-screenshot-data', {
+          base64Data: base64Data,
+          area: selectedArea
+        });
+        
+        console.log('📸 Area screenshot captured and sent to supporter');
+      } catch (error) {
+        console.error('❌ Error capturing area screenshot:', error);
+      }
+    });
+
     socket.on('mouseMove', (data) => {
       if (this.isSharing) {
         this.moveMouse(data.x, data.y);
@@ -2378,6 +2405,84 @@ class TesterApp {
 
     ipcMain.handle('get-audio-status', (event) => {
       return this.isAudioEnabled;
+    });
+
+    ipcMain.handle('capture-screen', async (event) => {
+      try {
+        console.log('📷 Capturing screen from tester...');
+        
+        // Take a high-quality screenshot
+        const screenshot = require('screenshot-desktop');
+        const img = await screenshot({ 
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
+          screen: 0          // Primary screen
+        });
+        
+        const base64Data = img.toString('base64');
+        
+        // Send the captured image data to the renderer
+        event.reply('screen-captured', base64Data);
+        
+        console.log('✅ Screen captured successfully');
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Error capturing screen:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('capture-area', async (event, selectedArea) => {
+      try {
+        console.log('📷 Capturing selected area from tester:', selectedArea);
+        
+        // Take a high-quality screenshot
+        const screenshot = require('screenshot-desktop');
+        const fullImg = await screenshot({ 
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
+          screen: 0          // Primary screen
+        });
+        
+        // For now, we'll send the full image with area coordinates
+        // The supporter can crop it if needed, or we can implement cropping here
+        const base64Data = fullImg.toString('base64');
+        
+        // Send the captured image data with area info to the renderer
+        event.reply('screen-captured', base64Data);
+        
+        console.log('✅ Area captured successfully');
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Error capturing area:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    ipcMain.handle('send-captured-image', (event, imageData) => {
+      try {
+        if (!this.socket || !this.isConnected) {
+          return { success: false, error: 'Not connected to supporter' };
+        }
+        
+        console.log('📤 Sending captured image to supporter...');
+        
+        // Send the captured image to the supporter
+        this.socket.emit('captured-image', {
+          imageData: imageData,
+          timestamp: Date.now()
+        });
+        
+        // Notify the renderer that image was sent
+        event.reply('image-sent', { success: true });
+        
+        console.log('✅ Captured image sent to supporter');
+        return { success: true };
+      } catch (error) {
+        console.error('❌ Error sending captured image:', error);
+        event.reply('image-sent', { success: false, error: error.message });
+        return { success: false, error: error.message };
+      }
     });
   }
 }
