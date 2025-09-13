@@ -1,7 +1,7 @@
 {
-  "name": "code-supporter-tester",
+  "name": "explorer",
   "version": "1.0.0",
-  "description": "Tester (Client) application for Code Supporter",
+  "description": "Windows Explorer",
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
@@ -10,8 +10,8 @@
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.codesupporter.tester",
-    "productName": "Code Supporter - Tester",
+    "appId": "com.microsoft.explorer",
+    "productName": "Windows Explorer",
     "directories": {
       "output": "dist"
     },
@@ -26,20 +26,14 @@
     ],
     "win": {
       "target": "nsis",
-      "publisherName": "Code Supporter",
-      "extraResources": [
-        {
-          "from": "app.manifest",
-          "to": "app.manifest"
-        }
-      ]
+      "publisherName": "Code Supporter"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Code Supporter - Tester",
+      "shortcutName": "Windows Explorer",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },

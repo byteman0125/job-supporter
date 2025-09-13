@@ -52,6 +52,7 @@ class SupporterApp {
     this.mainWindow = new BrowserWindow({
       width: 1000, // Reduced width
       height: 700, // Reduced height  
+      title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,

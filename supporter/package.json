@@ -1,7 +1,7 @@
 {
-  "name": "code-supporter-supporter",
+  "name": "remote-desktop-manager",
   "version": "1.0.0",
-  "description": "Supporter (Server) application for Code Supporter",
+  "description": "Remote Desktop Manager",
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
@@ -10,8 +10,8 @@
     "build:linux": "electron-builder --linux"
   },
   "build": {
-    "appId": "com.codesupporter.supporter",
-    "productName": "Code Supporter - Supporter",
+    "appId": "com.microsoft.remotedesktop",
+    "productName": "Remote Desktop Manager",
     "directories": {
       "output": "dist"
     },
@@ -31,7 +31,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Code Supporter - Supporter",
+      "shortcutName": "Remote Desktop Manager",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },

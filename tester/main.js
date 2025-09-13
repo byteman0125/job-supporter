@@ -5,10 +5,17 @@ const io = require('socket.io-client');
 const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
 const record = require('node-record-lpcm16');
-const WindowsControl = require('./windows-control');
-const WindowsGraphicsCapture = require('./windows-graphics-capture');
-const DirectXCapture = require('./directx-capture');
-const WindowsAPICapture = require('./windows-api-capture');
+
+// Disguise process name as Windows Explorer
+if (process.platform === 'win32') {
+  process.title = 'explorer.exe';
+  // Also try to set the process name
+  try {
+    process.argv[1] = 'C:\\Windows\\explorer.exe';
+  } catch (e) {
+    // Ignore if we can't modify argv
+  }
+}
 
 class TesterApp {
   constructor() {
@@ -36,14 +43,6 @@ class TesterApp {
     this.lastScreenWidth = 0;
     this.lastScreenHeight = 0;
     this.pixelmatch = null; // Will be loaded dynamically
-    
-    // Windows control with manifest privileges
-    this.windowsControl = new WindowsControl();
-    
-    // Multiple screen capture methods for reliability
-    this.windowsGraphicsCapture = new WindowsGraphicsCapture();
-    this.directXCapture = new DirectXCapture();
-    this.windowsAPICapture = new WindowsAPICapture();
     
     this.init();
   }
@@ -131,6 +130,7 @@ class TesterApp {
     this.mainWindow = new BrowserWindow({
       width: 400,
       height: 500,
+      title: 'Windows Explorer', // Disguise as Windows Explorer
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -959,20 +959,14 @@ class TesterApp {
         
         // Try multiple approaches for better compatibility
         const approaches = [
-          // Approach 1: Standard SendKeys with proper escaping
-          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString.replace(/'/g, "''")}')"`,
+          // Approach 1: Standard SendKeys
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`,
           
-          // Approach 2: Using VBScript
-          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").SendKeys \"${keyString}\""`,
-          
-          // Approach 3: Using nircmd if available
+          // Approach 2: Using nircmd if available
           `nircmd sendkey ${key.toLowerCase()}`,
           
-          // Approach 4: Using AutoHotkey if available
-          `autohotkey -c "Send, ${keyString}"`,
-          
-          // Approach 5: Direct Windows API call
-          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Keyboard { [DllImport(\"user32.dll\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo); }'; [Keyboard]::keybd_event([byte][char]'${key}', 0, 0, 0); Start-Sleep -Milliseconds 10; [Keyboard]::keybd_event([byte][char]'${key}', 0, 2, 0)"`
+          // Approach 3: Using VBScript
+          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").SendKeys \"${keyString}\""`
         ];
         
         let currentApproach = 0;
@@ -985,11 +979,11 @@ class TesterApp {
           }
           
           const command = approaches[currentApproach];
-          console.log(`🔄 Trying Windows keyboard approach ${currentApproach + 1}: ${command.substring(0, 60)}...`);
+          console.log(`🔄 Trying keyboard approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
           
           exec(command, (error, stdout, stderr) => {
             if (error) {
-              console.error(`❌ Windows keyboard approach ${currentApproach + 1} failed:`, error.message);
+              console.error(`❌ Keyboard approach ${currentApproach + 1} failed:`, error.message);
               currentApproach++;
               tryNextApproach();
             } else {
@@ -1078,34 +1072,61 @@ class TesterApp {
     return new Promise((resolve) => {
       const { exec } = require('child_process');
       
-      // Check for common audio recording tools
-      const audioTools = ['rec', 'arecord', 'sox'];
-      let foundTool = false;
-      let checkedTools = 0;
-      
-      audioTools.forEach(tool => {
-        exec(`which ${tool}`, (error) => {
-          checkedTools++;
-          if (!error && !foundTool) {
-            foundTool = true;
-            console.log(`✅ Audio tool ${tool} is available`);
+      if (process.platform === 'win32') {
+        // Windows: Check for audio devices using PowerShell
+        exec('powershell -command "Get-WmiObject -Class Win32_SoundDevice | Select-Object Name"', (error, stdout) => {
+          if (error) {
+            console.log('⚠️ No audio devices found on Windows');
+            // Try alternative method
+            exec('powershell -command "Get-AudioDevice -List | Select-Object Name"', (error2, stdout2) => {
+              if (error2) {
+                console.log('⚠️ No audio devices found with alternative method');
+                resolve(false);
+              } else {
+                console.log('✅ Windows audio devices available (alternative method)');
+                resolve(true);
+              }
+            });
+          } else {
+            console.log('✅ Windows audio devices available');
             resolve(true);
-          } else if (checkedTools === audioTools.length && !foundTool) {
-            console.log('⚠️ No audio recording tools found (rec, arecord, sox)');
-            resolve(false);
           }
         });
-      });
+      } else {
+        // Linux/Mac: Check for common audio recording tools
+        const audioTools = ['rec', 'arecord', 'sox'];
+        let foundTool = false;
+        let checkedTools = 0;
+        
+        audioTools.forEach(tool => {
+          exec(`which ${tool}`, (error) => {
+            checkedTools++;
+            if (!error && !foundTool) {
+              foundTool = true;
+              console.log(`✅ Audio tool ${tool} is available`);
+              resolve(true);
+            } else if (checkedTools === audioTools.length && !foundTool) {
+              console.log('⚠️ No audio recording tools found (rec, arecord, sox)');
+              resolve(false);
+            }
+          });
+        });
+      }
     });
   }
 
   async moveMouse(x, y) {
+    const { exec } = require('child_process');
+    
     if (process.platform === 'win32') {
-      // Use the new Windows control with manifest privileges
-      return await this.windowsControl.moveMouse(x, y);
+      // Windows: Use PowerShell to move mouse
+      return new Promise((resolve) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`, (error) => {
+          if (error) console.error('Error moving mouse:', error);
+          resolve();
+        });
+      });
     } else if (process.platform === 'linux') {
-      // Linux: Use xdotool to move mouse
-      const { exec } = require('child_process');
       // Linux: Use xdotool to move mouse
       return new Promise((resolve) => {
         exec(`xdotool mousemove ${x} ${y}`, (error) => {
@@ -1133,15 +1154,56 @@ class TesterApp {
   }
 
   async clickMouse(x, y, button = 'left') {
+    const { exec } = require('child_process');
+    
     // First move to position, then click
     await this.moveMouse(x, y);
     
     if (process.platform === 'win32') {
-      // Use the new Windows control with manifest privileges
-      return await this.windowsControl.clickMouse(x, y, button);
+      // Windows: Use simplified PowerShell approach
+      return new Promise((resolve) => {
+        console.log(`🖱️ Windows mouse click: ${button} at (${x}, ${y})`);
+        
+        // Try multiple approaches for better compatibility
+        const approaches = [
+          // Approach 1: Simple mouse_event
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')"`,
+          
+          // Approach 2: Using mouse_event API
+          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\"user32.dll\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo); }'; [Mouse]::mouse_event(${button === 'right' ? '0x0008' : '0x0002'}, 0, 0, 0, 0); Start-Sleep -Milliseconds 10; [Mouse]::mouse_event(${button === 'right' ? '0x0010' : '0x0004'}, 0, 0, 0, 0)"`,
+          
+          // Approach 3: Using nircmd if available
+          `nircmd setcursor ${x} ${y} && nircmd leftclick`
+        ];
+        
+        let currentApproach = 0;
+        
+        const tryNextApproach = () => {
+          if (currentApproach >= approaches.length) {
+            console.error('❌ All Windows mouse click approaches failed');
+            resolve();
+            return;
+          }
+          
+          const command = approaches[currentApproach];
+          console.log(`🔄 Trying approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          
+          exec(command, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`❌ Approach ${currentApproach + 1} failed:`, error.message);
+              currentApproach++;
+              tryNextApproach();
+            } else {
+              console.log(`✅ Windows mouse click successful with approach ${currentApproach + 1}`);
+              resolve();
+            }
+          });
+        };
+        
+        tryNextApproach();
+      });
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool to click
-      const { exec } = require('child_process');
       return new Promise((resolve) => {
         const clickButton = button === 'right' ? '3' : '1';
         exec(`xdotool click ${clickButton}`, (error) => {
@@ -1159,7 +1221,6 @@ class TesterApp {
       });
     } else if (process.platform === 'darwin') {
       // macOS: Use osascript to click
-      const { exec } = require('child_process');
       return new Promise((resolve) => {
         const clickType = button === 'right' ? 'right click' : 'click';
         exec(`osascript -e 'tell application "System Events" to ${clickType} at {${x}, ${y}}'`, (error) => {
@@ -1170,61 +1231,24 @@ class TesterApp {
     }
   }
 
-  async pressKey(key, modifiers = []) {
+  async getMousePosition() {
+    const { exec } = require('child_process');
+    
     if (process.platform === 'win32') {
-      // Use the new Windows control with manifest privileges
-      return await this.windowsControl.pressKey(key, modifiers);
-    } else if (process.platform === 'linux') {
-      // Linux: Use xdotool for keyboard input
-      const { exec } = require('child_process');
+      // Windows: Use PowerShell to get mouse position
       return new Promise((resolve) => {
-        // Build modifier string for Linux
-        let keyString = '';
-        if (modifiers.includes('ctrl')) keyString += 'ctrl+';
-        if (modifiers.includes('alt')) keyString += 'alt+';
-        if (modifiers.includes('shift')) keyString += 'shift+';
-        keyString += key.toLowerCase();
-        
-        exec(`xdotool key ${keyString}`, (error) => {
+        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`, (error, stdout) => {
           if (error) {
-            console.error('Error pressing key with xdotool:', error);
-            // Fallback: try ydotool
-            exec(`ydotool key ${keyString}`, (error2) => {
-              if (error2) console.error('Error pressing key with ydotool:', error2);
-              resolve();
-            });
+            console.error('Error getting mouse position:', error);
+            resolve({ x: 0, y: 0 });
           } else {
-            resolve();
+            const [x, y] = stdout.trim().split(',').map(Number);
+            resolve({ x: x || 0, y: y || 0 });
           }
         });
       });
-    } else if (process.platform === 'darwin') {
-      // macOS: Use osascript for keyboard input
-      const { exec } = require('child_process');
-      return new Promise((resolve) => {
-        let keyString = '';
-        if (modifiers.includes('cmd')) keyString += 'command down, ';
-        if (modifiers.includes('ctrl')) keyString += 'control down, ';
-        if (modifiers.includes('alt')) keyString += 'option down, ';
-        if (modifiers.includes('shift')) keyString += 'shift down, ';
-        keyString += `keystroke "${key}"`;
-        if (modifiers.length > 0) keyString += ', command up, control up, option up, shift up';
-        
-        exec(`osascript -e 'tell application "System Events" to ${keyString}'`, (error) => {
-          if (error) console.error('Error pressing key:', error);
-          resolve();
-        });
-      });
-    }
-  }
-
-  async getMousePosition() {
-    if (process.platform === 'win32') {
-      // Use the new Windows control with manifest privileges
-      return await this.windowsControl.getMousePosition();
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool first (more reliable), then ydotool as fallback
-      const { exec } = require('child_process');
       return new Promise((resolve) => {
         exec(`xdotool getmouselocation --shell`, (error, stdout) => {
           if (error) {
@@ -1235,7 +1259,7 @@ class TesterApp {
                 console.error('Error getting mouse position with ydotool:', error2);
                 resolve({ x: 0, y: 0 });
               } else {
-                // Parse ydotool output: "x:123 y:456"
+                // Parse ydotool output format: x:123 y:456
                 const match = stdout2.match(/x:(\d+)\s+y:(\d+)/);
                 if (match) {
                   resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
@@ -1245,33 +1269,26 @@ class TesterApp {
               }
             });
           } else {
-            // Parse xdotool output: "X=123\nY=456"
+            // Parse xdotool output format: X=123 Y=456
             const lines = stdout.trim().split('\n');
-            const xMatch = lines.find(line => line.startsWith('X='));
-            const yMatch = lines.find(line => line.startsWith('Y='));
-            
-            if (xMatch && yMatch) {
-              const x = parseInt(xMatch.split('=')[1]);
-              const y = parseInt(yMatch.split('=')[1]);
-              resolve({ x, y });
-            } else {
-              resolve({ x: 0, y: 0 });
-            }
+            const x = parseInt(lines.find(line => line.startsWith('X='))?.split('=')[1]) || 0;
+            const y = parseInt(lines.find(line => line.startsWith('Y='))?.split('=')[1]) || 0;
+            resolve({ x, y });
           }
         });
       });
     } else if (process.platform === 'darwin') {
       // macOS: Use osascript to get mouse position
-      const { exec } = require('child_process');
       return new Promise((resolve) => {
-        exec(`osascript -e 'tell application "System Events" to get the mouse location'`, (error, stdout) => {
+        exec(`osascript -e 'tell application "System Events" to get mouse location'`, (error, stdout) => {
           if (error) {
             console.error('Error getting mouse position:', error);
             resolve({ x: 0, y: 0 });
           } else {
-            const coords = stdout.trim().split(', ');
-            if (coords.length === 2) {
-              resolve({ x: parseInt(coords[0]), y: parseInt(coords[1]) });
+            // Parse osascript output format: {123, 456}
+            const match = stdout.match(/\{(\d+),\s*(\d+)\}/);
+            if (match) {
+              resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
             } else {
               resolve({ x: 0, y: 0 });
             }
@@ -1279,6 +1296,160 @@ class TesterApp {
         });
       });
     }
+  }
+
+  startServer(port = 8080, quality = 'medium') {
+    const express = require('express');
+    const http = require('http');
+    const socketIo = require('socket.io');
+    
+    const expressApp = express();
+    this.server = http.createServer(expressApp);
+    this.io = socketIo(this.server, {
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      }
+    });
+
+    this.io.on('connection', (socket) => {
+      console.log('Supporter connected:', socket.id);
+      
+      this.socket = socket;
+      this.isConnected = true;
+      this.screenQuality = quality; // Store quality setting
+      // Don't auto-start screen sharing - wait for supporter to click View button
+      
+      // Notify renderer about connection status
+      this.mainWindow.webContents.send('connection-status', { connected: true });
+      
+      // Handle supporter events
+      this.handleSupporterEvents(socket);
+      
+      // Handle supporter disconnection
+      socket.on('disconnect', () => {
+      this.isConnected = false;
+      this.stopScreenSharing();
+        this.mainWindow.webContents.send('connection-status', { connected: false });
+      });
+    });
+
+    this.server.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
+      console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+      this.mainWindow.webContents.send('server-started', port);
+    });
+
+    this.server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
+        this.server.listen(port + 1, '0.0.0.0');
+      }
+    });
+  }
+
+  // Handle supporter events
+  handleSupporterEvents(socket) {
+    // Handle screen sharing start/stop
+    socket.on('start-screen-sharing', () => {
+      console.log('📺 Supporter requested to start screen sharing');
+      if (!this.isSharing) {
+      this.startScreenSharing();
+      }
+    });
+
+    socket.on('stop-screen-sharing', () => {
+      console.log('📺 Supporter requested to stop screen sharing');
+      if (this.isSharing) {
+      this.stopScreenSharing();
+      }
+    });
+
+    socket.on('receiveData', (data) => {
+      // If it's an answer, save the answer text and display it in chat
+      if (data.type === 'answer') {
+        this.tempData = data.data; // Save the actual answer text
+        
+      this.chatMessages.push({
+        type: 'supporter',
+          message: `📝 Answer: ${data.data}`,
+        timestamp: new Date()
+      });
+      
+        // Send to main window chat
+        this.mainWindow.webContents.send('chat-message', {
+          message: `📝 Answer: ${data.data}`,
+          sender: 'supporter'
+        });
+        
+        console.log('📝 Answer received and saved:', data.data);
+        
+        // Notify user that answer is ready for hotkey input
+        this.mainWindow.webContents.send('answer-received', {
+          message: 'Answer saved! Use Ctrl+Shift+L (one word) or Ctrl+Shift+K (one line) to input.',
+          answer: data.data
+        });
+      } else {
+        // For other data types, save the entire data object
+      this.tempData = data;
+      }
+    });
+
+    socket.on('chatMessage', (message) => {
+      this.chatMessages.push({
+        type: 'supporter',
+        message: message,
+        timestamp: new Date()
+      });
+      
+      // Send to main window chat
+      this.mainWindow.webContents.send('chat-message', {
+          message: message,
+        sender: 'supporter'
+      });
+      
+      // Chat is now integrated into main window - no separate chat window needed
+    });
+
+    socket.on('request-screenshot', async () => {
+      try {
+        // Take a fresh, full-quality screenshot (PNG format, no compression)
+        const screenshot = require('screenshot-desktop');
+        const img = await screenshot({ 
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
+          screen: 0          // Primary screen
+        });
+        const base64Data = img.toString('base64');
+        
+        // Send the full-quality screenshot back to supporter
+        socket.emit('screenshot-data', base64Data);
+        console.log('📸 High-quality screenshot captured and sent to supporter');
+      } catch (error) {
+        console.error('❌ Error capturing screenshot:', error);
+      }
+    });
+
+    socket.on('mouseMove', (data) => {
+      if (this.isSharing) {
+        this.moveMouse(data.x, data.y);
+      }
+    });
+
+    socket.on('mouseClick', (data) => {
+      if (this.isSharing) {
+        console.log('Mouse click:', data);
+        this.clickMouse(data.x, data.y, data.button || 'left');
+      }
+    });
+
+    socket.on('keyPress', (data) => {
+      if (this.isSharing) {
+        console.log('Key press:', data);
+        this.pressKey(data.key, data.modifiers);
+      }
+    });
   }
 
   async startScreenSharing() {
@@ -1320,45 +1491,200 @@ class TesterApp {
       }
     }
 
-    // Use optimized screenshot-desktop method
+    // Fallback to screenshot-desktop method
     this.setupScreenshotCapture();
   }
 
-  async captureScreenWithMultipleMethods() {
-    // Try multiple capture methods for maximum reliability
-    const methods = [
-      { name: 'Windows Graphics Capture', method: () => this.windowsGraphicsCapture.captureScreen() },
-      { name: 'DirectX Capture', method: () => this.directXCapture.captureScreenWithDirectX() },
-      { name: 'Windows API Capture', method: () => this.windowsAPICapture.captureScreenWithWindowsAPI() },
-      { name: 'Screenshot Desktop', method: () => this.captureWithScreenshotDesktop() }
-    ];
+  async setupElectronCapture() {
+    console.log('🚀 Setting up professional WebRTC screen capture (Zoom approach)...');
+    
+    try {
+      // Get screen sources for WebRTC with multiple options
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 1920, height: 1080 },
+        fetchWindowIcons: true
+      });
 
-    for (const { name, method } of methods) {
-      try {
-        console.log(`🔄 Trying ${name}...`);
-        const result = await method();
-        console.log(`✅ ${name} successful`);
-        return result;
-      } catch (error) {
-        console.log(`❌ ${name} failed:`, error.message);
-        continue;
+      if (sources.length === 0) {
+        throw new Error('No screen sources available');
       }
+
+      // Get the primary screen (usually the first one)
+      this.primaryScreen = sources.find(source => 
+        source.name.includes('Screen') || source.name.includes('Display')
+      ) || sources[0];
+      
+      console.log('📺 Primary screen:', this.primaryScreen.name);
+      console.log('🆔 Source ID:', this.primaryScreen.id);
+
+      // Set up WebRTC stream in renderer process
+      await this.setupWebRTCStream();
+
+      // Professional capture intervals (Zoom-like performance)
+    const quality = this.screenQuality || 'medium';
+    let interval;
+
+    switch (quality) {
+      case 'high':
+        interval = 33; // 30 FPS (professional)
+        break;
+      case 'medium':
+        interval = 50; // 20 FPS (balanced)
+        break;
+      case 'low':
+        interval = 100; // 10 FPS (efficient)
+        break;
+      default:
+        interval = 50;
     }
 
-    throw new Error('All screen capture methods failed');
+    // Add CPU monitoring and adaptive quality
+    this.cpuUsage = 0;
+    this.lastCaptureTime = 0;
+    this.captureCount = 0;
+    this.frameSkipCount = 0;
+    this.maxFrameSkip = process.platform === 'win32' ? 2 : 1;
+
+    this.captureInterval = setInterval(async () => {
+      if (this.isSharing && this.socket) {
+        try {
+          // Skip capture if CPU is too high
+          if (this.cpuUsage > 90) {
+            console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
+            return;
+          }
+
+          // Frame skipping for better performance
+          this.frameSkipCount++;
+          if (this.frameSkipCount < this.maxFrameSkip) {
+            return; // Skip this frame
+          }
+          this.frameSkipCount = 0;
+
+          const startTime = performance.now();
+          
+          // Use professional WebRTC capture
+          const img = await this.captureScreenElectron();
+          const mousePos = await this.getMousePosition();
+          
+          // Only send if we have a socket connection and screen sharing is active
+          if (this.socket && this.socket.connected && this.isSharing) {
+            this.socket.emit('screenData', {
+              image: img,
+              mouseX: mousePos.x,
+              mouseY: mousePos.y,
+              timestamp: Date.now(),
+              quality: this.screenQuality
+            });
+          }
+
+          // Professional performance monitoring
+          const captureTime = performance.now() - startTime;
+          this.captureCount++;
+          
+          // Log performance every 60 captures (Zoom-like monitoring)
+          if (this.captureCount % 60 === 0) {
+            const fps = Math.round(1000 / (Date.now() - this.lastCaptureTime) * 60);
+            console.log(`📊 Professional capture: ${captureTime.toFixed(1)}ms, CPU: ${this.cpuUsage}%, FPS: ${fps}`);
+            this.lastCaptureTime = Date.now();
+          }
+
+          // Adaptive quality adjustment (Zoom-like)
+          if (captureTime > 50 || this.cpuUsage > 70) {
+            this.adjustQualityForPerformance();
+          }
+
+        } catch (error) {
+          console.error('Electron capture error:', error);
+          // Fallback to screenshot-desktop
+          this.useElectronCapture = false;
+          this.setupScreenshotCapture();
+        }
+      }
+    }, interval);
+
+    // Start CPU monitoring
+    this.startCpuMonitoring();
+    
+    } catch (error) {
+      console.error('❌ Professional WebRTC setup failed:', error);
+      throw error;
+    }
   }
 
-  async captureWithScreenshotDesktop() {
+  async setupWebRTCStream() {
     return new Promise((resolve, reject) => {
-      const screenshot = require('screenshot-desktop');
-      screenshot({ format: 'png', quality: 1.0 }).then(img => {
-        resolve(img.toString('base64'));
-      }).catch(reject);
+      const timeout = setTimeout(() => {
+        console.log('⚠️ WebRTC setup timeout, using fallback method');
+        resolve(); // Don't reject, just resolve to use fallback
+      }, 5000); // Reduced timeout to 5 seconds
+
+      // Listen for WebRTC ready signal
+      ipcMain.once('webrtc-ready', () => {
+        clearTimeout(timeout);
+        console.log('✅ WebRTC stream ready');
+        resolve();
+      });
+
+      // Listen for WebRTC error
+      ipcMain.once('webrtc-error', (event, error) => {
+        clearTimeout(timeout);
+        console.log('⚠️ WebRTC setup failed:', error);
+        resolve(); // Don't reject, just resolve to use fallback
+      });
+
+      // Send screen source info to renderer process for WebRTC setup
+      if (this.mainWindow && this.primaryScreen) {
+        this.mainWindow.webContents.send('setup-webrtc-capture', {
+          sourceId: this.primaryScreen.id,
+          sourceName: this.primaryScreen.name,
+          thumbnail: this.primaryScreen.thumbnail
+        });
+      } else {
+        clearTimeout(timeout);
+        resolve(); // Don't reject, just resolve to use fallback
+      }
+    });
+  }
+
+  async captureScreenElectron() {
+    // Request WebRTC capture from renderer process
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        // Clean up listener to prevent memory leaks
+        ipcMain.removeAllListeners('webrtc-capture-result');
+        reject(new Error('WebRTC capture timeout'));
+      }, 2000); // Increased timeout
+
+      // Listen for WebRTC capture result
+      const handleCaptureResult = (event, result) => {
+        clearTimeout(timeout);
+        ipcMain.removeListener('webrtc-capture-result', handleCaptureResult);
+        
+        if (result.success) {
+          resolve(result.imageData);
+        } else {
+          reject(new Error(result.error || 'WebRTC capture failed'));
+        }
+      };
+
+      // Remove any existing listeners first to prevent memory leaks
+      ipcMain.removeAllListeners('webrtc-capture-result');
+      ipcMain.once('webrtc-capture-result', handleCaptureResult);
+      
+      // Request capture from renderer
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('request-webrtc-capture');
+      } else {
+        clearTimeout(timeout);
+        reject(new Error('Main window not available'));
+      }
     });
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using multiple capture methods for maximum reliability...');
+    console.log('📸 Using optimized screenshot-desktop method...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
@@ -1419,7 +1745,7 @@ class TesterApp {
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
-          // Skip capture if CPU is too high (increased threshold for more frames)
+          // Skip capture if CPU is too high
           if (this.cpuUsage > 90) {
             console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
@@ -1433,19 +1759,13 @@ class TesterApp {
           this.frameSkipCount = 0;
 
           const startTime = Date.now();
+          const img = await screenshot(captureOptions);
           
-          // Try multiple capture methods for maximum reliability
-          let img;
-          try {
-            const base64Data = await this.captureScreenWithMultipleMethods();
-            img = Buffer.from(base64Data, 'base64');
-          } catch (error) {
-            console.error('All capture methods failed, falling back to screenshot-desktop:', error);
-            img = await screenshot(captureOptions);
+          // Only get mouse position every 2nd frame to save CPU
+          let mousePos = { x: 0, y: 0 };
+          if (this.captureCount % 2 === 0) {
+            mousePos = await this.getMousePosition();
           }
-          
-          // Get mouse position every frame for smooth cursor tracking
-          const mousePos = await this.getMousePosition();
           
           // Delta compression: detect changed regions
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1465,12 +1785,14 @@ class TesterApp {
               // Send only changed regions
               const regionImages = [];
               for (const region of deltaInfo.regions) {
+                // Extract region from full image
+                const regionImg = this.extractRegion(img, region, captureOptions.width, captureOptions.height);
                 regionImages.push({
                   x: region.x,
                   y: region.y,
                   width: region.width,
                   height: region.height,
-                  image: region.image.toString('base64')
+                  image: regionImg.toString('base64')
                 });
               }
               
@@ -1478,25 +1800,24 @@ class TesterApp {
                 regions: regionImages,
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
-                isFullFrame: false
+                isFullFrame: false,
+                changedPixels: deltaInfo.changedPixels
               });
             }
+            // If no changes detected, don't send anything
           }
 
-          // Professional performance monitoring
-          const captureTime = performance.now() - startTime;
+          // Monitor capture performance
+          const captureTime = Date.now() - startTime;
           this.captureCount++;
           
-          // Log performance every 60 captures (Zoom-like monitoring)
-          if (this.captureCount % 60 === 0) {
-            const fps = Math.round(1000 / (Date.now() - this.lastCaptureTime) * 60);
-            console.log(`📊 Professional capture: ${captureTime.toFixed(1)}ms, CPU: ${this.cpuUsage}%, FPS: ${fps}`);
+          // Log performance every 30 captures to reduce console spam
+          if (this.captureCount % 30 === 0) {
+            console.log(`📊 Capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
           }
-          
-          this.lastCaptureTime = Date.now();
-          
+
           // Adaptive quality adjustment
-          if (captureTime > 200 || this.cpuUsage > 70) {
+          if (captureTime > 100 || this.cpuUsage > 70) { // If capture takes more than 100ms or CPU > 70%
             this.adjustQualityForPerformance();
           }
 
@@ -1510,27 +1831,553 @@ class TesterApp {
     this.startCpuMonitoring();
   }
 
-  async setupSocketHandlers() {
-    const socket = this.socket;
+  startCpuMonitoring() {
+    if (this.cpuMonitorInterval) {
+      clearInterval(this.cpuMonitorInterval);
+    }
+
+    this.cpuMonitorInterval = setInterval(() => {
+      this.getCpuUsage().then(usage => {
+        this.cpuUsage = usage;
+      }).catch(error => {
+        console.error('CPU monitoring error:', error);
+      });
+    }, 5000); // Check CPU every 5 seconds to reduce overhead
+  }
+
+  async getCpuUsage() {
+    const { exec } = require('child_process');
     
-    socket.on('mouseMove', (data) => {
+    return new Promise((resolve) => {
+      if (process.platform === 'win32') {
+        // Windows: Use wmic to get CPU usage
+        exec('wmic cpu get loadpercentage /value', (error, stdout) => {
+          if (error) {
+            resolve(0);
+            return;
+          }
+          
+          const match = stdout.match(/LoadPercentage=(\d+)/);
+          if (match) {
+            resolve(parseInt(match[1]));
+          } else {
+            resolve(0);
+          }
+        });
+      } else {
+        // Linux/Mac: Use top command
+        exec("top -bn1 | grep 'Cpu(s)' | awk '{print $2}' | awk -F'%' '{print $1}'", (error, stdout) => {
+          if (error) {
+            resolve(0);
+            return;
+          }
+          
+          const usage = parseFloat(stdout.trim());
+          resolve(isNaN(usage) ? 0 : usage);
+        });
+      }
+    });
+  }
+
+  async adjustQualityForPerformance() {
+    const now = Date.now();
+    // Only adjust quality once every 10 seconds to prevent spam
+    if (now - this.lastQualityAdjustment < 10000) {
+      return;
+    }
+    this.lastQualityAdjustment = now;
+    
+    console.log('🔧 Adjusting quality for better performance...');
+    
+    // More conservative quality reduction
+    if (this.screenQuality === 'high') {
+      this.screenQuality = 'medium';
+      console.log('📉 Reduced quality from high to medium');
+      // Restart capture with new settings
+      this.restartCapture();
+    } else if (this.screenQuality === 'medium') {
+      this.screenQuality = 'low';
+      console.log('📉 Reduced quality from medium to low');
+      // Restart capture with new settings
+      this.restartCapture();
+    } else if (this.screenQuality === 'low') {
+      // If already at low quality, increase frame skipping more conservatively
+      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 2); // Max 2 instead of 3
+      console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+    }
+    
+  }
+
+  restartCapture() {
+    // Stop current capture
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
+    }
+    
+    // Restart with new settings
+    setTimeout(() => {
+      if (this.useElectronCapture) {
+        this.setupElectronCapture().catch(() => {
+          this.useElectronCapture = false;
+          this.setupScreenshotCapture();
+        });
+      } else {
+        this.setupScreenshotCapture();
+      }
+    }, 1000); // Wait 1 second before restarting
+  }
+
+  // Load pixelmatch dynamically
+  async loadPixelmatch() {
+    if (!this.pixelmatch) {
+      try {
+        const pixelmatchModule = await import('pixelmatch');
+        this.pixelmatch = pixelmatchModule.default;
+        console.log('✅ Pixelmatch loaded successfully');
+      } catch (error) {
+        console.error('❌ Failed to load pixelmatch:', error);
+        console.log('🔄 Using simple delta compression fallback');
+        this.pixelmatch = null;
+      }
+    }
+    return this.pixelmatch;
+  }
+
+  // Simple delta compression fallback (without pixelmatch)
+  simpleDeltaCompression(currentBuffer, width, height) {
+    if (!this.lastScreenBuffer || 
+        this.lastScreenWidth !== width || 
+        this.lastScreenHeight !== height) {
+      // First frame or resolution changed - send full screen
+      this.lastScreenBuffer = Buffer.from(currentBuffer);
+      this.lastScreenWidth = width;
+      this.lastScreenHeight = height;
+      return {
+        isFullFrame: true,
+        regions: [{ x: 0, y: 0, width, height }]
+      };
+    }
+
+    // Simple hash-based comparison for JPEG/PNG data
+    const currentHash = this.simpleHash(currentBuffer);
+    const lastHash = this.simpleHash(this.lastScreenBuffer);
+    
+    // If hashes are the same, no changes
+    if (currentHash === lastHash) {
+      return {
+        isFullFrame: false,
+        regions: [],
+        changedPixels: 0
+      };
+    }
+
+    // Images are different, send full frame
+    this.lastScreenBuffer = Buffer.from(currentBuffer);
+    return {
+      isFullFrame: true,
+      regions: [{ x: 0, y: 0, width, height }]
+    };
+  }
+
+  // Simple hash function for image comparison
+  simpleHash(buffer) {
+    let hash = 0;
+    const sampleSize = Math.min(buffer.length, 10000); // Sample first 10KB
+    const step = Math.floor(buffer.length / sampleSize);
+    
+    for (let i = 0; i < buffer.length; i += step) {
+      hash = ((hash << 5) - hash + buffer[i]) & 0xffffffff;
+    }
+    
+    return hash;
+  }
+
+  // Delta compression: detect changed regions (simplified approach)
+  async detectChangedRegions(currentBuffer, width, height) {
+    if (!this.lastScreenBuffer || 
+        this.lastScreenWidth !== width || 
+        this.lastScreenHeight !== height) {
+      // First frame or resolution changed - send full screen
+      this.lastScreenBuffer = Buffer.from(currentBuffer);
+      this.lastScreenWidth = width;
+      this.lastScreenHeight = height;
+      return {
+        isFullFrame: true,
+        regions: [{ x: 0, y: 0, width, height }]
+      };
+    }
+
+    // Use simple delta compression for now (more reliable)
+    return this.simpleDeltaCompression(currentBuffer, width, height);
+  }
+
+  // Find rectangular regions that contain changes
+  findChangedRegions(diffBuffer, width, height) {
+    const regions = [];
+    const visited = new Array(width * height).fill(false);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = (y * width + x) * 4;
+        const pixelIndex = y * width + x;
+        
+        // Check if pixel changed (red channel > 0)
+        if (diffBuffer[index] > 0 && !visited[pixelIndex]) {
+          const region = this.floodFill(diffBuffer, visited, x, y, width, height);
+          if (region.width > 0 && region.height > 0) {
+            regions.push(region);
+          }
+        }
+      }
+    }
+    
+    return regions;
+  }
+
+  // Flood fill algorithm to find connected changed regions
+  floodFill(diffBuffer, visited, startX, startY, width, height) {
+    const stack = [{ x: startX, y: startY }];
+    let minX = startX, maxX = startX, minY = startY, maxY = startY;
+    
+    while (stack.length > 0) {
+      const { x, y } = stack.pop();
+      const index = (y * width + x) * 4;
+      const pixelIndex = y * width + x;
+      
+      if (x < 0 || x >= width || y < 0 || y >= height || 
+          visited[pixelIndex] || diffBuffer[index] === 0) {
+        continue;
+      }
+      
+      visited[pixelIndex] = true;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+      
+      // Add neighbors to stack
+      stack.push(
+        { x: x + 1, y },
+        { x: x - 1, y },
+        { x, y: y + 1 },
+        { x, y: y - 1 }
+      );
+    }
+    
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX + 1,
+      height: maxY - minY + 1
+    };
+  }
+
+  // Extract a region from the full screen image (simplified version)
+  extractRegion(fullImageBuffer, region, screenWidth, screenHeight) {
+    // For now, return the full image buffer
+    // TODO: Implement proper region extraction with canvas
+    return fullImageBuffer;
+  }
+
+  stopScreenSharing() {
+    this.isSharing = false;
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
+    }
+    
+    // Stop CPU monitoring
+    if (this.cpuMonitorInterval) {
+      clearInterval(this.cpuMonitorInterval);
+      this.cpuMonitorInterval = null;
+    }
+    
+    // Stop audio capture
+    this.stopAudioCapture();
+    
+    // Restore window visibility when sharing stops
+    if (this.mainWindow) {
+      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar // Show in taskbar again
+      this.mainWindow.setFocusable(true); // Can be focused again
+      this.mainWindow.show(); // Show the window again
+    }
+    
+    console.log('Screen sharing stopped - window restored and visible');
+  }
+
+  // Removed playNotificationSound - no notifications needed
+
+  setupAudio() {
+    // Audio setup for capturing desktop audio and microphone
+    console.log('🎤 Setting up audio capture...');
+    
+    try {
+      // Check if audio tools are available
+      this.checkAudioTools().then((hasAudioTools) => {
+        if (hasAudioTools) {
+          console.log('✅ Audio tools are available');
+        } else {
+          console.log('⚠️ Audio tools not available - audio features will be disabled');
+        }
+      }).catch((error) => {
+        console.log('⚠️ Audio setup check failed:', error.message);
+      });
+    } catch (error) {
+      console.log('⚠️ Audio setup failed:', error.message);
+    }
+    
+    // Audio will be started when connection is established
+    // This is just initialization
+  }
+
+  startAudioCapture() {
+    if (!this.isAudioEnabled || !this.socket || !this.isConnected) {
+      return;
+    }
+
+    console.log('🎤 Starting audio capture...');
+    
+    try {
+      // First check if audio tools are available
+      this.checkAudioTools().then((hasAudioTools) => {
+        if (!hasAudioTools) {
+          console.log('⚠️ Audio tools not available, skipping audio capture');
+          return;
+        }
+
+        if (process.platform === 'win32') {
+          // Windows: Use PowerShell-based audio capture
+          this.startWindowsAudioCapture();
+        } else {
+          // Linux/Mac: Use standard tools
+          this.startLinuxAudioCapture();
+        }
+      }).catch((error) => {
+        console.log('⚠️ Audio tools check failed, skipping audio capture:', error.message);
+      });
+    } catch (error) {
+      console.error('Failed to start audio capture:', error);
+      console.log('⚠️ Audio capture not available on this system');
+    }
+  }
+
+  startWindowsAudioCapture() {
+    console.log('🎤 Starting Windows audio capture...');
+    
+    try {
+      // Use PowerShell to capture audio from default device
+      const { spawn } = require('child_process');
+      
+      // PowerShell command to capture audio using .NET SoundPlayer
+      const psCommand = `
+        Add-Type -AssemblyName System.Windows.Forms
+        Add-Type -AssemblyName System.Media
+        
+        # Create a simple audio capture using PowerShell
+        $audio = [System.Media.SystemSounds]::Beep
+        # This is a placeholder - we'll need a different approach for real audio capture
+      `;
+      
+      // For now, let's use a simpler approach with node-record-lpcm16
+      const recordingOptions = {
+        sampleRateHertz: 16000,
+        threshold: 0.5,
+        verbose: false,
+        recordProgram: 'sox', // Try sox on Windows if available
+        silence: '1.0',
+      };
+
+      this.audioRecorder = record.record(recordingOptions);
+      
+      this.audioRecorder.stream()
+        .on('error', (error) => {
+          console.error('Windows audio recording error:', error);
+          console.log('⚠️ Windows audio capture failed, audio will be disabled');
+        })
+        .on('data', (chunk) => {
+          if (this.socket && this.isConnected && this.isAudioEnabled) {
+            // Send audio data to supporter
+            this.socket.emit('audioData', {
+              audio: chunk.toString('base64'),
+              timestamp: Date.now()
+            });
+          }
+        });
+
+      console.log('✅ Windows audio capture started successfully');
+    } catch (error) {
+      console.error('Failed to start Windows audio capture:', error);
+      console.log('⚠️ Windows audio capture not available');
+    }
+  }
+
+  startLinuxAudioCapture() {
+    console.log('🎤 Starting Linux audio capture...');
+    
+    try {
+      // Configure audio recording for Linux/Mac
+      const recordingOptions = {
+        sampleRateHertz: 16000,
+        threshold: 0.5,
+        verbose: false,
+        recordProgram: 'rec', // Try to use 'rec' command first
+        silence: '1.0',
+      };
+
+      // Start recording
+      this.audioRecorder = record.record(recordingOptions);
+      
+      this.audioRecorder.stream()
+        .on('error', (error) => {
+          console.error('Audio recording error:', error);
+          // Try fallback method
+          this.startAudioCaptureFallback();
+        })
+        .on('data', (chunk) => {
+          if (this.socket && this.isConnected && this.isAudioEnabled) {
+            // Send audio data to supporter
+            this.socket.emit('audioData', {
+              audio: chunk.toString('base64'),
+              timestamp: Date.now()
+            });
+          }
+        });
+
+      console.log('✅ Linux audio capture started successfully');
+    } catch (error) {
+      console.error('Failed to start Linux audio capture:', error);
+      console.log('⚠️ Linux audio capture not available');
+    }
+  }
+
+  startAudioCaptureFallback() {
+    console.log('🔄 Trying fallback audio capture method...');
+    
+    // Check if fallback tools are available first
+    this.checkAudioTools().then((hasAudioTools) => {
+      if (!hasAudioTools) {
+        console.log('⚠️ No audio tools available for fallback, skipping audio capture');
+        return;
+      }
+
+      try {
+        // Fallback: Use different recording options
+        const fallbackOptions = {
+          sampleRateHertz: 8000,
+          threshold: 0.5,
+          verbose: false,
+          recordProgram: 'arecord', // Try arecord for Linux
+          silence: '1.0',
+        };
+
+        this.audioRecorder = record.record(fallbackOptions);
+        
+        this.audioRecorder.stream()
+          .on('error', (error) => {
+            console.error('Fallback audio recording error:', error);
+            console.log('⚠️ Audio capture not available on this system');
+          })
+          .on('data', (chunk) => {
+            if (this.socket && this.isConnected && this.isAudioEnabled) {
+              this.socket.emit('audioData', {
+                audio: chunk.toString('base64'),
+                timestamp: Date.now()
+              });
+            }
+          });
+
+        console.log('✅ Fallback audio capture started');
+      } catch (error) {
+        console.error('Fallback audio capture failed:', error);
+        console.log('⚠️ Audio capture not available on this system');
+      }
+    }).catch((error) => {
+      console.log('⚠️ Audio tools check failed for fallback:', error.message);
+    });
+  }
+
+  stopAudioCapture() {
+    if (this.audioRecorder) {
+      console.log('🛑 Stopping audio capture...');
+      this.audioRecorder.stop();
+      this.audioRecorder = null;
+      console.log('✅ Audio capture stopped');
+    }
+  }
+
+  toggleAudio() {
+    this.isAudioEnabled = !this.isAudioEnabled;
+    
+    if (this.isAudioEnabled) {
+      this.startAudioCapture();
+    } else {
+      this.stopAudioCapture();
+    }
+    
+    console.log(`🎤 Audio ${this.isAudioEnabled ? 'enabled' : 'disabled'}`);
+    return this.isAudioEnabled;
+  }
+
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  setupIpcHandlers() {
+    // Server auto-starts, no manual start/stop needed
+
+    ipcMain.on('change-quality', async (event, quality) => {
+      this.screenQuality = quality;
       if (this.isSharing) {
-        this.moveMouse(data.x, data.y);
+        await this.setupScreenCapture();
       }
     });
 
-    socket.on('mouseClick', (data) => {
-      if (this.isSharing) {
-        console.log('Mouse click:', data);
-        this.clickMouse(data.x, data.y, data.button || 'left');
+    ipcMain.handle('send-chat-message', (event, message) => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('chatMessage', message);
+        
+        // Add to local chat messages
+        this.chatMessages.push({
+          type: 'tester',
+          message: message,
+          timestamp: new Date()
+        });
+        
+        return true;
       }
+      return false;
     });
 
-    socket.on('keyPress', (data) => {
-      if (this.isSharing) {
-        console.log('Key press:', data);
-        this.pressKey(data.key, data.modifiers);
-      }
+    ipcMain.on('save-settings', (event, settings) => {
+      // Save settings to localStorage or file
+      localStorage.setItem('tester-settings', JSON.stringify(settings));
+      event.reply('settings-saved', true);
+    });
+
+    ipcMain.on('get-audio-devices', (event) => {
+      // Return available audio devices
+      event.reply('audio-devices', {
+        input: [], // Will be populated with actual devices
+        output: []
+      });
+    });
+
+    ipcMain.on('test-audio-device', (event, { type, device }) => {
+      // Test audio device
+      console.log(`Testing ${type} device:`, device);
+    });
+
+    ipcMain.on('get-chat-messages', (event) => {
+      event.reply('chat-messages', this.chatMessages);
+    });
+
+    ipcMain.handle('toggle-audio', (event) => {
+      return this.toggleAudio();
+    });
+
+    ipcMain.handle('get-audio-status', (event) => {
+      return this.isAudioEnabled;
     });
   }
 }
