@@ -62,7 +62,7 @@ class SupporterApp {
       icon: path.join(__dirname, 'assets/icon.png'),
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
-      fullscreenable: true,
+      fullscreenable: false,
       resizable: true
     });
 
