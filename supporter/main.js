@@ -69,25 +69,51 @@ class SupporterApp {
   connectToTester(testerIP, port = 8080) {
     const io = require('socket.io-client');
     
-    console.log(`Attempting to connect to tester at ${testerIP}:${port}`);
+    console.log(`🔗 Attempting to connect to tester at ${testerIP}:${port}`);
+    
+    // Disconnect existing connection if any
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
     
     this.socket = io(`http://${testerIP}:${port}`, {
-      timeout: 5000,
-      forceNew: true
+      timeout: 20000,
+      forceNew: true,
+      transports: ['polling']
     });
     
     this.socket.on('connect', () => {
       console.log('✅ Connected to tester:', testerIP);
+      console.log('Socket ID:', this.socket.id);
       this.isConnected = true;
       this.mainWindow.webContents.send('connection-status', { connected: true, testerIP });
     });
 
+    this.socket.on('connecting', () => {
+      console.log('🔄 Connecting to tester...');
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('🔄 Reconnected after', attemptNumber, 'attempts');
+    });
+
     this.socket.on('connect_error', (error) => {
       console.error('❌ Connection error:', error.message);
+      console.error('Error details:', error);
       this.isConnected = false;
       this.mainWindow.webContents.send('connection-status', { 
         connected: false, 
         error: error.message 
+      });
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('❌ Socket error:', error);
+      this.isConnected = false;
+      this.mainWindow.webContents.send('connection-status', { 
+        connected: false, 
+        error: 'Socket error: ' + error.message 
       });
     });
 

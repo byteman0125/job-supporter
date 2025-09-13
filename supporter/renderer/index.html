@@ -24,28 +24,41 @@
         /* Header */
         .header {
             background: #2d2d2d;
-            padding: 12px 20px;
+            padding: 8px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #404040;
+            min-height: 50px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
         }
 
         .header h1 {
             font-size: 16px;
             font-weight: 600;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .connection-status {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 12px;
+            gap: 6px;
+            font-size: 11px;
         }
 
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #ff4757;
         }
@@ -54,14 +67,31 @@
             background: #2ed573;
         }
 
-        /* Main Layout */
+        /* Main Layout - Column Format */
         .main-container {
             flex: 1;
             display: flex;
-            flex-direction: column;
-            padding: 8px; /* Reduced from 16px to 8px */
-            gap: 8px; /* Reduced from 16px to 8px */
+            flex-direction: row;
+            padding: 8px;
+            gap: 8px;
             overflow: hidden;
+        }
+
+        /* Left Side - Screen Area */
+        .screen-section {
+            flex: 4;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Right Side - Configuration Area */
+        .config-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 250px;
         }
 
         /* Top Bar */
@@ -71,27 +101,7 @@
             align-items: center;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 8px 12px; /* Reduced from 12px 16px to 8px 12px */
-        }
-
-        .connection-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .connection-group input {
-            padding: 6px 10px;
-            border: 1px solid #404040;
-            border-radius: 4px;
-            background: #1a1a1a;
-            color: #ffffff;
-            font-size: 12px;
-            width: 140px;
-        }
-
-        .connection-group input[type="number"] {
-            width: 60px;
+            padding: 8px 12px;
         }
 
         .btn {
@@ -137,7 +147,7 @@
             flex: 1;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 8px; /* Reduced from 16px to 8px */
+            padding: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -221,46 +231,169 @@
             100% { transform: translate(-50%, -50%) scale(1); }
         }
 
-        /* Bottom Panel */
-        .bottom-panel {
-            display: flex;
-            gap: 16px;
-            height: 120px; /* Reduced from 180px to 120px */
-        }
-
-        .panel {
-            flex: 1;
+        /* Configuration Panel */
+        .config-panel {
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 8px; /* Reduced from 12px to 8px */
+            padding: 8px;
             display: flex;
             flex-direction: column;
+            height: 100%;
         }
 
-        .panel h3 {
+        /* Control Panel */
+        .control-panel {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .control-panel h3 {
             font-size: 12px;
             font-weight: 600;
-            margin-bottom: 4px; /* Reduced from 8px to 4px */
+            margin-bottom: 8px;
             color: #ccc;
         }
 
-        /* Chat Panel */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-row label {
+            font-size: 11px;
+            color: #ccc;
+            min-width: 60px;
+        }
+
+        /* Connection Controls */
+        .connection-controls {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+
+        .connection-controls h3 {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        .connection-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .connection-group input {
+            padding: 6px 8px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            background: #1a1a1a;
+            color: #ffffff;
+            font-size: 11px;
+        }
+
+        .connection-group input[type="text"] {
+            width: 100%;
+        }
+
+        .connection-group input[type="number"] {
+            width: 100%;
+        }
+
+        .connection-buttons {
+            display: flex;
+            gap: 6px;
+        }
+
+        .connection-buttons .btn {
+            flex: 1;
+        }
+
+        /* Chat & Answer Panel */
+        .chat-answer-panel {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 8px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .panel-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            background: #404040;
+            color: #ccc;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #2ed573;
+            color: white;
+        }
+
+        .panel-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        /* Chat Messages */
         .chat-messages {
             flex: 1;
             background: #1a1a1a;
             border-radius: 4px;
-            padding: 6px; /* Reduced from 8px to 6px */
+            padding: 6px;
             overflow-y: auto;
-            margin-bottom: 6px; /* Reduced from 8px to 6px */
             font-size: 11px;
+            min-height: 60px;
         }
 
         .chat-message {
-            margin-bottom: 6px;
-            padding: 4px 8px;
-            border-radius: 4px;
+            margin-bottom: 4px;
+            padding: 3px 6px;
+            border-radius: 3px;
             max-width: 85%;
             word-wrap: break-word;
+            font-size: 10px;
         }
 
         .chat-message.tester {
@@ -273,12 +406,14 @@
             background: rgba(255, 107, 107, 0.2);
         }
 
-        .chat-input-area {
+        /* Input Area */
+        .input-area {
             display: flex;
             gap: 6px;
+            align-items: flex-end;
         }
 
-        .chat-input {
+        .input-field {
             flex: 1;
             padding: 6px 8px;
             border: 1px solid #404040;
@@ -286,25 +421,15 @@
             background: #1a1a1a;
             color: #ffffff;
             font-size: 11px;
-        }
-
-        /* Answer Panel */
-        .answer-textarea {
-            flex: 1;
-            padding: 6px; /* Reduced from 8px to 6px */
-            border: 1px solid #404040;
-            border-radius: 4px;
-            background: #1a1a1a;
-            color: #ffffff;
-            font-size: 11px;
             font-family: 'Monaco', 'Menlo', monospace;
             resize: none;
-            margin-bottom: 6px; /* Reduced from 8px to 6px */
+            min-height: 32px;
+            max-height: 60px;
         }
 
-        .answer-buttons {
+        .input-buttons {
             display: flex;
-            gap: 6px;
+            gap: 4px;
         }
 
         /* Controls */
@@ -327,26 +452,57 @@
             background: #ff5252;
         }
 
-        /* Responsive */
+        /* Responsive - Always maintain column layout */
         @media (max-width: 1200px) {
-            .connection-group input[type="text"] {
-                width: 120px;
+            .screen-section {
+                flex: 3; /* Reduce screen area slightly on smaller screens */
+            }
+            
+            .config-section {
+                flex: 1; /* Keep config area but make it smaller */
+                min-width: 220px; /* Minimum width for config area */
             }
         }
 
-        /* Make screen area even bigger on larger screens */
-        @media (min-width: 1400px) {
-            .bottom-panel {
-                height: 100px; /* Even smaller on large screens */
+        @media (max-width: 900px) {
+            .screen-section {
+                flex: 2.5; /* Further reduce screen area */
             }
             
+            .config-section {
+                flex: 1;
+                min-width: 200px; /* Smaller minimum width */
+            }
+        }
+
+        @media (max-width: 700px) {
             .main-container {
-                padding: 6px; /* Even less padding on large screens */
-                gap: 6px;
+                flex-direction: column; /* Only stack vertically on very small screens */
             }
             
-            .screen-container {
-                padding: 6px; /* Even less padding on large screens */
+            .screen-section {
+                flex: 1;
+                min-height: 300px;
+            }
+            
+            .config-section {
+                flex: none;
+                min-width: auto;
+                max-height: 40vh; /* Limit height on mobile */
+                overflow-y: auto;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .header-left {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .connection-controls,
+            .control-panel,
+            .chat-answer-panel {
+                padding: 6px;
             }
         }
     </style>
@@ -354,67 +510,92 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>Code Supporter</h1>
-        <div class="connection-status">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Disconnected</span>
+        
+        <div class="header-right">
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
         </div>
     </div>
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Top Bar -->
-        <div class="top-bar">
-            <div class="connection-group">
-                <input type="text" id="testerIP" placeholder="Tester IP" value="">
-                <input type="number" id="testerPort" placeholder="8080" value="8080">
-                <button class="btn btn-primary" id="connectBtn">Connect</button>
-                <button class="btn btn-secondary" id="disconnectBtn" disabled>Disconnect</button>
-            </div>
-            
-            <div class="controls">
-                <div class="mode-toggle">
-                    <button class="btn btn-small btn-primary active" id="viewModeBtn">View</button>
-                    <button class="btn btn-small btn-secondary" id="controlModeBtn">Control</button>
+        <!-- Left Side - Screen Area -->
+        <div class="screen-section">
+            <!-- Screen Area -->
+            <div class="screen-container">
+                <div class="screen-viewer" id="screenViewer">
+                    <div class="no-screen">
+                        <h3>No Screen Shared</h3>
+                        <p>Connect to tester to view their screen</p>
+                    </div>
+                    <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
+                    <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
                 </div>
-                <button class="btn btn-small btn-primary" id="soundBtn" title="Toggle Audio">🔊</button>
-                <button class="btn btn-small btn-secondary" id="captureBtn" disabled>📷</button>
             </div>
         </div>
 
-        <!-- Screen Area -->
-        <div class="screen-container">
-            <div class="screen-viewer" id="screenViewer">
-                <div class="no-screen">
-                    <h3>No Screen Shared</h3>
-                    <p>Connect to tester to view their screen</p>
-                </div>
-                <div class="cursor-info" id="cursorInfo" style="display: none;">X: 0, Y: 0</div>
-                <div class="control-indicator" id="controlIndicator">🎮 CONTROLLING</div>
-            </div>
-        </div>
-
-        <!-- Bottom Panel -->
-        <div class="bottom-panel">
-            <!-- Chat Panel -->
-            <div class="panel">
-                <h3>💬 Chat</h3>
-                <div class="chat-messages" id="chatMessages">
-                    <div class="no-messages" style="color: #666; text-align: center; padding: 20px;">No messages yet</div>
-                </div>
-                <div class="chat-input-area">
-                    <input type="text" class="chat-input" id="chatInput" placeholder="Type message..." maxlength="500">
-                    <button class="btn btn-primary btn-small" id="sendChatBtn" disabled>Send</button>
+        <!-- Right Side - Configuration Area -->
+        <div class="config-section">
+            <!-- Connection Controls -->
+            <div class="connection-controls">
+                <h3>🔗 Connection</h3>
+                <div class="connection-group">
+                    <input type="text" id="testerIP" placeholder="Tester IP Address" value="">
+                    <div class="connection-buttons">
+                        <button class="btn btn-primary btn-small" id="connectBtn">Connect</button>
+                        <button class="btn btn-secondary btn-small" id="disconnectBtn" disabled>Disconnect</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Answer Panel -->
-            <div class="panel">
-                <h3>📝 Send Answer</h3>
-                <textarea class="answer-textarea" id="answerText" placeholder="Type your answer or code here..."></textarea>
-                <div class="answer-buttons">
-                    <button class="btn btn-primary btn-small" id="sendAnswerBtn" disabled>Send</button>
-                    <button class="btn btn-secondary btn-small" id="clearAnswerBtn">Clear</button>
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h3>🎮 Controls</h3>
+                <div class="control-group">
+                    <div class="control-row">
+                        <label>Mode:</label>
+                        <div class="mode-toggle">
+                            <button class="btn btn-small btn-primary active" id="viewModeBtn2">View</button>
+                            <button class="btn btn-small btn-secondary" id="controlModeBtn2">Control</button>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label>Audio:</label>
+                        <button class="btn btn-small btn-primary" id="soundBtn2" title="Toggle Audio">🔊</button>
+                    </div>
+                    <div class="control-row">
+                        <label>Capture:</label>
+                        <button class="btn btn-small btn-secondary" id="captureBtn2" disabled>📷</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat & Answer Panel -->
+            <div class="chat-answer-panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        💬 Chat & Answer
+                    </div>
+                    <div class="panel-tabs">
+                        <button class="tab-btn active" id="chatTab">Chat</button>
+                        <button class="tab-btn" id="answerTab">Answer</button>
+                    </div>
+                </div>
+                
+                <div class="panel-content">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="no-messages" style="color: #666; text-align: center; padding: 20px; font-size: 11px;">No messages yet</div>
+                    </div>
+                    
+                    <div class="input-area">
+                        <textarea class="input-field" id="inputField" placeholder="Type message or answer..." maxlength="1000"></textarea>
+                        <div class="input-buttons">
+                            <button class="btn btn-primary btn-small" id="sendBtn" disabled>Send</button>
+                            <button class="btn btn-secondary btn-small" id="clearBtn">Clear</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -426,6 +607,7 @@
         let isConnected = false;
         let isControlMode = false;
         let lastMouseMoveTime = 0;
+        let currentMode = 'chat'; // 'chat' or 'answer'
         const MOUSE_MOVE_THROTTLE = 16; // ~60fps
         
         // Elements
@@ -434,27 +616,29 @@
         const connectBtn = document.getElementById('connectBtn');
         const disconnectBtn = document.getElementById('disconnectBtn');
         const testerIP = document.getElementById('testerIP');
-        const testerPort = document.getElementById('testerPort');
         const screenViewer = document.getElementById('screenViewer');
         const cursorInfo = document.getElementById('cursorInfo');
         const controlIndicator = document.getElementById('controlIndicator');
-        const viewModeBtn = document.getElementById('viewModeBtn');
-        const controlModeBtn = document.getElementById('controlModeBtn');
-        const captureBtn = document.getElementById('captureBtn');
-        const soundBtn = document.getElementById('soundBtn');
+        
+        // Control buttons (only the ones in config area now)
+        const viewModeBtn2 = document.getElementById('viewModeBtn2');
+        const controlModeBtn2 = document.getElementById('controlModeBtn2');
+        const captureBtn2 = document.getElementById('captureBtn2');
+        const soundBtn2 = document.getElementById('soundBtn2');
+        
         const chatMessages = document.getElementById('chatMessages');
-        const chatInput = document.getElementById('chatInput');
-        const sendChatBtn = document.getElementById('sendChatBtn');
-        const answerText = document.getElementById('answerText');
-        const sendAnswerBtn = document.getElementById('sendAnswerBtn');
-        const clearAnswerBtn = document.getElementById('clearAnswerBtn');
+        const inputField = document.getElementById('inputField');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const chatTab = document.getElementById('chatTab');
+        const answerTab = document.getElementById('answerTab');
 
         // Connection handlers
         connectBtn.addEventListener('click', () => {
             const ip = testerIP.value;
-            const port = testerPort.value;
+            const port = 8080; // Default port
             
-            if (ip && port) {
+            if (ip) {
                 ipcRenderer.send('connect-to-tester', { ip, port });
             }
         });
@@ -464,32 +648,35 @@
         });
 
         // Mode toggle
-        viewModeBtn.addEventListener('click', () => setControlMode(false));
-        controlModeBtn.addEventListener('click', () => setControlMode(true));
+        viewModeBtn2.addEventListener('click', () => setControlMode(false));
+        controlModeBtn2.addEventListener('click', () => setControlMode(true));
 
         // Capture
-        captureBtn.addEventListener('click', () => {
+        captureBtn2.addEventListener('click', () => {
             ipcRenderer.invoke('capture-screenshot');
         });
 
         // Sound toggle
-        soundBtn.addEventListener('click', async () => {
+        soundBtn2.addEventListener('click', async () => {
             const isEnabled = await ipcRenderer.invoke('toggle-audio');
             updateSoundButton(isEnabled);
         });
 
-        // Chat
-        sendChatBtn.addEventListener('click', sendChatMessage);
-        chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendChatMessage();
-            }
+        // Tab switching
+        chatTab.addEventListener('click', () => switchMode('chat'));
+        answerTab.addEventListener('click', () => switchMode('answer'));
+
+        // Input handling
+        sendBtn.addEventListener('click', sendMessage);
+        clearBtn.addEventListener('click', () => {
+            inputField.value = '';
         });
 
-        // Answer
-        sendAnswerBtn.addEventListener('click', sendAnswer);
-        clearAnswerBtn.addEventListener('click', () => {
-            answerText.value = '';
+        inputField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
         });
 
         // Screen viewer events
@@ -521,12 +708,12 @@
         ipcRenderer.on('screenshot-saved', (event, result) => {
             if (result.success) {
                 // Show success message
-                const originalText = captureBtn.textContent;
-                captureBtn.textContent = '✅ Saved!';
-                captureBtn.style.background = '#2ed573';
+                const originalText = captureBtn2.textContent;
+                captureBtn2.textContent = '✅ Saved!';
+                captureBtn2.style.background = '#2ed573';
                 setTimeout(() => {
-                    captureBtn.textContent = originalText;
-                    captureBtn.style.background = '';
+                    captureBtn2.textContent = originalText;
+                    captureBtn2.style.background = '';
                 }, 2000);
             }
         });
@@ -538,15 +725,15 @@
         // Functions
         function updateSoundButton(isEnabled) {
             if (isEnabled) {
-                soundBtn.textContent = '🔊';
-                soundBtn.classList.remove('btn-secondary');
-                soundBtn.classList.add('btn-primary');
-                soundBtn.title = 'Audio On - Click to Mute';
+                soundBtn2.textContent = '🔊';
+                soundBtn2.classList.remove('btn-secondary');
+                soundBtn2.classList.add('btn-primary');
+                soundBtn2.title = 'Audio On - Click to Mute';
             } else {
-                soundBtn.textContent = '🔇';
-                soundBtn.classList.remove('btn-primary');
-                soundBtn.classList.add('btn-secondary');
-                soundBtn.title = 'Audio Off - Click to Unmute';
+                soundBtn2.textContent = '🔇';
+                soundBtn2.classList.remove('btn-primary');
+                soundBtn2.classList.add('btn-secondary');
+                soundBtn2.title = 'Audio Off - Click to Unmute';
             }
         }
 
@@ -561,17 +748,15 @@
                 statusText.textContent = 'Connected';
                 connectBtn.disabled = true;
                 disconnectBtn.disabled = false;
-                captureBtn.disabled = false;
-                sendChatBtn.disabled = false;
-                sendAnswerBtn.disabled = false;
+                captureBtn2.disabled = false;
+                sendBtn.disabled = false;
             } else {
                 statusDot.classList.remove('connected');
                 statusText.textContent = 'Disconnected';
                 connectBtn.disabled = false;
                 disconnectBtn.disabled = true;
-                captureBtn.disabled = true;
-                sendChatBtn.disabled = true;
-                sendAnswerBtn.disabled = true;
+                captureBtn2.disabled = true;
+                sendBtn.disabled = true;
             }
         }
 
@@ -579,13 +764,13 @@
             isControlMode = control;
             
             if (control) {
-                viewModeBtn.classList.remove('active');
-                controlModeBtn.classList.add('active');
+                viewModeBtn2.classList.remove('active');
+                controlModeBtn2.classList.add('active');
                 screenViewer.style.cursor = 'crosshair';
                 controlIndicator.classList.add('active');
             } else {
-                viewModeBtn.classList.add('active');
-                controlModeBtn.classList.remove('active');
+                viewModeBtn2.classList.add('active');
+                controlModeBtn2.classList.remove('active');
                 screenViewer.style.cursor = 'default';
                 controlIndicator.classList.remove('active');
             }
@@ -671,12 +856,30 @@
             ipcRenderer.invoke('send-mouse-click', { x, y, button });
         }
 
-        function sendChatMessage() {
-            const message = chatInput.value.trim();
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            if (mode === 'chat') {
+                chatTab.classList.add('active');
+                answerTab.classList.remove('active');
+                inputField.placeholder = 'Type message...';
+            } else {
+                chatTab.classList.remove('active');
+                answerTab.classList.add('active');
+                inputField.placeholder = 'Type your answer or code here...';
+            }
+        }
+
+        function sendMessage() {
+            const message = inputField.value.trim();
             if (message && isConnected) {
-                ipcRenderer.invoke('send-chat-message', message);
-                addChatMessage(message, 'supporter');
-                chatInput.value = '';
+                if (currentMode === 'chat') {
+                    ipcRenderer.invoke('send-chat-message', message);
+                    addChatMessage(message, 'supporter');
+                } else {
+                    ipcRenderer.invoke('send-data-to-tester', { type: 'answer', data: message });
+                }
+                inputField.value = '';
             }
         }
 
@@ -695,17 +898,10 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        function sendAnswer() {
-            const answer = answerText.value.trim();
-            if (answer && isConnected) {
-                ipcRenderer.invoke('send-data-to-tester', { type: 'answer', data: answer });
-                answerText.value = '';
-            }
-        }
-
         // Initialize
         updateConnectionStatus();
         initializeAudioState();
     </script>
 </body>
+</html>
 </html>
