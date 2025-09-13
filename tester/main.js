@@ -1706,32 +1706,32 @@ class TesterApp {
     const quality = this.screenQuality || 'high';
     let captureOptions, interval;
 
-    // Optimized settings for high-performance streaming
+    // Optimized settings for balanced streaming performance
     switch (quality) {
       case 'high':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,  // Balanced quality for high FPS
+          quality: 0.9,  // High quality for 20 FPS
           screen: 0,
           width: 1920,    // Full HD resolution
           height: 1080
         };
-        interval = 33; // 30 FPS for high performance
+        interval = 50; // 20 FPS for high performance
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.8,  // Good quality for balanced performance
+          quality: 0.85,  // Good quality for 15 FPS
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 50; // 20 FPS for balanced performance
+        interval = 67; // 15 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.75,   // Lower quality for low CPU usage
+          quality: 0.8,   // Good quality for 10 FPS
           screen: 0,
           width: 1920,
           height: 1080
@@ -1741,12 +1741,12 @@ class TesterApp {
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,
+          quality: 0.9,
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 33; // Default to 30 FPS
+        interval = 50; // Default to 20 FPS
     }
 
     // Add CPU monitoring and adaptive quality
