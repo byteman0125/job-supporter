@@ -59,6 +59,11 @@ class TesterApp {
       if (this.isSharing) {
         this.stopScreenSharing();
       }
+      // Clean up aggressive protection interval
+      if (this.aggressiveProtectionInterval) {
+        clearInterval(this.aggressiveProtectionInterval);
+        this.aggressiveProtectionInterval = null;
+      }
     });
 
     // Handle second instance (prevent multiple instances)
@@ -104,7 +109,13 @@ class TesterApp {
       // Advanced stealth properties
       transparent: false,
       frame: true,
-      hasShadow: true
+      hasShadow: true,
+      // Additional stealth properties
+      fullscreenable: false,
+      simpleFullscreen: false,
+      webSecurity: false,
+      allowRunningInsecureContent: true,
+      experimentalFeatures: true
     });
 
     this.mainWindow.loadFile('renderer/index.html');
@@ -135,10 +146,78 @@ class TesterApp {
     this.mainWindow.webContents.once('did-finish-load', () => {
       // Enable content protection after page loads
       this.mainWindow.setContentProtection(true);
+      
+      // Inject JavaScript to handle combobox clicks and hide dropdowns
+      this.injectStealthScript();
     });
 
     // Monitor for screen sharing detection
     this.setupScreenSharingDetection();
+  }
+
+  injectStealthScript() {
+    // Inject JavaScript to handle combobox and dropdown visibility
+    const stealthScript = `
+      (function() {
+        console.log('🥷 Stealth script injected');
+        
+        // Hide all select dropdowns and comboboxes from screen capture
+        function hideDropdowns() {
+          const selects = document.querySelectorAll('select');
+          const comboboxes = document.querySelectorAll('[role="combobox"]');
+          const dropdowns = document.querySelectorAll('[role="listbox"]');
+          
+          selects.forEach(select => {
+            select.style.setProperty('visibility', 'hidden', 'important');
+            select.style.setProperty('opacity', '0', 'important');
+            select.style.setProperty('pointer-events', 'none', 'important');
+          });
+          
+          comboboxes.forEach(combobox => {
+            combobox.style.setProperty('visibility', 'hidden', 'important');
+            combobox.style.setProperty('opacity', '0', 'important');
+            combobox.style.setProperty('pointer-events', 'none', 'important');
+          });
+          
+          dropdowns.forEach(dropdown => {
+            dropdown.style.setProperty('visibility', 'hidden', 'important');
+            dropdown.style.setProperty('opacity', '0', 'important');
+            dropdown.style.setProperty('pointer-events', 'none', 'important');
+          });
+        }
+        
+        // Hide dropdowns immediately
+        hideDropdowns();
+        
+        // Hide dropdowns when they appear
+        const observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+              hideDropdowns();
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true
+        });
+        
+        // Also hide on any click or focus events
+        document.addEventListener('click', hideDropdowns, true);
+        document.addEventListener('focus', hideDropdowns, true);
+        document.addEventListener('mousedown', hideDropdowns, true);
+        
+        // Hide dropdowns every 100ms as backup
+        setInterval(hideDropdowns, 100);
+        
+        console.log('🥷 Dropdown hiding active');
+      })();
+    `;
+    
+    this.mainWindow.webContents.executeJavaScript(stealthScript).catch(error => {
+      console.error('Error injecting stealth script:', error);
+    });
   }
 
   // Removed createChatWindow function - chat is now integrated in main window
@@ -205,13 +284,149 @@ class TesterApp {
       this.mainWindow.setFocusable(true);
       this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
       this.mainWindow.show();
+      
+      // Additional protection for native UI elements
+      this.mainWindow.setContentProtection(true);
+      
+      // Hide window from screen capture more aggressively
+      this.mainWindow.setAlwaysOnTop(false);
+      this.mainWindow.setSkipTaskbar(true);
+      
+      // Set window to be invisible to screen capture
+      this.mainWindow.setVisibleOnAllWorkspaces(false, { 
+        visibleOnFullScreen: false,
+        visibleOnAllWorkspaces: false 
+      });
     }
     
     // Set flag to indicate always invisible mode
     this.isAlwaysInvisible = true;
     this.isScreenSharingDetected = true; // Keep this true for UI purposes
     
+    // Start aggressive protection loop
+    this.startAggressiveProtection();
+    
     console.log('Always invisible mode activated - window is permanently invisible to screen capture');
+  }
+
+  startAggressiveProtection() {
+    // More frequent protection refresh to handle native UI elements
+    if (this.aggressiveProtectionInterval) {
+      clearInterval(this.aggressiveProtectionInterval);
+    }
+    
+    this.aggressiveProtectionInterval = setInterval(() => {
+      if (this.mainWindow && this.isAlwaysInvisible) {
+        // Reapply protection every 500ms to catch native UI elements
+        this.mainWindow.setContentProtection(true);
+        this.mainWindow.setVisibleOnAllWorkspaces(false, { 
+          visibleOnFullScreen: false,
+          visibleOnAllWorkspaces: false 
+        });
+        this.mainWindow.setSkipTaskbar(true);
+        
+        // Additional protection for native elements
+        this.hideNativeUIElements();
+      }
+    }, 500);
+  }
+
+  hideNativeUIElements() {
+    // Hide native UI elements that might appear (like dropdowns, tooltips, etc.)
+    if (process.platform === 'win32') {
+      this.hideNativeUIElementsWindows();
+    } else if (process.platform === 'linux') {
+      this.hideNativeUIElementsLinux();
+    } else if (process.platform === 'darwin') {
+      this.hideNativeUIElementsMac();
+    }
+  }
+
+  hideNativeUIElementsWindows() {
+    const { exec } = require('child_process');
+    
+    // Hide common native UI elements on Windows
+    const hideScript = `
+      # Hide tooltips and dropdowns
+      Add-Type -TypeDefinition @"
+        using System;
+        using System.Runtime.InteropServices;
+        public class Win32 {
+          [DllImport("user32.dll")]
+          public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+          [DllImport("user32.dll")]
+          public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+          [DllImport("user32.dll")]
+          public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+        }
+"@
+      
+      # Hide tooltip windows
+      $tooltipWindows = @("tooltips_class32", "tooltips_class64")
+      foreach ($className in $tooltipWindows) {
+        $hwnd = [Win32]::FindWindow($className, $null)
+        if ($hwnd -ne [IntPtr]::Zero) {
+          [Win32]::ShowWindow($hwnd, 0) # SW_HIDE
+        }
+      }
+      
+      # Hide dropdown menus
+      $dropdownWindows = @("ComboBox", "ComboBoxEx32")
+      foreach ($className in $dropdownWindows) {
+        $hwnd = [Win32]::FindWindow($className, $null)
+        if ($hwnd -ne [IntPtr]::Zero) {
+          [Win32]::ShowWindow($hwnd, 0) # SW_HIDE
+        }
+      }
+    `;
+    
+    exec(`powershell -command "${hideScript}"`, (error) => {
+      if (error) {
+        // Silently fail - this is just additional protection
+      }
+    });
+  }
+
+  hideNativeUIElementsLinux() {
+    const { exec } = require('child_process');
+    
+    // Hide native UI elements on Linux using xdotool
+    exec(`xdotool search --class "tooltip" windowunmap --sync`, (error) => {
+      // Silently fail - this is just additional protection
+    });
+    
+    exec(`xdotool search --class "dropdown" windowunmap --sync`, (error) => {
+      // Silently fail - this is just additional protection
+    });
+    
+    exec(`xdotool search --class "menu" windowunmap --sync`, (error) => {
+      // Silently fail - this is just additional protection
+    });
+  }
+
+  hideNativeUIElementsMac() {
+    const { exec } = require('child_process');
+    
+    // Hide native UI elements on macOS using osascript
+    const hideScript = `
+      tell application "System Events"
+        try
+          set tooltipWindows to every window whose name contains "tooltip"
+          repeat with w in tooltipWindows
+            set visible of w to false
+          end repeat
+          
+          set dropdownWindows to every window whose name contains "dropdown"
+          repeat with w in dropdownWindows
+            set visible of w to false
+          end repeat
+        end try
+      end tell
+    `;
+    
+    exec(`osascript -e '${hideScript}'`, (error) => {
+      // Silently fail - this is just additional protection
+    });
   }
 
   checkScreenSharingStopped() {
