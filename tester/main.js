@@ -60,8 +60,8 @@ class TesterApp {
       this.checkInputTools();
       
       // Auto-start server on app launch with default TCP port
-      // Use lower quality on Windows for better performance
-      const defaultQuality = process.platform === 'win32' ? 'low' : 'medium';
+      // Use medium quality for better image clarity
+      const defaultQuality = 'medium';
       setTimeout(() => {
         this.startServer(8080, defaultQuality);
       }, 1000); // Small delay to ensure UI is ready
@@ -1718,54 +1718,54 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using optimized screenshot-desktop method with mouse cursor capture...');
+    console.log('📸 Using high-quality PNG screenshot-desktop method with mouse cursor capture...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
-    // Optimized settings for balanced streaming performance
+    // Optimized settings for maximum image quality
     switch (quality) {
       case 'high':
         captureOptions = {
-          format: 'jpeg',
-          quality: 1,  // High quality for 20 FPS
+          format: 'png',     // PNG for lossless quality
+          quality: 1.0,      // Maximum quality
           screen: 0,
-          width: 1920,    // Full HD resolution
+          width: 1920,       // Full HD resolution
           height: 1080,
-          cursor: true    // Capture mouse cursor
+          cursor: true       // Capture mouse cursor
         };
-        interval = 50; // 20 FPS for high performance
+        interval = 50; // 20 FPS (reduced for PNG quality)
         break;
       case 'medium':
         captureOptions = {
-          format: 'jpeg',
-          quality: 1,  // Good quality for 15 FPS
+          format: 'png',     // PNG for better quality
+          quality: 1.0,      // Maximum quality
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true    // Capture mouse cursor
+          cursor: true       // Capture mouse cursor
         };
-        interval = 67; // 15 FPS for balanced performance
+        interval = 67; // 15 FPS
         break;
       case 'low':
         captureOptions = {
-          format: 'jpeg',
-          quality: 1,   // Good quality for 10 FPS
+          format: 'jpeg',    // JPEG for low quality mode only
+          quality: 0.95,     // High JPEG quality
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true    // Capture mouse cursor
+          cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS for low CPU usage
+        interval = 100; // 10 FPS
         break;
       default:
         captureOptions = {
-          format: 'jpeg',
-          quality: 1,
+          format: 'png',     // PNG for default quality
+          quality: 1.0,      // Maximum quality
           screen: 0,
           width: 1920,
           height: 1080,
-          cursor: true    // Capture mouse cursor
+          cursor: true       // Capture mouse cursor
         };
         interval = 67; // Default to 15 FPS (medium)
     }
