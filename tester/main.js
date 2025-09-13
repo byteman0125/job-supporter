@@ -1567,7 +1567,7 @@ class TesterApp {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 90) {
+          if (this.cpuUsage > 95) {
             console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
@@ -1706,50 +1706,47 @@ class TesterApp {
     const quality = this.screenQuality || 'high';
     let captureOptions, interval;
 
-    // Optimized settings for higher frame rates with good quality
+    // Optimized settings for high-performance streaming
     switch (quality) {
       case 'high':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.95,  // Maximum quality for high mode
+          quality: 0.85,  // Balanced quality for high FPS
           screen: 0,
           width: 1920,    // Full HD resolution
           height: 1080
         };
-        interval = 100; // 20 FPS for high performance
+        interval = 33; // 30 FPS for high performance
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,  // Good quality (reduced from 0.9 for better performance)
+          quality: 0.8,  // Good quality for balanced performance
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 100; // 10 FPS for balanced performance
+        interval = 50; // 20 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,   // Good quality (reduced from 0.85 for better performance)
+          quality: 0.75,   // Lower quality for low CPU usage
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 100; // 5 FPS for low CPU usage
+        interval = 100; // 10 FPS for low CPU usage
         break;
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,
+          quality: 0.85,
           screen: 0,
-          // Windows-specific optimizations
-          ...(process.platform === 'win32' && {
-            width: 1600,
-            height: 900
-          })
+          width: 1920,
+          height: 1080
         };
-        interval = 100; // Default to 2.5 FPS
+        interval = 33; // Default to 30 FPS
     }
 
     // Add CPU monitoring and adaptive quality
@@ -1757,13 +1754,13 @@ class TesterApp {
     this.lastCaptureTime = 0;
     this.captureCount = 0;
     this.frameSkipCount = 0;
-    this.maxFrameSkip = 1; // Reduced frame skipping for higher frame rates
+    this.maxFrameSkip = 0; // No frame skipping for high performance
 
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 90) {
+          if (this.cpuUsage > 95) {
             console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
@@ -1778,18 +1775,17 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Only get mouse position every 2nd frame to save CPU
+          // Get mouse position every frame for smooth cursor tracking
           let mousePos = { x: 0, y: 0 };
-          if (this.captureCount % 2 === 0) {
-            mousePos = await this.getMousePosition();
-          }
+          mousePos = await this.getMousePosition();
           
-          // Delta compression: detect changed regions
+          // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
           
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
-            if (deltaInfo.isFullFrame) {
+            // Send full frame more frequently for high performance
+            if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
               // Send full frame
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
@@ -1833,8 +1829,8 @@ class TesterApp {
             console.log(`📊 Capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
           }
 
-          // Adaptive quality adjustment
-          if (captureTime > 100 || this.cpuUsage > 70) { // If capture takes more than 100ms or CPU > 70%
+          // Adaptive quality adjustment (less aggressive for high performance)
+          if (captureTime > 50 || this.cpuUsage > 85) { // If capture takes more than 50ms or CPU > 85%
             this.adjustQualityForPerformance();
           }
 
@@ -1906,20 +1902,31 @@ class TesterApp {
     
     console.log('🔧 Adjusting quality for better performance...');
     
-    // More conservative quality reduction
+    // Very conservative quality reduction for high performance
     if (this.screenQuality === 'high') {
-      this.screenQuality = 'medium';
-      console.log('📉 Reduced quality from high to medium');
-      // Restart capture with new settings
-      this.restartCapture();
+      // Only reduce to medium if CPU is extremely high
+      if (this.cpuUsage > 90) {
+        this.screenQuality = 'medium';
+        console.log('📉 Reduced quality from high to medium due to extreme CPU usage');
+        this.restartCapture();
+      } else {
+        // Just increase frame skipping slightly
+        this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 1);
+        console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+      }
     } else if (this.screenQuality === 'medium') {
-      this.screenQuality = 'low';
-      console.log('📉 Reduced quality from medium to low');
-      // Restart capture with new settings
-      this.restartCapture();
+      // Only reduce to low if CPU is extremely high
+      if (this.cpuUsage > 90) {
+        this.screenQuality = 'low';
+        console.log('📉 Reduced quality from medium to low due to extreme CPU usage');
+        this.restartCapture();
+      } else {
+        this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 2);
+        console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+      }
     } else if (this.screenQuality === 'low') {
       // If already at low quality, increase frame skipping more conservatively
-      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 2); // Max 2 instead of 3
+      this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 3);
       console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
     }
     
