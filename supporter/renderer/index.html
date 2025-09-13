@@ -790,6 +790,11 @@
         });
 
         ipcRenderer.on('screen-data', (event, data) => {
+            // Debug mouse position
+            if (data.mouseX !== undefined && data.mouseY !== undefined) {
+                console.log(`🖱️ Received mouse position: (${data.mouseX}, ${data.mouseY})`);
+            }
+            
             // Display the screen with delta compression support
             if (data.isFullFrame) {
                 // Full frame update
@@ -978,6 +983,7 @@
             
             // Add mouse cursor overlay (positioned relative to the actual image)
             if (mouseX > 0 || mouseY > 0) {
+                console.log(`🎯 Displaying mouse cursor at: (${mouseX}, ${mouseY})`);
                 const cursor = document.createElement('div');
                 cursor.className = 'mouse-cursor';
                 
@@ -993,6 +999,8 @@
                     
                     const displayX = (imgRect.left - containerRect.left) + (mouseX * scaleX);
                     const displayY = (imgRect.top - containerRect.top) + (mouseY * scaleY);
+                    
+                    console.log(`📍 Cursor positioning: original(${mouseX}, ${mouseY}) -> display(${displayX}, ${displayY}), scale(${scaleX}, ${scaleY})`);
                     
                     cursor.style.left = `${displayX}px`;
                     cursor.style.top = `${displayY}px`;

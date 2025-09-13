@@ -947,14 +947,20 @@ class TesterApp {
         
         // Try multiple approaches for better compatibility
         const approaches = [
-          // Approach 1: Standard SendKeys
-          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`,
+          // Approach 1: Standard SendKeys with proper escaping
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString.replace(/'/g, "''")}')"`,
           
-          // Approach 2: Using nircmd if available
+          // Approach 2: Using VBScript
+          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").SendKeys \"${keyString}\""`,
+          
+          // Approach 3: Using nircmd if available
           `nircmd sendkey ${key.toLowerCase()}`,
           
-          // Approach 3: Using VBScript
-          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").SendKeys \"${keyString}\""`
+          // Approach 4: Using AutoHotkey if available
+          `autohotkey -c "Send, ${keyString}"`,
+          
+          // Approach 5: Direct Windows API call
+          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Keyboard { [DllImport(\"user32.dll\")] public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, uint dwExtraInfo); }'; [Keyboard]::keybd_event([byte][char]'${key}', 0, 0, 0); Start-Sleep -Milliseconds 10; [Keyboard]::keybd_event([byte][char]'${key}', 0, 2, 0)"`
         ];
         
         let currentApproach = 0;
@@ -967,11 +973,11 @@ class TesterApp {
           }
           
           const command = approaches[currentApproach];
-          console.log(`🔄 Trying keyboard approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          console.log(`🔄 Trying Windows keyboard approach ${currentApproach + 1}: ${command.substring(0, 60)}...`);
           
           exec(command, (error, stdout, stderr) => {
             if (error) {
-              console.error(`❌ Keyboard approach ${currentApproach + 1} failed:`, error.message);
+              console.error(`❌ Windows keyboard approach ${currentApproach + 1} failed:`, error.message);
               currentApproach++;
               tryNextApproach();
             } else {
@@ -1126,20 +1132,26 @@ class TesterApp {
     await this.moveMouse(x, y);
     
     if (process.platform === 'win32') {
-      // Windows: Use simplified PowerShell approach
+      // Windows: Use robust mouse control with multiple fallbacks
       return new Promise((resolve) => {
         console.log(`🖱️ Windows mouse click: ${button} at (${x}, ${y})`);
         
         // Try multiple approaches for better compatibility
         const approaches = [
-          // Approach 1: Simple mouse_event
+          // Approach 1: Direct mouse_event with proper positioning
+          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\"user32.dll\")] public static extern bool SetCursorPos(int x, int y); [DllImport(\"user32.dll\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo); }'; [Mouse]::SetCursorPos(${x}, ${y}); Start-Sleep -Milliseconds 20; [Mouse]::mouse_event(${button === 'right' ? '0x0008' : '0x0002'}, 0, 0, 0, 0); Start-Sleep -Milliseconds 20; [Mouse]::mouse_event(${button === 'right' ? '0x0010' : '0x0004'}, 0, 0, 0, 0)"`,
+          
+          // Approach 2: Using Windows Forms with SendKeys
           `powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')"`,
           
-          // Approach 2: Using mouse_event API
-          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\"user32.dll\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo); }'; [Mouse]::mouse_event(${button === 'right' ? '0x0008' : '0x0002'}, 0, 0, 0, 0); Start-Sleep -Milliseconds 10; [Mouse]::mouse_event(${button === 'right' ? '0x0010' : '0x0004'}, 0, 0, 0, 0)"`,
+          // Approach 3: Using VBScript
+          `cscript //nologo -e:vbscript -c "CreateObject(\"WScript.Shell\").Run \"powershell -command \\\"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y}); Start-Sleep -Milliseconds 50; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')\\\"\"\"`,
           
-          // Approach 3: Using nircmd if available
-          `nircmd setcursor ${x} ${y} && nircmd leftclick`
+          // Approach 4: Using nircmd if available
+          `nircmd setcursor ${x} ${y} && nircmd ${button === 'right' ? 'rightclick' : 'leftclick'}`,
+          
+          // Approach 5: Using AutoHotkey if available
+          `autohotkey -c "Click, ${x}, ${y}, ${button === 'right' ? 'Right' : 'Left'}"`
         ];
         
         let currentApproach = 0;
@@ -1152,11 +1164,11 @@ class TesterApp {
           }
           
           const command = approaches[currentApproach];
-          console.log(`🔄 Trying approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          console.log(`🔄 Trying Windows approach ${currentApproach + 1}: ${command.substring(0, 60)}...`);
           
           exec(command, (error, stdout, stderr) => {
             if (error) {
-              console.error(`❌ Approach ${currentApproach + 1} failed:`, error.message);
+              console.error(`❌ Windows approach ${currentApproach + 1} failed:`, error.message);
               currentApproach++;
               tryNextApproach();
             } else {
@@ -1201,17 +1213,65 @@ class TesterApp {
     const { exec } = require('child_process');
     
     if (process.platform === 'win32') {
-      // Windows: Use PowerShell to get mouse position
+      // Windows: Use multiple approaches to get mouse position
       return new Promise((resolve) => {
-        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`, (error, stdout) => {
-          if (error) {
-            console.error('Error getting mouse position:', error);
+        const approaches = [
+          // Approach 1: Windows Forms
+          `powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`,
+          
+          // Approach 2: Direct Windows API
+          `powershell -command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\"user32.dll\")] public static extern bool GetCursorPos(out System.Drawing.Point lpPoint); }'; $point = New-Object System.Drawing.Point; [Mouse]::GetCursorPos([ref]$point); Write-Output \"$($point.X),$($point.Y)\""`,
+          
+          // Approach 3: Using nircmd if available
+          `nircmd getcursorpos`
+        ];
+        
+        let currentApproach = 0;
+        
+        const tryNextApproach = () => {
+          if (currentApproach >= approaches.length) {
+            console.error('❌ All Windows mouse position approaches failed');
             resolve({ x: 0, y: 0 });
-          } else {
-            const [x, y] = stdout.trim().split(',').map(Number);
-            resolve({ x: x || 0, y: y || 0 });
+            return;
           }
-        });
+          
+          const command = approaches[currentApproach];
+          exec(command, (error, stdout) => {
+            if (error) {
+              console.error(`❌ Windows mouse position approach ${currentApproach + 1} failed:`, error.message);
+              currentApproach++;
+              tryNextApproach();
+            } else {
+              try {
+                let x, y;
+                if (currentApproach === 2) {
+                  // nircmd format: "Cursor position: X=123, Y=456"
+                  const match = stdout.match(/X=(\d+),\s*Y=(\d+)/);
+                  if (match) {
+                    x = parseInt(match[1]);
+                    y = parseInt(match[2]);
+                  }
+                } else {
+                  // PowerShell format: "123,456"
+                  [x, y] = stdout.trim().split(',').map(Number);
+                }
+                
+                if (x !== undefined && y !== undefined && !isNaN(x) && !isNaN(y)) {
+                  console.log(`✅ Windows mouse position: (${x}, ${y}) via approach ${currentApproach + 1}`);
+                  resolve({ x, y });
+                } else {
+                  throw new Error('Invalid position format');
+                }
+              } catch (parseError) {
+                console.error(`❌ Failed to parse mouse position: ${stdout}`);
+                currentApproach++;
+                tryNextApproach();
+              }
+            }
+          });
+        };
+        
+        tryNextApproach();
       });
     } else if (process.platform === 'linux') {
       // Linux: Use xdotool first (more reliable), then ydotool as fallback
@@ -1727,11 +1787,8 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Only get mouse position every 2nd frame to save CPU
-          let mousePos = { x: 0, y: 0 };
-          if (this.captureCount % 2 === 0) {
-            mousePos = await this.getMousePosition();
-          }
+          // Get mouse position every frame for smooth cursor tracking
+          const mousePos = await this.getMousePosition();
           
           // Delta compression: detect changed regions
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
