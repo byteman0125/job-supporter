@@ -20,6 +20,8 @@
             flex-direction: column;
             overflow: hidden;
             -webkit-app-region: drag; /* Allow dragging the window */
+            margin: 0;
+            padding: 0;
         }
 
 
@@ -131,14 +133,15 @@
             position: relative;
             overflow: hidden;
             height: 100vh; /* Full height without title bar */
+            margin: 0;
+            padding: 0;
         }
 
         .screen-image {
-            max-width: 100%;
-            max-height: 100%;
             object-fit: contain;
             border-radius: 4px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: block;
         }
 
         .no-connection {
@@ -303,6 +306,27 @@
             
             img.onload = () => {
                 console.log('✅ Screen image loaded successfully');
+                console.log('📐 Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
+                console.log('📐 Container dimensions:', screenViewer.clientWidth, 'x', screenViewer.clientHeight);
+                
+                // Calculate the best fit to minimize empty space
+                const containerWidth = screenViewer.clientWidth;
+                const containerHeight = screenViewer.clientHeight;
+                const imageWidth = img.naturalWidth;
+                const imageHeight = img.naturalHeight;
+                
+                const scaleX = containerWidth / imageWidth;
+                const scaleY = containerHeight / imageHeight;
+                const scale = Math.min(scaleX, scaleY);
+                
+                const newWidth = imageWidth * scale;
+                const newHeight = imageHeight * scale;
+                
+                console.log('📏 Calculated scale:', scale, 'New size:', newWidth, 'x', newHeight);
+                
+                // Set the image size to fill the container optimally
+                img.style.width = newWidth + 'px';
+                img.style.height = newHeight + 'px';
             };
             
             img.onerror = (error) => {
@@ -478,6 +502,30 @@
 
         ipcRenderer.on('show-connection-modal', () => {
             showConnectionModal();
+        });
+
+        // Window resize handler to recalculate image size
+        window.addEventListener('resize', () => {
+            const img = screenViewer.querySelector('.screen-image');
+            if (img && img.complete) {
+                // Recalculate image size on window resize
+                const containerWidth = screenViewer.clientWidth;
+                const containerHeight = screenViewer.clientHeight;
+                const imageWidth = img.naturalWidth;
+                const imageHeight = img.naturalHeight;
+                
+                const scaleX = containerWidth / imageWidth;
+                const scaleY = containerHeight / imageHeight;
+                const scale = Math.min(scaleX, scaleY);
+                
+                const newWidth = imageWidth * scale;
+                const newHeight = imageHeight * scale;
+                
+                img.style.width = newWidth + 'px';
+                img.style.height = newHeight + 'px';
+                
+                console.log('🔄 Window resized, recalculated image size:', newWidth, 'x', newHeight);
+            }
         });
 
         // Initialize
