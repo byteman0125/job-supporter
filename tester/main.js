@@ -1703,7 +1703,7 @@ class TesterApp {
   setupScreenshotCapture() {
     console.log('📸 Using optimized screenshot-desktop method...');
     
-    const quality = this.screenQuality || 'high';
+    const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
 
     // Optimized settings for balanced streaming performance
@@ -1741,12 +1741,12 @@ class TesterApp {
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.9,
+          quality: 0.85,
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 50; // Default to 20 FPS
+        interval = 67; // Default to 15 FPS (medium)
     }
 
     // Add CPU monitoring and adaptive quality
