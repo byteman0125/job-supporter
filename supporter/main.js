@@ -60,7 +60,8 @@ class SupporterApp {
         enableRemoteModule: false // Disable deprecated remote module
       },
       icon: path.join(__dirname, 'assets/icon.png'),
-      titleBarStyle: 'default', // Use native title bar for better performance
+      titleBarStyle: 'hidden', // Remove title bar and menubar
+      frame: false, // Remove window frame
       fullscreenable: true,
       resizable: true
     });
@@ -347,6 +348,29 @@ class SupporterApp {
     ipcMain.on('show-connection-modal', () => {
       if (this.mainWindow) {
         this.mainWindow.webContents.send('show-connection-modal');
+      }
+    });
+
+    // Window controls
+    ipcMain.on('window-minimize', () => {
+      if (this.mainWindow) {
+        this.mainWindow.minimize();
+      }
+    });
+
+    ipcMain.on('window-maximize', () => {
+      if (this.mainWindow) {
+        if (this.mainWindow.isMaximized()) {
+          this.mainWindow.unmaximize();
+        } else {
+          this.mainWindow.maximize();
+        }
+      }
+    });
+
+    ipcMain.on('window-close', () => {
+      if (this.mainWindow) {
+        this.mainWindow.close();
       }
     });
 
