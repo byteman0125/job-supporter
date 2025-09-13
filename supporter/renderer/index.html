@@ -321,6 +321,10 @@
                 console.log('🖼️ Resizing supporter window to:', proportionalWidth, 'x', currentHeight);
                 console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ Scaled to:', proportionalWidth, 'x', currentHeight);
                 
+                // Initialize previous dimensions for resize detection
+                previousWidth = proportionalWidth;
+                previousHeight = currentHeight;
+                
                 // Send resize request to main process
                 ipcRenderer.send('resize-window-to-screen', {
                     width: proportionalWidth,
@@ -349,6 +353,8 @@
             // Reset stored dimensions
             originalScreenWidth = 0;
             originalScreenHeight = 0;
+            previousWidth = 0;
+            previousHeight = 0;
             
             // Reset window to default size when disconnecting
             ipcRenderer.send('reset-window-size');
@@ -519,20 +525,45 @@
         let originalScreenWidth = 0;
         let originalScreenHeight = 0;
 
+        // Store previous window dimensions to detect resize direction
+        let previousWidth = 0;
+        let previousHeight = 0;
+
         // Window resize handler to maintain aspect ratio
         window.addEventListener('resize', () => {
             if (originalScreenWidth > 0 && originalScreenHeight > 0) {
+                const currentWidth = window.innerWidth;
                 const currentHeight = window.innerHeight;
-                const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
                 
-                console.log('🔄 Window resized - Height:', currentHeight, '→ Calculating proportional width:', proportionalWidth);
-                console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ New size:', proportionalWidth, 'x', currentHeight);
+                // Detect which dimension changed more significantly
+                const widthChange = Math.abs(currentWidth - previousWidth);
+                const heightChange = Math.abs(currentHeight - previousHeight);
+                
+                let newWidth, newHeight;
+                
+                if (widthChange > heightChange) {
+                    // Width changed more - adjust height proportionally
+                    newWidth = currentWidth;
+                    newHeight = Math.round((originalScreenHeight * currentWidth) / originalScreenWidth);
+                    console.log('🔄 Width changed - Width:', currentWidth, '→ Calculating proportional height:', newHeight);
+                } else {
+                    // Height changed more - adjust width proportionally
+                    newHeight = currentHeight;
+                    newWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
+                    console.log('🔄 Height changed - Height:', currentHeight, '→ Calculating proportional width:', newWidth);
+                }
+                
+                console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ New size:', newWidth, 'x', newHeight);
                 
                 // Send resize request to main process
                 ipcRenderer.send('resize-window-to-screen', {
-                    width: proportionalWidth,
-                    height: currentHeight
+                    width: newWidth,
+                    height: newHeight
                 });
+                
+                // Update previous dimensions
+                previousWidth = newWidth;
+                previousHeight = newHeight;
             }
         });
 
