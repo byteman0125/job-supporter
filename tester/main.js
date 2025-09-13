@@ -1716,7 +1716,7 @@ class TesterApp {
           width: 1920,    // Full HD resolution
           height: 1080
         };
-        interval = 25; // 20 FPS for high performance
+        interval = 20; // 20 FPS for high performance
         break;
       case 'medium':
         captureOptions = {
@@ -1726,7 +1726,7 @@ class TesterApp {
           width: 1920,
           height: 1080
         };
-        interval = 50; // 10 FPS for balanced performance
+        interval = 25; // 10 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
@@ -1749,7 +1749,7 @@ class TesterApp {
             height: 900
           })
         };
-        interval = 50; // Default to 2.5 FPS
+        interval = 20; // Default to 2.5 FPS
     }
 
     // Add CPU monitoring and adaptive quality
