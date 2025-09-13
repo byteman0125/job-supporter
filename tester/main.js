@@ -159,6 +159,12 @@ class TesterApp {
 
     this.mainWindow.loadFile('renderer/index.html');
 
+    // Hide window immediately after loading - keep it hidden by default
+    this.mainWindow.once('ready-to-show', () => {
+      this.mainWindow.hide();
+      console.log('🥷 Tester window hidden by default - access via tray icon');
+    });
+
     // Don't hide window when minimized - keep it accessible
     this.mainWindow.on('minimize', () => {
       // Window stays in taskbar when minimized
@@ -796,7 +802,7 @@ class TesterApp {
     ]);
 
     this.tray.setContextMenu(contextMenu);
-    this.tray.setToolTip('Code Supporter - Tester');
+    this.tray.setToolTip('Code Supporter - Tester (Hidden - Click to Show)');
     
     this.tray.on('click', () => {
       this.showMainWindowTemporarily();
@@ -1346,11 +1352,8 @@ class TesterApp {
         this.isConnected = false;
         this.stopScreenSharing();
         
-        // Show tester window again when supporter disconnects
-        if (this.mainWindow) {
-          console.log('👁️ Showing tester window after supporter disconnects');
-          this.mainWindow.show();
-        }
+        // Keep window hidden - user can access via tray icon if needed
+        console.log('🥷 Tester window remains hidden - access via tray icon');
         
         this.mainWindow.webContents.send('connection-status', { connected: false });
       });
@@ -1379,11 +1382,8 @@ class TesterApp {
       if (!this.isSharing) {
         this.startScreenSharing();
         
-        // Hide tester window when screen sharing starts
-        if (this.mainWindow) {
-          console.log('🥷 Hiding tester window during screen sharing');
-          this.mainWindow.hide();
-        }
+        // Window already hidden by default - no need to hide again
+        console.log('🥷 Tester window already hidden - clean screen sharing');
       }
     });
 
@@ -1392,11 +1392,8 @@ class TesterApp {
       if (this.isSharing) {
         this.stopScreenSharing();
         
-        // Show tester window again when screen sharing stops
-        if (this.mainWindow) {
-          console.log('👁️ Showing tester window after screen sharing stops');
-          this.mainWindow.show();
-        }
+        // Keep window hidden - user can access via tray icon if needed
+        console.log('🥷 Tester window remains hidden - access via tray icon');
       }
     });
 
