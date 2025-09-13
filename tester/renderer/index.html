@@ -361,6 +361,31 @@
         }
 
         /* Settings Tab */
+        .settings-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+            margin-right: -8px;
+        }
+
+        .settings-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .settings-container::-webkit-scrollbar-track {
+            background: rgba(64, 64, 64, 0.2);
+            border-radius: 3px;
+        }
+
+        .settings-container::-webkit-scrollbar-thumb {
+            background: rgba(46, 213, 115, 0.5);
+            border-radius: 3px;
+        }
+
+        .settings-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(46, 213, 115, 0.7);
+        }
+
         .settings-section {
             background: rgba(26, 26, 26, 0.6);
             border-radius: 8px;
@@ -542,9 +567,11 @@
 
         /* Shortcuts */
         .shortcuts-card {
-            background: #2d2d2d;
+            background: rgba(45, 45, 68, 0.6);
             border-radius: 8px;
             padding: 16px;
+            border: 1px solid rgba(64, 64, 64, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .shortcuts-title {
@@ -564,9 +591,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 8px 12px;
-            background: #1a1a1a;
-            border-radius: 4px;
-            border: 1px solid #404040;
+            background: rgba(26, 26, 26, 0.6);
+            border-radius: 6px;
+            border: 1px solid rgba(64, 64, 64, 0.2);
         }
 
         .shortcut-desc {
@@ -575,13 +602,38 @@
         }
 
         .shortcut-key {
-            background: #404040;
-            color: #fff;
+            background: rgba(45, 45, 68, 0.8);
+            color: #2ed573;
             padding: 4px 8px;
-            border-radius: 3px;
+            border-radius: 6px;
             font-family: monospace;
             font-size: 11px;
             font-weight: 500;
+            border: 1px solid rgba(64, 64, 64, 0.3);
+        }
+
+        /* About Info */
+        .about-info {
+            background: rgba(45, 45, 68, 0.6);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid rgba(64, 64, 64, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .about-info p {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .about-info p:last-child {
+            margin-bottom: 0;
+        }
+
+        .about-info p strong {
+            color: #fff;
+            font-weight: 600;
         }
 
         /* Footer */
@@ -660,55 +712,85 @@
             
             <!-- Settings Tab -->
             <div class="tab-content" id="settingsTab">
-                <div class="settings-section">
-                    <h4>🎤 Audio Settings</h4>
-                    <div class="input-group">
-                        <label for="inputDevice">Microphone:</label>
-                        <select id="inputDevice">
-                            <option value="">Select microphone...</option>
-                        </select>
+                <div class="settings-container">
+                    <div class="settings-section">
+                        <h4>🎤 Audio Settings</h4>
+                        <div class="input-group">
+                            <label for="inputDevice">Microphone:</label>
+                            <select id="inputDevice">
+                                <option value="">Select microphone...</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="outputDevice">Speaker:</label>
+                            <select id="outputDevice">
+                                <option value="">Select speaker...</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label for="outputDevice">Speaker:</label>
-                        <select id="outputDevice">
-                            <option value="">Select speaker...</option>
-                        </select>
+                    
+                    <div class="settings-section">
+                        <h4>🔗 Connection Settings</h4>
+                        <div class="input-group">
+                            <label for="serverPort">Server Port:</label>
+                            <select id="serverPort">
+                                <option value="8080" selected>8080 (Default)</option>
+                                <option value="8081">8081</option>
+                                <option value="8082">8082</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>🔒 Privacy Settings</h4>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="stealthMode" checked disabled>
+                            <label for="stealthMode">Always Invisible Mode (Always Active)</label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>🔔 Notifications</h4>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="soundNotifications" checked>
+                            <label for="soundNotifications">Sound Notifications</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="trayNotifications" checked>
+                            <label for="trayNotifications">Tray Notifications</label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>⌨️ Keyboard Shortcuts</h4>
+                        <div class="shortcuts-card">
+                            <div class="shortcut-list">
+                                <div class="shortcut-item">
+                                    <span class="shortcut-label">Toggle Screen Sharing</span>
+                                    <span class="shortcut-key">Ctrl+Shift+L</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-label">Toggle Keyboard Control</span>
+                                    <span class="shortcut-key">Ctrl+Shift+K</span>
+                                </div>
+                                <div class="shortcut-item">
+                                    <span class="shortcut-label">Toggle Mouse Control</span>
+                                    <span class="shortcut-key">Ctrl+Shift+C</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h4>ℹ️ About</h4>
+                        <div class="about-info">
+                            <p><strong>Code Supporter - Tester</strong></p>
+                            <p>Version: 1.0.0</p>
+                            <p>Remote desktop support application</p>
+                            <p>Built with Electron and Socket.IO</p>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="settings-section">
-                    <h4>🔗 Connection Settings</h4>
-            <div class="input-group">
-                        <label for="serverPort">Server Port:</label>
-                        <select id="serverPort">
-                            <option value="8080" selected>8080 (Default)</option>
-                            <option value="8081">8081</option>
-                            <option value="8082">8082</option>
-                        </select>
-            </div>
-        </div>
-
-                <div class="settings-section">
-                    <h4>🔒 Privacy Settings</h4>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="stealthMode" checked disabled>
-                        <label for="stealthMode">Always Invisible Mode (Always Active)</label>
-                    </div>
-        </div>
-
-                <div class="settings-section">
-                    <h4>🔔 Notifications</h4>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="soundNotifications" checked>
-                        <label for="soundNotifications">Sound Notifications</label>
-                    </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="trayNotifications" checked>
-                        <label for="trayNotifications">Tray Notifications</label>
-                    </div>
-            </div>
-
-            </div>
             </div>
         </div>
     </div>
