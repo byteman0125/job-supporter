@@ -341,6 +341,7 @@
                     <button class="btn btn-small btn-primary active" id="viewModeBtn">View</button>
                     <button class="btn btn-small btn-secondary" id="controlModeBtn">Control</button>
                 </div>
+                <button class="btn btn-small btn-primary" id="soundBtn" title="Toggle Audio">🔊</button>
                 <button class="btn btn-small btn-secondary" id="captureBtn" disabled>📷</button>
             </div>
         </div>
@@ -400,6 +401,7 @@
         const viewModeBtn = document.getElementById('viewModeBtn');
         const controlModeBtn = document.getElementById('controlModeBtn');
         const captureBtn = document.getElementById('captureBtn');
+        const soundBtn = document.getElementById('soundBtn');
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendChatBtn = document.getElementById('sendChatBtn');
@@ -428,6 +430,12 @@
         // Capture
         captureBtn.addEventListener('click', () => {
             ipcRenderer.invoke('capture-screenshot');
+        });
+
+        // Sound toggle
+        soundBtn.addEventListener('click', async () => {
+            const isEnabled = await ipcRenderer.invoke('toggle-audio');
+            updateSoundButton(isEnabled);
         });
 
         // Chat
@@ -488,6 +496,25 @@
         });
 
         // Functions
+        function updateSoundButton(isEnabled) {
+            if (isEnabled) {
+                soundBtn.textContent = '🔊';
+                soundBtn.classList.remove('btn-secondary');
+                soundBtn.classList.add('btn-primary');
+                soundBtn.title = 'Audio On - Click to Mute';
+            } else {
+                soundBtn.textContent = '🔇';
+                soundBtn.classList.remove('btn-primary');
+                soundBtn.classList.add('btn-secondary');
+                soundBtn.title = 'Audio Off - Click to Unmute';
+            }
+        }
+
+        async function initializeAudioState() {
+            const isEnabled = await ipcRenderer.invoke('get-audio-status');
+            updateSoundButton(isEnabled);
+        }
+
         function updateConnectionStatus() {
             if (isConnected) {
                 statusDot.classList.add('connected');
@@ -618,6 +645,7 @@
 
         // Initialize
         updateConnectionStatus();
+        initializeAudioState();
     </script>
 </body>
 </html>

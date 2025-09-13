@@ -6,6 +6,7 @@ const socketIo = require('socket.io');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
 const notifier = require('node-notifier');
 const fs = require('fs');
+const Speaker = require('speaker');
 
 class SupporterApp {
   constructor() {
@@ -21,6 +22,8 @@ class SupporterApp {
     };
     this.isVoiceMuted = true; // Voice muted by default
     this.chatMessages = new Map(); // Store chat messages per client
+    this.audioSpeaker = null;
+    this.isAudioEnabled = true; // Audio enabled by default
     
     this.init();
   }
@@ -141,11 +144,62 @@ class SupporterApp {
         sender: 'tester'
       });
     });
+
+    this.socket.on('audioData', (data) => {
+      // Play received audio data
+      if (data.audio) {
+        this.playAudioData(data.audio);
+      }
+    });
   }
 
   setupAudio() {
-    // Audio setup will be implemented with WebRTC or similar
-    // For now, placeholder
+    // Audio setup for playing received audio from tester
+    console.log('🔊 Setting up audio playback...');
+    
+    try {
+      // Initialize audio speaker
+      this.audioSpeaker = new Speaker({
+        channels: 1,
+        bitDepth: 16,
+        sampleRate: 16000
+      });
+      
+      this.audioSpeaker.on('error', (error) => {
+        console.error('Audio speaker error:', error);
+      });
+      
+      console.log('✅ Audio speaker initialized');
+    } catch (error) {
+      console.error('Failed to initialize audio speaker:', error);
+    }
+  }
+
+  playAudioData(audioData) {
+    if (!this.isAudioEnabled || !this.audioSpeaker) {
+      return;
+    }
+
+    try {
+      // Convert base64 audio data to buffer and play
+      const audioBuffer = Buffer.from(audioData, 'base64');
+      this.audioSpeaker.write(audioBuffer);
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
+  }
+
+  toggleAudio() {
+    this.isAudioEnabled = !this.isAudioEnabled;
+    
+    if (!this.isAudioEnabled && this.audioSpeaker) {
+      // Stop audio playback
+      this.audioSpeaker.end();
+      this.setupAudio(); // Reinitialize for next time
+    }
+    
+    console.log(`🔊 Audio ${this.isAudioEnabled ? 'enabled' : 'disabled'}`);
+    return this.isAudioEnabled;
   }
 
   // IPC handlers
@@ -244,6 +298,14 @@ class SupporterApp {
     ipcMain.handle('toggle-voice-mute', (event) => {
       this.isVoiceMuted = !this.isVoiceMuted;
       return this.isVoiceMuted;
+    });
+
+    ipcMain.handle('toggle-audio', (event) => {
+      return this.toggleAudio();
+    });
+
+    ipcMain.handle('get-audio-status', (event) => {
+      return this.isAudioEnabled;
     });
   }
 }

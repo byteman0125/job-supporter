@@ -4,6 +4,7 @@ const io = require('socket.io-client');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
 const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
+const record = require('node-record-lpcm16');
 
 class TesterApp {
   constructor() {
@@ -21,6 +22,8 @@ class TesterApp {
       output: null
     };
     this.chatMessages = [];
+    this.audioRecorder = null;
+    this.isAudioEnabled = true; // Audio enabled by default
     
     this.init();
   }
@@ -1316,6 +1319,11 @@ class TesterApp {
     // Set up screen capture based on quality setting
     this.setupScreenCapture();
     
+    // Start audio capture if enabled
+    if (this.isAudioEnabled) {
+      this.startAudioCapture();
+    }
+    
     console.log('Screen sharing started - window remains visible to user');
   }
 
@@ -1385,6 +1393,9 @@ class TesterApp {
       this.captureInterval = null;
     }
     
+    // Stop audio capture
+    this.stopAudioCapture();
+    
     // Restore window visibility when sharing stops
     if (this.mainWindow) {
       this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar // Show in taskbar again
@@ -1398,8 +1409,111 @@ class TesterApp {
   // Removed playNotificationSound - no notifications needed
 
   setupAudio() {
-    // Audio setup will be implemented with WebRTC or similar
-    // For now, placeholder
+    // Audio setup for capturing desktop audio and microphone
+    console.log('🎤 Setting up audio capture...');
+    
+    // Audio will be started when connection is established
+    // This is just initialization
+  }
+
+  startAudioCapture() {
+    if (!this.isAudioEnabled || !this.socket || !this.isConnected) {
+      return;
+    }
+
+    console.log('🎤 Starting audio capture...');
+    
+    try {
+      // Configure audio recording
+      const recordingOptions = {
+        sampleRateHertz: 16000,
+        threshold: 0.5,
+        verbose: false,
+        recordProgram: 'rec', // Try to use 'rec' command first
+        silence: '1.0',
+      };
+
+      // Start recording
+      this.audioRecorder = record.record(recordingOptions);
+      
+      this.audioRecorder.stream()
+        .on('error', (error) => {
+          console.error('Audio recording error:', error);
+          // Try fallback method
+          this.startAudioCaptureFallback();
+        })
+        .on('data', (chunk) => {
+          if (this.socket && this.isConnected && this.isAudioEnabled) {
+            // Send audio data to supporter
+            this.socket.emit('audioData', {
+              audio: chunk.toString('base64'),
+              timestamp: Date.now()
+            });
+          }
+        });
+
+      console.log('✅ Audio capture started successfully');
+    } catch (error) {
+      console.error('Failed to start audio capture:', error);
+      this.startAudioCaptureFallback();
+    }
+  }
+
+  startAudioCaptureFallback() {
+    console.log('🔄 Trying fallback audio capture method...');
+    
+    try {
+      // Fallback: Use different recording options
+      const fallbackOptions = {
+        sampleRateHertz: 8000,
+        threshold: 0.5,
+        verbose: false,
+        recordProgram: 'arecord', // Try arecord for Linux
+        silence: '1.0',
+      };
+
+      this.audioRecorder = record.record(fallbackOptions);
+      
+      this.audioRecorder.stream()
+        .on('error', (error) => {
+          console.error('Fallback audio recording error:', error);
+          console.log('⚠️ Audio capture not available on this system');
+        })
+        .on('data', (chunk) => {
+          if (this.socket && this.isConnected && this.isAudioEnabled) {
+            this.socket.emit('audioData', {
+              audio: chunk.toString('base64'),
+              timestamp: Date.now()
+            });
+          }
+        });
+
+      console.log('✅ Fallback audio capture started');
+    } catch (error) {
+      console.error('Fallback audio capture failed:', error);
+    }
+  }
+
+  stopAudioCapture() {
+    if (this.audioRecorder) {
+      console.log('🛑 Stopping audio capture...');
+      this.audioRecorder.stop();
+      this.audioRecorder = null;
+      console.log('✅ Audio capture stopped');
+    }
+  }
+
+  toggleAudio() {
+    this.isAudioEnabled = !this.isAudioEnabled;
+    
+    if (this.isAudioEnabled) {
+      this.startAudioCapture();
+    } else {
+      this.stopAudioCapture();
+    }
+    
+    console.log(`🎤 Audio ${this.isAudioEnabled ? 'enabled' : 'disabled'}`);
+    return this.isAudioEnabled;
   }
 
   delay(ms) {
@@ -1453,6 +1567,14 @@ class TesterApp {
 
     ipcMain.on('get-chat-messages', (event) => {
       event.reply('chat-messages', this.chatMessages);
+    });
+
+    ipcMain.handle('toggle-audio', (event) => {
+      return this.toggleAudio();
+    });
+
+    ipcMain.handle('get-audio-status', (event) => {
+      return this.isAudioEnabled;
     });
   }
 }
