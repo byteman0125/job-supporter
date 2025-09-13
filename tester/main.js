@@ -1716,32 +1716,32 @@ class TesterApp {
           width: 1920,    // Full HD resolution
           height: 1080
         };
-        interval = 50; // 20 FPS for high performance
+        interval = 25; // 20 FPS for high performance
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.85,  // Good quality (reduced from 0.9 for better performance)
+          quality: 0.9,  // Good quality (reduced from 0.9 for better performance)
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 100; // 10 FPS for balanced performance
+        interval = 50; // 10 FPS for balanced performance
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',
-          quality: 0.8,   // Good quality (reduced from 0.85 for better performance)
+          quality: 0.85,   // Good quality (reduced from 0.85 for better performance)
           screen: 0,
           width: 1920,
           height: 1080
         };
-        interval = 200; // 5 FPS for low CPU usage
+        interval = 100; // 5 FPS for low CPU usage
         break;
       default:
         captureOptions = {
           format: 'jpeg',
-          quality: 0.75,
+          quality: 0.9,
           screen: 0,
           // Windows-specific optimizations
           ...(process.platform === 'win32' && {
@@ -1749,7 +1749,7 @@ class TesterApp {
             height: 900
           })
         };
-        interval = 400; // Default to 2.5 FPS
+        interval = 50; // Default to 2.5 FPS
     }
 
     // Add CPU monitoring and adaptive quality
