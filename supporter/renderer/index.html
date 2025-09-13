@@ -140,7 +140,7 @@
         .screen-image {
             width: 100%;
             height: 100%;
-            object-fit: fill;
+            object-fit: contain;
             border-radius: 4px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             display: block;
@@ -310,16 +310,19 @@
                 console.log('✅ Screen image loaded successfully');
                 console.log('📐 Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
                 
-                // Resize supporter window to match tester's screen resolution
+                // Calculate proportional width to maintain 600px height
                 const imageWidth = img.naturalWidth;
                 const imageHeight = img.naturalHeight;
+                const targetHeight = 600;
+                const proportionalWidth = Math.round((imageWidth * targetHeight) / imageHeight);
                 
-                console.log('🖼️ Resizing supporter window to match tester screen:', imageWidth, 'x', imageHeight);
+                console.log('🖼️ Resizing supporter window to:', proportionalWidth, 'x', targetHeight);
+                console.log('📊 Original ratio:', imageWidth, 'x', imageHeight, '→ Scaled to:', proportionalWidth, 'x', targetHeight);
                 
                 // Send resize request to main process
                 ipcRenderer.send('resize-window-to-screen', {
-                    width: imageWidth,
-                    height: imageHeight
+                    width: proportionalWidth,
+                    height: targetHeight
                 });
                 
                 // Set image to fill the entire container
