@@ -144,6 +144,72 @@
             border-radius: 4px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
             display: block;
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Smooth full screen transitions */
+        body {
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        body:fullscreen {
+            background: #000;
+        }
+
+        body:fullscreen .screen-image {
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        /* Full screen indicator */
+        .fullscreen-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+
+        .fullscreen-indicator.show {
+            opacity: 1;
+        }
+
+        /* Full screen controls */
+        .fullscreen-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 1000;
+        }
+
+        body:fullscreen .fullscreen-controls {
+            opacity: 1;
+        }
+
+        .fullscreen-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s ease-in-out;
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
         }
 
         .no-connection {
@@ -224,6 +290,16 @@
             <h2>No Connection</h2>
             <p>Press Ctrl+Shift+H to connect to a tester</p>
         </div>
+    </div>
+
+    <!-- Full Screen Indicator -->
+    <div class="fullscreen-indicator" id="fullscreenIndicator">
+        Press F11 or ESC to exit full screen
+    </div>
+
+    <!-- Full Screen Controls -->
+    <div class="fullscreen-controls" id="fullscreenControls">
+        <button class="fullscreen-btn" id="exitFullscreenBtn">Exit Full Screen</button>
     </div>
 
 
@@ -528,10 +604,12 @@
         // Store previous window dimensions to detect resize direction
         let previousWidth = 0;
         let previousHeight = 0;
+        let isFullScreen = false;
+        let isResizing = false;
 
-        // Window resize handler to maintain aspect ratio
+        // Window resize handler to maintain aspect ratio (but not during full screen)
         window.addEventListener('resize', () => {
-            if (originalScreenWidth > 0 && originalScreenHeight > 0) {
+            if (originalScreenWidth > 0 && originalScreenHeight > 0 && !isFullScreen && !isResizing) {
                 const currentWidth = window.innerWidth;
                 const currentHeight = window.innerHeight;
                 
@@ -564,6 +642,61 @@
                 // Update previous dimensions
                 previousWidth = newWidth;
                 previousHeight = newHeight;
+            }
+        });
+
+        // Handle full screen events
+        document.addEventListener('fullscreenchange', () => {
+            isFullScreen = document.fullscreenElement !== null;
+            console.log('🖥️ Full screen changed:', isFullScreen ? 'Entered' : 'Exited');
+            
+            const indicator = document.getElementById('fullscreenIndicator');
+            
+            if (isFullScreen) {
+                // Entering full screen - disable automatic resizing
+                console.log('🖥️ Entering full screen - disabling automatic resizing');
+                indicator.classList.add('show');
+                
+                // Hide indicator after 3 seconds
+                setTimeout(() => {
+                    indicator.classList.remove('show');
+                }, 3000);
+            } else {
+                // Exiting full screen - re-enable automatic resizing
+                console.log('🖥️ Exiting full screen - re-enabling automatic resizing');
+                indicator.classList.remove('show');
+                // Reset previous dimensions to prevent unwanted resizing
+                previousWidth = window.innerWidth;
+                previousHeight = window.innerHeight;
+            }
+        });
+
+        // Handle F11 key for full screen toggle
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                toggleFullScreen();
+            }
+        });
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                // Enter full screen
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable full screen:', err);
+                });
+            } else {
+                // Exit full screen
+                document.exitFullscreen().catch(err => {
+                    console.error('Error attempting to exit full screen:', err);
+                });
+            }
+        }
+
+        // Full screen controls
+        document.getElementById('exitFullscreenBtn').addEventListener('click', () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
             }
         });
 
