@@ -59,8 +59,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 16px;
-            gap: 16px;
+            padding: 8px; /* Reduced from 16px to 8px */
+            gap: 8px; /* Reduced from 16px to 8px */
             overflow: hidden;
         }
 
@@ -71,7 +71,7 @@
             align-items: center;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 12px 16px;
+            padding: 8px 12px; /* Reduced from 12px 16px to 8px 12px */
         }
 
         .connection-group {
@@ -137,7 +137,7 @@
             flex: 1;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 16px;
+            padding: 8px; /* Reduced from 16px to 8px */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -159,8 +159,11 @@
         .screen-image {
             max-width: 100%;
             max-height: 100%;
+            width: auto;
+            height: auto;
             border-radius: 4px;
             cursor: crosshair;
+            object-fit: contain; /* Maintain aspect ratio while filling space */
         }
 
         .no-screen {
@@ -205,14 +208,14 @@
         .bottom-panel {
             display: flex;
             gap: 16px;
-            height: 180px;
+            height: 120px; /* Reduced from 180px to 120px */
         }
 
         .panel {
             flex: 1;
             background: #2d2d2d;
             border-radius: 8px;
-            padding: 12px;
+            padding: 8px; /* Reduced from 12px to 8px */
             display: flex;
             flex-direction: column;
         }
@@ -220,7 +223,7 @@
         .panel h3 {
             font-size: 12px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 4px; /* Reduced from 8px to 4px */
             color: #ccc;
         }
 
@@ -229,9 +232,9 @@
             flex: 1;
             background: #1a1a1a;
             border-radius: 4px;
-            padding: 8px;
+            padding: 6px; /* Reduced from 8px to 6px */
             overflow-y: auto;
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* Reduced from 8px to 6px */
             font-size: 11px;
         }
 
@@ -271,7 +274,7 @@
         /* Answer Panel */
         .answer-textarea {
             flex: 1;
-            padding: 8px;
+            padding: 6px; /* Reduced from 8px to 6px */
             border: 1px solid #404040;
             border-radius: 4px;
             background: #1a1a1a;
@@ -279,7 +282,7 @@
             font-size: 11px;
             font-family: 'Monaco', 'Menlo', monospace;
             resize: none;
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* Reduced from 8px to 6px */
         }
 
         .answer-buttons {
@@ -311,6 +314,22 @@
         @media (max-width: 1200px) {
             .connection-group input[type="text"] {
                 width: 120px;
+            }
+        }
+
+        /* Make screen area even bigger on larger screens */
+        @media (min-width: 1400px) {
+            .bottom-panel {
+                height: 100px; /* Even smaller on large screens */
+            }
+            
+            .main-container {
+                padding: 6px; /* Even less padding on large screens */
+                gap: 6px;
+            }
+            
+            .screen-container {
+                padding: 6px; /* Even less padding on large screens */
             }
         }
     </style>
