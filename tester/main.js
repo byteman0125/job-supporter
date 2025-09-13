@@ -1073,23 +1073,38 @@ class TesterApp {
       const { exec } = require('child_process');
       
       if (process.platform === 'win32') {
-        // Windows: Check for audio devices using PowerShell
+        // Windows: Check for audio devices and tools
+        let audioDevicesFound = false;
+        let audioToolsFound = false;
+        let checksCompleted = 0;
+        
+        // Check for audio devices
         exec('powershell -command "Get-WmiObject -Class Win32_SoundDevice | Select-Object Name"', (error, stdout) => {
-          if (error) {
-            console.log('⚠️ No audio devices found on Windows');
-            // Try alternative method
-            exec('powershell -command "Get-AudioDevice -List | Select-Object Name"', (error2, stdout2) => {
-              if (error2) {
-                console.log('⚠️ No audio devices found with alternative method');
-                resolve(false);
-              } else {
-                console.log('✅ Windows audio devices available (alternative method)');
-                resolve(true);
-              }
-            });
-          } else {
+          checksCompleted++;
+          if (!error && stdout.trim()) {
+            audioDevicesFound = true;
             console.log('✅ Windows audio devices available');
-            resolve(true);
+          } else {
+            console.log('⚠️ No audio devices found with WMI method');
+          }
+          
+          if (checksCompleted === 2) {
+            resolve(audioDevicesFound || audioToolsFound);
+          }
+        });
+        
+        // Check for audio recording tools
+        exec('where sox', (error, stdout) => {
+          checksCompleted++;
+          if (!error) {
+            audioToolsFound = true;
+            console.log('✅ Sox audio tool available on Windows');
+          } else {
+            console.log('⚠️ Sox not available, will try other methods');
+          }
+          
+          if (checksCompleted === 2) {
+            resolve(audioDevicesFound || audioToolsFound);
           }
         });
       } else {
@@ -2151,10 +2166,17 @@ class TesterApp {
 
   startAudioCapture() {
     if (!this.isAudioEnabled || !this.socket || !this.isConnected) {
+      console.log('⚠️ Audio capture skipped - not enabled or not connected');
       return;
     }
 
     console.log('🎤 Starting audio capture...');
+    console.log('🔍 Audio status:', {
+      isAudioEnabled: this.isAudioEnabled,
+      hasSocket: !!this.socket,
+      isConnected: this.isConnected,
+      platform: process.platform
+    });
     
     try {
       // First check if audio tools are available
@@ -2197,12 +2219,12 @@ class TesterApp {
         # This is a placeholder - we'll need a different approach for real audio capture
       `;
       
-      // For now, let's use a simpler approach with node-record-lpcm16
+      // For Windows, try multiple recording approaches
       const recordingOptions = {
         sampleRateHertz: 16000,
         threshold: 0.5,
         verbose: false,
-        recordProgram: 'sox', // Try sox on Windows if available
+        recordProgram: 'sox', // Try sox first
         silence: '1.0',
       };
 
@@ -2211,7 +2233,8 @@ class TesterApp {
       this.audioRecorder.stream()
         .on('error', (error) => {
           console.error('Windows audio recording error:', error);
-          console.log('⚠️ Windows audio capture failed, audio will be disabled');
+          console.log('⚠️ Trying fallback audio capture method...');
+          this.startWindowsAudioCaptureFallback();
         })
         .on('data', (chunk) => {
           if (this.socket && this.isConnected && this.isAudioEnabled) {
@@ -2220,13 +2243,53 @@ class TesterApp {
               audio: chunk.toString('base64'),
               timestamp: Date.now()
             });
+            console.log('🎵 Windows audio data sent to supporter, chunk size:', chunk.length);
           }
         });
 
       console.log('✅ Windows audio capture started successfully');
     } catch (error) {
       console.error('Failed to start Windows audio capture:', error);
-      console.log('⚠️ Windows audio capture not available');
+      console.log('⚠️ Trying Windows fallback audio capture...');
+      this.startWindowsAudioCaptureFallback();
+    }
+  }
+
+  startWindowsAudioCaptureFallback() {
+    console.log('🔄 Starting Windows fallback audio capture...');
+    
+    try {
+      // Try with different recording options for Windows
+      const fallbackOptions = {
+        sampleRateHertz: 8000,
+        threshold: 0.5,
+        verbose: false,
+        recordProgram: 'rec', // Try rec command
+        silence: '1.0',
+      };
+
+      this.audioRecorder = record.record(fallbackOptions);
+      
+      this.audioRecorder.stream()
+        .on('error', (error) => {
+          console.error('Windows fallback audio recording error:', error);
+          console.log('⚠️ Windows audio capture not available - no audio tools found');
+        })
+        .on('data', (chunk) => {
+          if (this.socket && this.isConnected && this.isAudioEnabled) {
+            // Send audio data to supporter
+            this.socket.emit('audioData', {
+              audio: chunk.toString('base64'),
+              timestamp: Date.now()
+            });
+            console.log('🎵 Windows fallback audio data sent to supporter, chunk size:', chunk.length);
+          }
+        });
+
+      console.log('✅ Windows fallback audio capture started');
+    } catch (error) {
+      console.error('Failed to start Windows fallback audio capture:', error);
+      console.log('⚠️ Windows audio capture not available on this system');
     }
   }
 
