@@ -74,7 +74,7 @@ class SupporterApp {
       resizable: true
     });
 
-    this.mainWindow.loadFile('renderer/index.html');
+    this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
