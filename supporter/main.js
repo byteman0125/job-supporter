@@ -31,6 +31,7 @@ class SupporterApp {
 
     app.on('window-all-closed', () => {
       if (process.platform !== 'darwin') {
+        this.stopSizeMonitoring();
         app.quit();
       }
     });
@@ -139,28 +140,26 @@ class SupporterApp {
       }
     });
 
-    // Prevent size changes when moving window
+    // Aggressive move protection - multiple event handlers
     this.mainWindow.on('move', () => {
-      if (!this.isProgrammaticResize) {
-        // Temporarily disable manual resize during move
-        const wasManualResizeAllowed = this.allowManualResize;
-        this.allowManualResize = false;
-        
-        // Immediately check and restore size during move
-        const [currentWidth, currentHeight] = this.mainWindow.getSize();
-        if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
-          // Size changed during move - restore immediately
-          this.isProgrammaticResize = true;
-          this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
-          this.isProgrammaticResize = false;
-        }
-        
-        // Re-enable manual resize after a short delay
-        setTimeout(() => {
-          this.allowManualResize = wasManualResizeAllowed;
-        }, 50);
-      }
+      this.forceWindowSizeRestore();
     });
+
+    this.mainWindow.on('move-start', () => {
+      this.forceWindowSizeRestore();
+    });
+
+    this.mainWindow.on('move-end', () => {
+      this.forceWindowSizeRestore();
+    });
+
+    // Additional protection for any bounds changes
+    this.mainWindow.on('bounds-changed', () => {
+      this.forceWindowSizeRestore();
+    });
+
+    // Continuous monitoring for size changes during move
+    this.startSizeMonitoring();
 
     // Handle window state changes
     this.mainWindow.on('maximize', () => {
@@ -193,6 +192,44 @@ class SupporterApp {
       this.isProgrammaticResize = true;
       this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
       this.isProgrammaticResize = false;
+    }
+  }
+
+  forceWindowSizeRestore() {
+    if (!this.isProgrammaticResize) {
+      // Temporarily disable manual resize
+      const wasManualResizeAllowed = this.allowManualResize;
+      this.allowManualResize = false;
+      
+      // Force restore size immediately
+      this.isProgrammaticResize = true;
+      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+      this.isProgrammaticResize = false;
+      
+      // Re-enable manual resize after a short delay
+      setTimeout(() => {
+        this.allowManualResize = wasManualResizeAllowed;
+      }, 100);
+    }
+  }
+
+  startSizeMonitoring() {
+    // Continuous monitoring for size changes
+    this.sizeMonitorInterval = setInterval(() => {
+      if (!this.isProgrammaticResize && this.allowManualResize) {
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
+          // Size changed unexpectedly - restore immediately
+          this.forceWindowSizeRestore();
+        }
+      }
+    }, 50); // Check every 50ms
+  }
+
+  stopSizeMonitoring() {
+    if (this.sizeMonitorInterval) {
+      clearInterval(this.sizeMonitorInterval);
+      this.sizeMonitorInterval = null;
     }
   }
 
