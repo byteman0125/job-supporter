@@ -6,15 +6,7 @@ const socketIo = require('socket.io');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
 const notifier = require('node-notifier');
 const fs = require('fs');
-// Make speaker module optional to avoid build issues
-let Speaker = null;
-try {
-  Speaker = require('speaker');
-  console.log('✅ Speaker module loaded successfully');
-} catch (error) {
-  console.log('⚠️ Speaker module not available:', error.message);
-  console.log('🎵 Audio playback will be disabled');
-}
+// Audio playback disabled - speaker module removed
 
 class SupporterApp {
   constructor() {
@@ -30,8 +22,7 @@ class SupporterApp {
     };
     this.isVoiceMuted = true; // Voice muted by default
     this.chatMessages = new Map(); // Store chat messages per client
-    this.audioSpeaker = null;
-    this.isAudioEnabled = true; // Audio enabled by default
+    this.isAudioEnabled = false; // Audio disabled - no speaker module
     
     this.init();
   }
@@ -261,56 +252,19 @@ class SupporterApp {
   }
 
   setupAudio() {
-    // Audio setup for playing received audio from tester
-    console.log('🔊 Setting up audio playback...');
-    
-    try {
-      // Initialize audio speaker only if Speaker module is available
-      if (Speaker) {
-        this.audioSpeaker = new Speaker({
-          channels: 1,
-          bitDepth: 16,
-          sampleRate: 16000
-        });
-        
-        this.audioSpeaker.on('error', (error) => {
-          console.error('Audio speaker error:', error);
-        });
-        
-        console.log('✅ Audio speaker initialized');
-      } else {
-        console.log('⚠️ Audio speaker not available - Speaker module not loaded');
-      }
-    } catch (error) {
-      console.error('Failed to initialize audio speaker:', error);
-    }
+    // Audio playback disabled - no speaker module
+    console.log('🔊 Audio playback disabled - speaker module removed');
   }
 
   playAudioData(audioData) {
-    if (!this.isAudioEnabled || !this.audioSpeaker || !Speaker) {
-      return;
-    }
-    
-    try {
-      // Convert base64 audio data to buffer and play
-      const audioBuffer = Buffer.from(audioData, 'base64');
-      this.audioSpeaker.write(audioBuffer);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-    }
+    // Audio playback disabled - no speaker module
+    console.log('🎵 Audio playback disabled - speaker module removed');
   }
 
   toggleAudio() {
-    this.isAudioEnabled = !this.isAudioEnabled;
-    
-    if (!this.isAudioEnabled && this.audioSpeaker && Speaker) {
-      // Stop audio playback
-      this.audioSpeaker.end();
-      this.setupAudio(); // Reinitialize for next time
-    }
-    
-    console.log(`🔊 Audio ${this.isAudioEnabled ? 'enabled' : 'disabled'}`);
-    return this.isAudioEnabled;
+    // Audio is permanently disabled - no speaker module
+    console.log('🔊 Audio is disabled - speaker module removed');
+    return false;
   }
 
   // IPC handlers
