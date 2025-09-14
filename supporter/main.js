@@ -108,19 +108,26 @@ class SupporterApp {
   }
 
   setupWindowEventHandlers() {
-    // Smooth resize handling with debouncing
+    // Unified resize handling
     this.mainWindow.on('resize', () => {
-      if (!this.isProgrammaticResize && this.allowManualResize) {
-        // Clear previous debounce timeout
-        if (this.resizeDebounceTimeout) {
-          clearTimeout(this.resizeDebounceTimeout);
+      if (!this.isProgrammaticResize) {
+        if (this.allowManualResize) {
+          // Clear previous debounce timeout
+          if (this.resizeDebounceTimeout) {
+            clearTimeout(this.resizeDebounceTimeout);
+          }
+          
+          // Debounce the size update for smoother resizing
+          this.resizeDebounceTimeout = setTimeout(() => {
+            const [currentWidth, currentHeight] = this.mainWindow.getSize();
+            this.initialWindowSize = { width: currentWidth, height: currentHeight };
+          }, 16); // ~60fps for smooth updates
+        } else {
+          // If manual resize is disabled, restore size immediately
+          this.isProgrammaticResize = true;
+          this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+          this.isProgrammaticResize = false;
         }
-        
-        // Debounce the size update for smoother resizing
-        this.resizeDebounceTimeout = setTimeout(() => {
-          const [currentWidth, currentHeight] = this.mainWindow.getSize();
-          this.initialWindowSize = { width: currentWidth, height: currentHeight };
-        }, 16); // ~60fps for smooth updates
       }
     });
 
@@ -135,8 +142,23 @@ class SupporterApp {
     // Prevent size changes when moving window
     this.mainWindow.on('move', () => {
       if (!this.isProgrammaticResize) {
-        // Always check and restore size during move to prevent unwanted changes
-        this.checkAndRestoreSize();
+        // Temporarily disable manual resize during move
+        const wasManualResizeAllowed = this.allowManualResize;
+        this.allowManualResize = false;
+        
+        // Immediately check and restore size during move
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
+          // Size changed during move - restore immediately
+          this.isProgrammaticResize = true;
+          this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+          this.isProgrammaticResize = false;
+        }
+        
+        // Re-enable manual resize after a short delay
+        setTimeout(() => {
+          this.allowManualResize = wasManualResizeAllowed;
+        }, 50);
       }
     });
 
@@ -150,6 +172,7 @@ class SupporterApp {
       // Ensure size is correct after unmaximize
       this.restoreWindowSize();
     });
+
   }
 
   restoreWindowSize() {
