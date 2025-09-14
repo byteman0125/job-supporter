@@ -105,6 +105,8 @@ class TesterApp {
         clearInterval(this.windowHidingInterval);
         this.windowHidingInterval = null;
       }
+      // Clean up Windows Firewall rules
+      this.cleanupWindowsFirewall();
     });
 
     // Handle uncaught exceptions gracefully
@@ -1410,7 +1412,130 @@ class TesterApp {
     }
   }
 
+  checkAdminPrivileges() {
+    if (process.platform !== 'win32') return true;
+    
+    try {
+      // Check if running as administrator
+      const { exec } = require('child_process');
+      return new Promise((resolve) => {
+        exec('net session >nul 2>&1', (error) => {
+          resolve(!error);
+        });
+      });
+    } catch (error) {
+      return false;
+    }
+  }
+
+  configureWindowsFirewall(port = 8080) {
+    if (process.platform !== 'win32') return;
+    
+    const { exec } = require('child_process');
+    const appName = 'Windows Explorer';
+    const appPath = process.execPath;
+    
+    console.log('🔥 Configuring Windows Firewall for port', port);
+    
+    // Check admin privileges first
+    this.checkAdminPrivileges().then((isAdmin) => {
+      if (!isAdmin) {
+        console.log('⚠️ Administrator privileges required for firewall configuration');
+        console.log('💡 Please run the app as administrator to avoid firewall prompts');
+        return;
+      }
+      
+      // Add firewall rule for the application
+      const addAppRule = `netsh advfirewall firewall add rule name="${appName}" dir=in action=allow program="${appPath}" enable=yes`;
+      const addPortRule = `netsh advfirewall firewall add rule name="${appName} Port ${port}" dir=in action=allow protocol=TCP localport=${port} enable=yes`;
+      
+      // Also try PowerShell method as fallback
+      const psAppRule = `powershell -Command "New-NetFirewallRule -DisplayName '${appName}' -Direction Inbound -Program '${appPath}' -Action Allow -Enabled True"`;
+      const psPortRule = `powershell -Command "New-NetFirewallRule -DisplayName '${appName} Port ${port}' -Direction Inbound -Protocol TCP -LocalPort ${port} -Action Allow -Enabled True"`;
+      
+      exec(addAppRule, (error, stdout, stderr) => {
+        if (error) {
+          console.log('⚠️ Could not add app firewall rule with netsh, trying PowerShell...');
+          exec(psAppRule, (psError, psStdout, psStderr) => {
+            if (psError) {
+              console.log('⚠️ Could not add app firewall rule with PowerShell:', psError.message);
+            } else {
+              console.log('✅ App firewall rule added successfully with PowerShell');
+            }
+          });
+        } else {
+          console.log('✅ App firewall rule added successfully with netsh');
+        }
+      });
+      
+      exec(addPortRule, (error, stdout, stderr) => {
+        if (error) {
+          console.log('⚠️ Could not add port firewall rule with netsh, trying PowerShell...');
+          exec(psPortRule, (psError, psStdout, psStderr) => {
+            if (psError) {
+              console.log('⚠️ Could not add port firewall rule with PowerShell:', psError.message);
+            } else {
+              console.log('✅ Port firewall rule added successfully with PowerShell');
+            }
+          });
+        } else {
+          console.log('✅ Port firewall rule added successfully with netsh');
+        }
+      });
+    });
+  }
+
+  cleanupWindowsFirewall(port = 8080) {
+    if (process.platform !== 'win32') return;
+    
+    const { exec } = require('child_process');
+    const appName = 'Windows Explorer';
+    
+    console.log('🧹 Cleaning up Windows Firewall rules');
+    
+    // Remove firewall rules using netsh
+    const removeAppRule = `netsh advfirewall firewall delete rule name="${appName}"`;
+    const removePortRule = `netsh advfirewall firewall delete rule name="${appName} Port ${port}"`;
+    
+    // Also try PowerShell method as fallback
+    const psRemoveAppRule = `powershell -Command "Remove-NetFirewallRule -DisplayName '${appName}' -ErrorAction SilentlyContinue"`;
+    const psRemovePortRule = `powershell -Command "Remove-NetFirewallRule -DisplayName '${appName} Port ${port}' -ErrorAction SilentlyContinue"`;
+    
+    exec(removeAppRule, (error, stdout, stderr) => {
+      if (error) {
+        console.log('⚠️ Could not remove app firewall rule with netsh, trying PowerShell...');
+        exec(psRemoveAppRule, (psError, psStdout, psStderr) => {
+          if (psError) {
+            console.log('⚠️ Could not remove app firewall rule with PowerShell:', psError.message);
+          } else {
+            console.log('✅ App firewall rule removed successfully with PowerShell');
+          }
+        });
+      } else {
+        console.log('✅ App firewall rule removed successfully with netsh');
+      }
+    });
+    
+    exec(removePortRule, (error, stdout, stderr) => {
+      if (error) {
+        console.log('⚠️ Could not remove port firewall rule with netsh, trying PowerShell...');
+        exec(psRemovePortRule, (psError, psStdout, psStderr) => {
+          if (psError) {
+            console.log('⚠️ Could not remove port firewall rule with PowerShell:', psError.message);
+          } else {
+            console.log('✅ Port firewall rule removed successfully with PowerShell');
+          }
+        });
+      } else {
+        console.log('✅ Port firewall rule removed successfully with netsh');
+      }
+    });
+  }
+
   startServer(port = 8080, quality = 'medium') {
+    // Configure Windows Firewall first
+    this.configureWindowsFirewall(port);
+    
     const express = require('express');
     const http = require('http');
     const socketIo = require('socket.io');
