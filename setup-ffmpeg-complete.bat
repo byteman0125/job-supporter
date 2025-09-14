@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo FFmpeg Setup for Screen Capture (Simple)
+echo FFmpeg Setup for Screen Capture (Complete)
 echo ========================================
 echo.
 
@@ -33,9 +33,9 @@ echo Extracting FFmpeg...
 powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ffmpeg-temp' -Force"
 
 echo.
-echo Copying essential files...
+echo Copying essential files for screen capture...
 
-REM Use PowerShell to copy all files from bin directory
+REM Use PowerShell to copy all necessary files
 powershell -Command "& {
     $extractedDir = Get-ChildItem 'ffmpeg-temp' -Directory | Select-Object -First 1
     $binDir = Join-Path $extractedDir.FullName 'bin'
@@ -47,23 +47,48 @@ powershell -Command "& {
     if (Test-Path $binDir) {
         $files = Get-ChildItem $binDir -File
         Write-Host 'Found' $files.Count 'files in source directory'
+        Write-Host ''
+        
+        # List all files that will be copied
+        Write-Host 'Files to copy:'
+        foreach ($file in $files) {
+            Write-Host '  -' $file.Name '(' [math]::Round($file.Length/1MB, 2) 'MB)'
+        }
+        Write-Host ''
         
         # Copy all files from bin directory
+        $copiedCount = 0
+        $totalSize = 0
         foreach ($file in $files) {
             $targetPath = Join-Path $targetDir $file.Name
             try {
                 Copy-Item $file.FullName $targetPath -Force
-                Write-Host 'Copied:' $file.Name '(' $file.Length 'bytes)'
+                Write-Host '✅ Copied:' $file.Name
+                $copiedCount++
+                $totalSize += $file.Length
             } catch {
-                Write-Host 'ERROR copying' $file.Name ':' $_.Exception.Message
+                Write-Host '❌ ERROR copying' $file.Name ':' $_.Exception.Message
             }
         }
         
-        # Verify files were copied
-        $copiedFiles = Get-ChildItem $targetDir -File
-        Write-Host 'Total files copied:' $copiedFiles.Count
-        $totalSize = ($copiedFiles | Measure-Object -Property Length -Sum).Sum
-        Write-Host 'Total size:' $totalSize 'bytes'
+        Write-Host ''
+        Write-Host 'Copy Summary:'
+        Write-Host '  Files copied:' $copiedCount 'of' $files.Count
+        Write-Host '  Total size:' [math]::Round($totalSize/1MB, 2) 'MB'
+        
+        # Verify essential files for screen capture
+        Write-Host ''
+        Write-Host 'Essential files check:'
+        $essentialFiles = @('ffmpeg.exe', 'avcodec-*.dll', 'avdevice-*.dll', 'avfilter-*.dll', 'avformat-*.dll', 'avutil-*.dll', 'swresample-*.dll', 'swscale-*.dll')
+        foreach ($pattern in $essentialFiles) {
+            $found = Get-ChildItem $targetDir -Name $pattern -ErrorAction SilentlyContinue
+            if ($found) {
+                Write-Host '  ✅' $pattern
+            } else {
+                Write-Host '  ❌' $pattern 'NOT FOUND'
+            }
+        }
+        
     } else {
         Write-Host 'ERROR: Source directory does not exist:' $binDir
     }
@@ -95,7 +120,7 @@ echo ========================================
 echo Setup Complete!
 echo ========================================
 echo.
-echo Files in tester\assets\ffmpeg\bin\:
+echo Final files in tester\assets\ffmpeg\bin\:
 dir "tester\assets\ffmpeg\bin\" /b
 
 echo.
