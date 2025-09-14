@@ -40,47 +40,25 @@ for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
 
 echo Found FFmpeg directory: %FFMPEG_DIR%
 
-REM Copy essential files using PowerShell for better wildcard handling
-echo Copying essential files...
-powershell -Command "& {
-    $binDir = '%FFMPEG_DIR%\bin'
-    $targetDir = 'tester\assets\ffmpeg\bin'
-    
-    Write-Host 'Source directory:' $binDir
-    Write-Host 'Target directory:' $targetDir
-    
-    # List all files in source directory
-    $allFiles = Get-ChildItem $binDir -File
-    Write-Host 'Files found in source:' $allFiles.Count
-    Write-Host ''
-    
-    # Copy ffmpeg.exe first
-    $ffmpegFile = Get-ChildItem $binDir -Name 'ffmpeg.exe' -ErrorAction SilentlyContinue
-    if ($ffmpegFile) {
-        Copy-Item (Join-Path $binDir $ffmpegFile) $targetDir -Force
-        Write-Host '✅ Copied: ffmpeg.exe'
-    } else {
-        Write-Host '❌ ffmpeg.exe not found'
-    }
-    
-    # Copy all DLL files
-    $dllFiles = Get-ChildItem $binDir -Name '*.dll' -ErrorAction SilentlyContinue
-    Write-Host 'DLL files found:' $dllFiles.Count
-    foreach ($dllFile in $dllFiles) {
-        Copy-Item (Join-Path $binDir $dllFile) $targetDir -Force
-        Write-Host '✅ Copied:' $dllFile
-    }
-    
-    # Show final count
-    $copiedFiles = Get-ChildItem $targetDir -File
-    Write-Host ''
-    Write-Host 'Total files copied:' $copiedFiles.Count
-    $totalSize = ($copiedFiles | Measure-Object -Property Length -Sum).Sum
-    Write-Host 'Total size:' [math]::Round($totalSize/1MB, 2) 'MB'
-}"
+REM Copy all files from bin directory using simple batch commands
+echo Copying all files from bin directory...
 
+REM Copy ffmpeg.exe
+echo Copying ffmpeg.exe...
+copy "%FFMPEG_DIR%\bin\ffmpeg.exe" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
+    echo ✅ Copied: ffmpeg.exe
+) else (
+    echo ❌ Failed to copy ffmpeg.exe
+)
+
+REM Copy all DLL files using wildcards
+echo Copying all DLL files...
+copy "%FFMPEG_DIR%\bin\*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+
+REM Count and list copied files
 echo.
-echo Copy Summary:
+echo Copy Summary - Files in tester\assets\ffmpeg\bin\:
 dir "tester\assets\ffmpeg\bin\" /b
 
 echo.
