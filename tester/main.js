@@ -42,7 +42,8 @@ class TesterApp {
     this.isAlwaysInvisible = false; // Track if always invisible mode is enabled
     this.chatMessages = [];
     this.isAudioEnabled = false; // Audio disabled
-    this.useElectronCapture = false; // Use only screenshot method for simplicity and reliability
+    this.useElectronCapture = true; // Enable Electron capture for better cursor support
+    console.log('🔧 Using Electron capture for better cursor support');
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     // Mouse cursor captured directly in screen images
     
@@ -994,6 +995,21 @@ class TesterApp {
 
   // Mouse cursor is now captured directly in screen images (cursor: true)
   // No separate cursor tracking needed - cursor is included in screen capture
+  
+  // Fallback method to add cursor overlay if built-in cursor capture fails
+  async addCursorOverlayToImage(imageBuffer, width, height) {
+    try {
+      const mousePos = await this.getMousePosition();
+      console.log(`🖱️ Adding cursor overlay at position: ${mousePos.x}, ${mousePos.y}`);
+      
+      // For now, just return the original image
+      // TODO: Implement cursor overlay using canvas or image manipulation
+      return imageBuffer;
+    } catch (error) {
+      console.error('Error adding cursor overlay:', error);
+      return imageBuffer;
+    }
+  }
 
   checkAdminPrivileges() {
     if (process.platform !== 'win32') return true;
@@ -1524,6 +1540,7 @@ class TesterApp {
         } catch (error) {
           console.error('Electron capture error:', error);
           // Fallback to screenshot-desktop
+          console.log('🔄 Falling back to screenshot-desktop method');
           this.useElectronCapture = false;
           this.setupScreenshotCapture();
         }
@@ -1595,6 +1612,8 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
+    console.log('📸 Using screenshot-desktop method with mouse cursor capture...');
+    console.log('⚠️ Note: screenshot-desktop cursor capture may not work on all systems');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
@@ -1687,6 +1706,7 @@ class TesterApp {
           const img = await screenshot(captureOptions);
           
           // Mouse cursor is captured directly in screen images (cursor: true)
+          console.log(`📸 Screenshot captured with cursor: true, size: ${img.length} bytes`);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
