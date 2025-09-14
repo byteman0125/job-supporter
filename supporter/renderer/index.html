@@ -135,6 +135,7 @@
             height: 100vh; /* Full height without title bar */
             margin: 0;
             padding: 0;
+            cursor: default;
         }
 
         .screen-image {
@@ -147,7 +148,7 @@
             transition: all 0.2s ease-in-out;
         }
 
-        /* Mouse cursor overlay - Highly visible cursor */
+        /* Mouse cursor overlay - Real system cursor */
         .mouse-cursor {
             position: absolute;
             width: 20px;
@@ -155,8 +156,8 @@
             pointer-events: none;
             z-index: 1000;
             transition: all 0.1s ease-out;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23000000" stroke="%23ffffff" stroke-width="1"/><circle cx="2" cy="2" r="1.5" fill="%23ffffff"/></svg>') no-repeat center;
-            background-size: contain;
+            cursor: default;
+            background: transparent;
         }
 
         .mouse-cursor.hidden {
@@ -303,14 +304,7 @@
             <p>Press Ctrl+Shift+H to connect to a tester</p>
         </div>
         
-        <!-- Mouse cursor overlay -->
-        <div class="mouse-cursor hidden" id="mouseCursor"></div>
-        
-        <!-- Fallback cursor indicator -->
-        <div class="cursor-indicator hidden" id="cursorIndicator">
-            <div class="cursor-dot"></div>
-            <div class="cursor-crosshair"></div>
-        </div>
+        <!-- Real system cursor will be visible automatically -->
     </div>
 
 
@@ -326,8 +320,7 @@
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
         const testerIP = document.getElementById('testerIP');
-        const mouseCursor = document.getElementById('mouseCursor');
-        const cursorIndicator = document.getElementById('cursorIndicator');
+        // Real system cursor will be visible automatically
         const testerPort = document.getElementById('testerPort');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -448,9 +441,7 @@
                 existingImg.remove();
             }
             
-            // Hide mouse cursor when disconnecting
-            mouseCursor.classList.add('hidden');
-            cursorIndicator.classList.add('hidden');
+            // Real system cursor will be visible automatically
             
             // Reset stored dimensions
             originalScreenWidth = 0;
@@ -462,60 +453,7 @@
             ipcRenderer.send('reset-window-size');
         }
 
-        function updateMouseCursor(mouseX, mouseY) {
-            console.log(`🖱️ updateMouseCursor called with: ${mouseX}, ${mouseY}`);
-            
-            if (!isConnected || !originalScreenWidth || !originalScreenHeight) {
-                console.log('❌ Cursor hidden: not connected or no screen dimensions');
-                mouseCursor.classList.add('hidden');
-                cursorIndicator.classList.add('hidden');
-                return;
-            }
-
-            // Get the current screen image dimensions
-            const screenImg = screenViewer.querySelector('.screen-image');
-            if (!screenImg) {
-                console.log('❌ Cursor hidden: no screen image found');
-                mouseCursor.classList.add('hidden');
-                cursorIndicator.classList.add('hidden');
-                return;
-            }
-
-            // Calculate the scaling factors
-            const imgRect = screenImg.getBoundingClientRect();
-            const scaleX = imgRect.width / originalScreenWidth;
-            const scaleY = imgRect.height / originalScreenHeight;
-
-            console.log(`📐 Image rect: ${imgRect.width}x${imgRect.height} at (${imgRect.left}, ${imgRect.top})`);
-            console.log(`📏 Scale factors: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
-
-            // Convert tester's mouse coordinates to supporter's screen coordinates
-            const scaledX = mouseX * scaleX;
-            const scaledY = mouseY * scaleY;
-
-            console.log(`🔄 Scaled coordinates: ${scaledX.toFixed(1)}, ${scaledY.toFixed(1)}`);
-
-            // Position the cursor overlay relative to the screen viewer container
-            const containerRect = screenViewer.getBoundingClientRect();
-            const cursorX = containerRect.left + scaledX - 10; // -10 to center the 20px cursor
-            const cursorY = containerRect.top + scaledY - 10;
-            
-            console.log(`📦 Container rect: ${containerRect.width}x${containerRect.height} at (${containerRect.left}, ${containerRect.top})`);
-            console.log(`🎯 Final cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
-            
-            // Position the cursor element to show real mouse cursor
-            mouseCursor.style.left = cursorX + 'px';
-            mouseCursor.style.top = cursorY + 'px';
-            mouseCursor.classList.remove('hidden');
-            
-            // Also show fallback cursor
-            cursorIndicator.style.left = cursorX + 'px';
-            cursorIndicator.style.top = cursorY + 'px';
-            cursorIndicator.classList.remove('hidden');
-
-            console.log(`✅ Mouse cursor positioned: ${mouseX},${mouseY} → ${scaledX},${scaledY} at ${mouseCursor.style.left}, ${mouseCursor.style.top}`);
-            console.log(`👁️ Cursor visibility: mouseCursor.hidden=${mouseCursor.classList.contains('hidden')}, cursorIndicator.hidden=${cursorIndicator.classList.contains('hidden')}`);
-        }
+        // Real system cursor will be visible automatically - no custom cursor needed
 
         // Connection Status
         function updateConnectionStatus(connected, message = '') {
@@ -658,10 +596,10 @@
 
         // Handle separate cursor position updates for smooth movement
         ipcRenderer.on('cursor-position', (event, data) => {
-            // Update mouse cursor position with high frequency
+            // Log cursor position for debugging
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
                 console.log(`🎯 High-freq cursor: X=${data.mouseX}, Y=${data.mouseY}`);
-                updateMouseCursor(data.mouseX, data.mouseY);
+                // Real system cursor will be visible automatically
             }
         });
 
@@ -678,12 +616,12 @@
                 displayScreenImage(data.image);
             }
             
-            // Update mouse cursor position
+            // Log mouse cursor position for debugging
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
                 console.log(`📡 Received mouse data: X=${data.mouseX}, Y=${data.mouseY}`);
                 console.log(`📊 Screen dimensions: ${originalScreenWidth}x${originalScreenHeight}`);
                 console.log(`🔗 Connection status: ${isConnected}`);
-                updateMouseCursor(data.mouseX, data.mouseY);
+                // Real system cursor will be visible automatically
             } else {
                 console.log('❌ No mouse data received - data object:', data);
             }
