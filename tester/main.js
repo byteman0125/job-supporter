@@ -70,7 +70,7 @@ class TesterApp {
     
     // High-frequency mouse tracking (enabled for real-time cursor)
     this.mouseTrackingInterval = null;
-    this.mouseTrackingFPS = 60; // 60 FPS for ultra-smooth mouse tracking
+    this.mouseTrackingFPS = 30; // 30 FPS for smooth mouse tracking with lower CPU usage
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -1728,16 +1728,16 @@ class TesterApp {
 
     switch (quality) {
       case 'high':
-        interval = 100; // 10 FPS (reduced to prevent freezing)
+        interval = 200; // 5 FPS (optimized for lower CPU usage)
         break;
       case 'medium':
-        interval = 50; // 20 FPS (balanced)
+        interval = 150; // ~7 FPS (balanced for lower CPU)
         break;
       case 'low':
-        interval = 100; // 10 FPS (efficient)
+        interval = 200; // 5 FPS (efficient with low CPU)
         break;
       default:
-        interval = 50;
+        interval = 200; // 5 FPS (default optimized)
     }
 
     // Add CPU monitoring and adaptive quality
@@ -1910,7 +1910,7 @@ class TesterApp {
           height: screenHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS (reduced to prevent freezing)
+        interval = 200; // 5 FPS (optimized for lower CPU usage)
         break;
       case 'medium':
         captureOptions = {
@@ -1921,7 +1921,7 @@ class TesterApp {
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS (reduced to prevent freezing)
+        interval = 200; // 5 FPS (optimized for lower CPU usage)
         break;
       case 'low':
         captureOptions = {
@@ -1932,7 +1932,7 @@ class TesterApp {
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 150; // ~7 FPS (very low to prevent freezing)
+        interval = 250; // 4 FPS (very low CPU usage)
         break;
       default:
         captureOptions = {
