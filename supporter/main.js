@@ -109,25 +109,41 @@ class SupporterApp {
   }
 
   setupWindowEventHandlers() {
-    // Unified resize handling
+    // Smart aspect ratio resize handling
     this.mainWindow.on('resize', () => {
-      if (!this.isProgrammaticResize) {
-        if (this.allowManualResize) {
-          // Clear previous debounce timeout
-          if (this.resizeDebounceTimeout) {
-            clearTimeout(this.resizeDebounceTimeout);
-          }
-          
-          // Debounce the size update for smoother resizing
-          this.resizeDebounceTimeout = setTimeout(() => {
-            const [currentWidth, currentHeight] = this.mainWindow.getSize();
-            this.initialWindowSize = { width: currentWidth, height: currentHeight };
-          }, 16); // ~60fps for smooth updates
-        } else {
-          // If manual resize is disabled, restore size immediately
+      if (!this.isProgrammaticResize && this.allowManualResize) {
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        
+        // Calculate proper aspect ratio based on original screen resolution
+        const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
+        
+        // Detect which dimension the user is changing
+        const widthChanged = currentWidth !== this.initialWindowSize.width;
+        const heightChanged = currentHeight !== this.initialWindowSize.height;
+        
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+        
+        if (widthChanged && !heightChanged) {
+          // User is changing width, adjust height to maintain aspect ratio
+          newHeight = Math.round(currentWidth / aspectRatio);
+        } else if (heightChanged && !widthChanged) {
+          // User is changing height, adjust width to maintain aspect ratio
+          newWidth = Math.round(currentHeight * aspectRatio);
+        } else if (widthChanged && heightChanged) {
+          // Both changed, prioritize width and adjust height
+          newHeight = Math.round(currentWidth / aspectRatio);
+        }
+        
+        // Apply the calculated size to maintain aspect ratio
+        if (newWidth !== currentWidth || newHeight !== currentHeight) {
           this.isProgrammaticResize = true;
-          this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+          this.mainWindow.setSize(newWidth, newHeight);
           this.isProgrammaticResize = false;
+          this.initialWindowSize = { width: newWidth, height: newHeight };
+        } else {
+          // No aspect ratio adjustment needed, just update stored size
+          this.initialWindowSize = { width: currentWidth, height: currentHeight };
         }
       }
     });
