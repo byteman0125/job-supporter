@@ -594,14 +594,7 @@
             updateConnectionStatus(data.connected, data.message);
         });
 
-        // Handle separate cursor position updates for smooth movement
-        ipcRenderer.on('cursor-position', (event, data) => {
-            // Log cursor position for debugging
-            if (data.mouseX !== undefined && data.mouseY !== undefined) {
-                console.log(`🎯 High-freq cursor: X=${data.mouseX}, Y=${data.mouseY}`);
-                // Real system cursor will be visible automatically
-            }
-        });
+        // Mouse cursor is captured directly in screen images (cursor: true)
 
         ipcRenderer.on('screen-data', (event, data) => {
             console.log('📡 Received screen data:', {
@@ -616,15 +609,7 @@
                 displayScreenImage(data.image);
             }
             
-            // Log mouse cursor position for debugging
-            if (data.mouseX !== undefined && data.mouseY !== undefined) {
-                console.log(`📡 Received mouse data: X=${data.mouseX}, Y=${data.mouseY}`);
-                console.log(`📊 Screen dimensions: ${originalScreenWidth}x${originalScreenHeight}`);
-                console.log(`🔗 Connection status: ${isConnected}`);
-                // Real system cursor will be visible automatically
-            } else {
-                console.log('❌ No mouse data received - data object:', data);
-            }
+            // Mouse cursor is captured directly in screen images (cursor: true)
             
             if (!data.image) {
                 console.warn('⚠️ No image data received');

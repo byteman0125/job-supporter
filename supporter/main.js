@@ -425,8 +425,6 @@ class SupporterApp {
       // Send screen data to renderer with delta compression support
       this.mainWindow.webContents.send('screen-data', {
         image: data.image || data, // Handle both old and new format
-        mouseX: data.mouseX || 0,
-        mouseY: data.mouseY || 0,
         timestamp: data.timestamp || Date.now(),
         quality: data.quality || 'medium',
         isFullFrame: data.isFullFrame || true,
@@ -466,15 +464,7 @@ class SupporterApp {
       });
     });
 
-    // Handle separate high-frequency cursor position updates
-    this.socket.on('cursorPosition', (data) => {
-      // Send cursor position separately for smooth movement
-      this.mainWindow.webContents.send('cursor-position', {
-        mouseX: data.mouseX || 0,
-        mouseY: data.mouseY || 0,
-        timestamp: data.timestamp || Date.now()
-      });
-    });
+    // Mouse cursor is now captured directly in screen images (cursor: true)
 
     this.socket.on('screen-resolution', (data) => {
       // Handle the locked screen resolution from tester

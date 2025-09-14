@@ -44,7 +44,7 @@ class TesterApp {
     this.isAudioEnabled = false; // Audio disabled
     this.useElectronCapture = false; // Use only screenshot method for simplicity and reliability
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
-    this.cursorTrackingInterval = null; // For smooth cursor tracking
+    // Mouse cursor captured directly in screen images
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -992,37 +992,8 @@ class TesterApp {
     }
   }
 
-  // Separate high-frequency cursor tracking for smooth cursor movement
-  startSmoothCursorTracking() {
-    if (this.cursorTrackingInterval) {
-      clearInterval(this.cursorTrackingInterval);
-    }
-    
-    // Send cursor position at 60 FPS for smooth movement
-    this.cursorTrackingInterval = setInterval(async () => {
-      if (this.socket && this.socket.connected && this.isSharing) {
-        try {
-          const mousePos = await this.getMousePosition();
-          
-          // Send cursor position separately from screen data
-          this.socket.emit('cursorPosition', {
-            mouseX: mousePos.x,
-            mouseY: mousePos.y,
-            timestamp: Date.now()
-          });
-        } catch (error) {
-          console.error('Error sending cursor position:', error);
-        }
-      }
-    }, 16); // ~60 FPS (1000ms / 60 = 16.67ms)
-  }
-
-  stopSmoothCursorTracking() {
-    if (this.cursorTrackingInterval) {
-      clearInterval(this.cursorTrackingInterval);
-      this.cursorTrackingInterval = null;
-    }
-  }
+  // Mouse cursor is now captured directly in screen images (cursor: true)
+  // No separate cursor tracking needed - cursor is included in screen capture
 
   checkAdminPrivileges() {
     if (process.platform !== 'win32') return true;
@@ -1433,8 +1404,7 @@ class TesterApp {
     
     // App is headless - no window to hide
     
-    // Start smooth cursor tracking for 60 FPS cursor movement
-    this.startSmoothCursorTracking();
+    // Mouse cursor is captured directly in screen images (cursor: true)
     
     // Set up screen capture based on quality setting
     await this.setupScreenCapture();
@@ -1528,14 +1498,11 @@ class TesterApp {
           
           // Use professional WebRTC capture
           const img = await this.captureScreenElectron();
-          const mousePos = await this.getMousePosition();
           
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
             this.socket.emit('screenData', {
               image: img,
-              mouseX: mousePos.x,
-              mouseY: mousePos.y,
               timestamp: Date.now(),
               quality: this.screenQuality
             });
@@ -1721,9 +1688,7 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Get mouse position every frame for smooth cursor tracking
-          let mousePos = { x: 0, y: 0 };
-          mousePos = await this.getMousePosition();
+          // Mouse cursor is captured directly in screen images (cursor: true)
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1735,8 +1700,6 @@ class TesterApp {
               // Send full frame
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
-                mouseX: mousePos.x,
-                mouseY: mousePos.y,
                 isFullFrame: true,
                 regions: deltaInfo.regions
               });
@@ -1757,8 +1720,6 @@ class TesterApp {
               
               this.socket.emit('screenData', {
                 regions: regionImages,
-                mouseX: mousePos.x,
-                mouseY: mousePos.y,
                 isFullFrame: false,
                 changedPixels: deltaInfo.changedPixels
               });
@@ -2044,8 +2005,7 @@ class TesterApp {
   stopScreenSharing() {
     this.isSharing = false;
     
-    // Stop smooth cursor tracking
-    this.stopSmoothCursorTracking();
+    // Mouse cursor captured directly in screen images
     
     if (this.captureInterval) {
       clearInterval(this.captureInterval);
