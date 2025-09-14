@@ -147,19 +147,16 @@
             transition: all 0.2s ease-in-out;
         }
 
-        /* Mouse cursor overlay - Realistic mouse cursor */
+        /* Mouse cursor overlay - Real system cursor */
         .mouse-cursor {
             position: absolute;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             pointer-events: none;
             z-index: 1000;
             transition: all 0.1s ease-out;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2l12 8-3 3-9-11z" fill="%23000" stroke="%23fff" stroke-width="0.8"/><circle cx="2" cy="2" r="1.2" fill="%23fff"/><path d="M2 2l12 8-3 3-9-11z" fill="none" stroke="%23000" stroke-width="0.3"/></svg>');
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: top left;
-            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.8));
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23000" stroke="%23fff" stroke-width="0.5"/><circle cx="2" cy="2" r="1" fill="%23fff"/></svg>'), auto;
+            background: none;
         }
 
         .mouse-cursor.hidden {
@@ -413,8 +410,8 @@
             const scaledY = mouseY * scaleY;
 
             // Position the cursor overlay
-            mouseCursor.style.left = (imgRect.left + scaledX - 12) + 'px'; // -12 to center the 24px cursor
-            mouseCursor.style.top = (imgRect.top + scaledY - 12) + 'px';
+            mouseCursor.style.left = (imgRect.left + scaledX - 10) + 'px'; // -10 to center the 20px cursor
+            mouseCursor.style.top = (imgRect.top + scaledY - 10) + 'px';
             mouseCursor.classList.remove('hidden');
 
             console.log(`🖱️ Mouse cursor: ${mouseX},${mouseY} → ${scaledX},${scaledY}`);
