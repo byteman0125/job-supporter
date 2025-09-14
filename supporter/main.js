@@ -74,23 +74,8 @@ class SupporterApp {
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     
-    // Prevent any window resizing
-    this.mainWindow.on('resize', () => {
-      const [width, height] = this.mainWindow.getSize();
-      if (width !== 1200 || height !== 800) {
-        // Force window back to original size
-        this.mainWindow.setSize(1200, 800);
-      }
-    });
-    
-    // Prevent size changes when moving window
-    this.mainWindow.on('move', () => {
-      const [width, height] = this.mainWindow.getSize();
-      if (width !== 1200 || height !== 800) {
-        // Force window back to original size
-        this.mainWindow.setSize(1200, 800);
-      }
-    });
+    // Window size is controlled by the BrowserWindow properties above
+    // No need for event handlers that can cause flickering
     
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
