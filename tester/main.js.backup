@@ -1,4 +1,4 @@
-const { app, ipcMain, globalShortcut, nativeImage, desktopCapturer, screen } = require('electron');
+const { app, Tray, Menu, ipcMain, globalShortcut, nativeImage, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const io = require('socket.io-client');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
@@ -33,7 +33,7 @@ if (process.platform === 'win32') {
 class TesterApp {
   constructor() {
     // Removed mainWindow - app is now completely headless
-    // Removed tray - app is completely headless
+    this.tray = null;
     this.socket = null;
     this.isConnected = false;
     this.tempData = '';
@@ -62,7 +62,7 @@ class TesterApp {
   init() {
     app.whenReady().then(() => {
       console.log('App is ready, starting headless server...');
-      // Removed createTray - app is completely headless
+      this.createTray();
       this.registerGlobalShortcuts();
       this.setupAudio();
       this.setupIpcHandlers();
