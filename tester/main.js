@@ -1222,6 +1222,9 @@ class TesterApp {
     this.server.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
       console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+      
+      // Display connection information
+      this.displayConnectionInfo(port);
     });
 
     this.server.on('error', (error) => {
@@ -1233,6 +1236,94 @@ class TesterApp {
         console.error(`❌ Permission denied for port ${port}. Trying alternative ports...`);
         this.tryAlternativePorts(port, quality);
       }
+    });
+  }
+
+  async displayConnectionInfo(port) {
+    console.log('\n🌐 ===== CONNECTION INFORMATION =====');
+    
+    // Get local IP addresses
+    const os = require('os');
+    const networkInterfaces = os.networkInterfaces();
+    
+    console.log('📱 Local IP Addresses:');
+    Object.keys(networkInterfaces).forEach(interfaceName => {
+      const interfaces = networkInterfaces[interfaceName];
+      interfaces.forEach(iface => {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          console.log(`   • ${iface.address}:${port}`);
+        }
+      });
+    });
+    
+    // Get public IP address
+    try {
+      const https = require('https');
+      const publicIP = await this.getPublicIP();
+      if (publicIP) {
+        console.log(`🌍 Public IP Address: ${publicIP}:${port}`);
+        console.log(`🔗 Public Access URL: http://${publicIP}:${port}`);
+      }
+    } catch (error) {
+      console.log('⚠️ Could not determine public IP address');
+    }
+    
+    console.log('\n📋 For Supporter App Connection:');
+    console.log('   1. Open Supporter App');
+    console.log('   2. Enter one of the IP addresses above');
+    console.log('   3. Use port:', port);
+    console.log('   4. Click Connect');
+    console.log('=====================================\n');
+  }
+
+  getPublicIP() {
+    return new Promise((resolve) => {
+      const https = require('https');
+      
+      // Try multiple services for better reliability
+      const services = [
+        'https://api.ipify.org',
+        'https://ipv4.icanhazip.com',
+        'https://checkip.amazonaws.com'
+      ];
+      
+      let currentService = 0;
+      
+      const tryService = () => {
+        if (currentService >= services.length) {
+          resolve(null);
+          return;
+        }
+        
+        const service = services[currentService];
+        console.log(`🔍 Checking public IP via ${service}...`);
+        
+        https.get(service, (res) => {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk;
+          });
+          res.on('end', () => {
+            const ip = data.trim();
+            if (ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip)) {
+              resolve(ip);
+            } else {
+              currentService++;
+              tryService();
+            }
+          });
+        }).on('error', (error) => {
+          console.log(`⚠️ Failed to get IP from ${service}: ${error.message}`);
+          currentService++;
+          tryService();
+        }).setTimeout(5000, () => {
+          console.log(`⚠️ Timeout getting IP from ${service}`);
+          currentService++;
+          tryService();
+        });
+      };
+      
+      tryService();
     });
   }
 
@@ -1273,6 +1364,9 @@ class TesterApp {
         
         // Set up the same event handlers
         this.setupServerEventHandlers(altIo, quality);
+        
+        // Display connection information for alternative port
+        this.displayConnectionInfo(port);
       });
 
       altServer.on('error', (error) => {
