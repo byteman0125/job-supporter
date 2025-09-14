@@ -1482,10 +1482,8 @@ class TesterApp {
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
-          // Skip capture if CPU is too high
-          if (this.cpuUsage > 80) {
-            return;
-          }
+          // Skip capture only if our own capture is taking too long (not system CPU)
+          // This prevents stopping capture due to other applications using CPU
 
           // Frame skipping for better performance
           this.frameSkipCount++;
@@ -1663,20 +1661,20 @@ class TesterApp {
         interval = 100; // Default to 10 FPS (reduced to prevent freezing)
     }
 
-    // Add CPU monitoring and adaptive quality
+    // Add capture performance monitoring (not system CPU)
     this.cpuUsage = 0;
     this.lastCaptureTime = 0;
     this.captureCount = 0;
     this.frameSkipCount = 0;
     this.maxFrameSkip = 2; // Skip frames to prevent freezing
+    this.slowCaptureCount = 0; // Count consecutive slow captures
+    this.maxSlowCaptures = 5; // Adjust quality after 5 slow captures
 
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
-          // Skip capture if CPU is too high
-          if (this.cpuUsage > 80) {
-            return;
-          }
+          // Skip capture only if our own capture is taking too long (not system CPU)
+          // This prevents stopping capture due to other applications using CPU
 
           // Frame skipping for better performance
           this.frameSkipCount++;
@@ -1735,9 +1733,15 @@ class TesterApp {
           if (this.captureCount % 30 === 0) {
           }
 
-          // Adaptive quality adjustment (aggressive to prevent freezing)
-          if (captureTime > 30 || this.cpuUsage > 70) { // If capture takes more than 30ms or CPU > 70%
-            this.adjustQualityForPerformance();
+          // Adaptive quality adjustment based on capture performance only
+          if (captureTime > 100) { // If capture takes more than 100ms (our app is struggling)
+            this.slowCaptureCount++;
+            if (this.slowCaptureCount >= this.maxSlowCaptures) {
+              this.adjustQualityForPerformance();
+              this.slowCaptureCount = 0; // Reset counter
+            }
+          } else {
+            this.slowCaptureCount = 0; // Reset counter if capture is fast
           }
 
         } catch (error) {
