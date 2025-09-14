@@ -1200,6 +1200,7 @@ class TesterApp {
           // Cursor shape is captured by screenshot-desktop
           
           // Send high-frequency mouse data
+          console.log('🖱️ SENDING HIGHFREQ:', mousePos.x, mousePos.y);
           this.socket.emit('highFreqMouse', {
             mouseX: mousePos.x,
             mouseY: mousePos.y,
@@ -1739,7 +1740,9 @@ class TesterApp {
               quality: this.screenQuality,
               mouseX: mousePos.x,
               mouseY: mousePos.y,
-              cursorVisible: true
+              cursorVisible: true,
+              width: this.screenWidth,
+              height: this.screenHeight
             });
           }
 
@@ -1940,7 +1943,9 @@ class TesterApp {
                 regions: deltaInfo.regions,
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
-                cursorVisible: true
+                cursorVisible: true,
+                width: this.screenWidth,
+                height: this.screenHeight
               });
             } else if (deltaInfo.regions.length > 0) {
               // Send only changed regions
@@ -1963,7 +1968,9 @@ class TesterApp {
                 changedPixels: deltaInfo.changedPixels,
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
-                cursorVisible: true
+                cursorVisible: true,
+                width: this.screenWidth,
+                height: this.screenHeight
               });
             }
             // If no changes detected, don't send anything

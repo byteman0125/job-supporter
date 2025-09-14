@@ -19,12 +19,16 @@ class SupporterApp {
     this.screenData = null;
     this.chatMessages = new Map(); // Store chat messages per client
     this.isAudioEnabled = false; // Audio disabled
+    this.screenWidth = 0; // Store screen dimensions for cursor calculations
+    this.screenHeight = 0;
     
     this.init();
   }
 
   init() {
+    console.log('🚀 Supporter App starting...');
     app.whenReady().then(() => {
+      console.log('✅ Supporter App ready');
       this.createMainWindow();
       this.setupIpcHandlers();
     });
@@ -89,6 +93,9 @@ class SupporterApp {
     this.initialWindowSize = { width: windowWidth, height: windowHeight };
     this.firstScreenResolution = { width: screenWidth, height: screenHeight };
     
+    // Log initial window size
+    console.log(`📏 INITIAL WINDOW SIZE: ${windowWidth}x${windowHeight}`);
+    
     // Smart window management
     this.isProgrammaticResize = false;
     this.resizeTimeout = null;
@@ -115,6 +122,7 @@ class SupporterApp {
         
         // Immediate aspect ratio adjustment - no delays
         const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        console.log(`📏 WINDOW RESIZED: ${currentWidth}x${currentHeight}`);
         
         // Calculate proper aspect ratio based on original screen resolution
         const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
@@ -377,6 +385,7 @@ class SupporterApp {
     this.socket.on('connect', () => {
       console.log('✅ Connected to tester:', testerIP);
       console.log('Socket ID:', this.socket.id);
+      console.log('🖱️ CURSOR: Ready to receive mouse position data');
       this.isConnected = true;
       this.mainWindow.webContents.send('connection-status', { connected: true, testerIP });
       
@@ -422,6 +431,24 @@ class SupporterApp {
       // Store last screen data for screenshot capture
       this.lastScreenData = data;
       
+      // Store screen dimensions for cursor calculations
+      if (data.width && data.height) {
+        this.screenWidth = data.width;
+        this.screenHeight = data.height;
+      }
+      
+      // Log screen data with mouse position to terminal
+      if (data.mouseX !== null && data.mouseY !== null) {
+        // Calculate current position and window size
+        const windowWidth = this.mainWindow.getBounds().width;
+        const windowHeight = this.mainWindow.getBounds().height;
+        const currentX = (data.mouseX * windowWidth) / this.screenWidth;
+        const currentY = (data.mouseY * windowHeight) / this.screenHeight;
+        
+        console.log(`🖱️ Origin: Pos(${data.mouseX},${data.mouseY}) Size(${this.screenWidth}x${this.screenHeight}) → Current: Pos(${currentX.toFixed(1)},${currentY.toFixed(1)}) Size(${windowWidth}x${windowHeight})`);
+        console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
+      }
+      
       // Send screen data to renderer with delta compression support
       this.mainWindow.webContents.send('screen-data', {
         image: data.image || data, // Handle both old and new format
@@ -437,6 +464,20 @@ class SupporterApp {
     });
 
     this.socket.on('highFreqMouse', (data) => {
+      // Calculate scale rate and position for terminal display
+      if (this.screenWidth && this.screenHeight) {
+        const windowWidth = this.mainWindow.getBounds().width;
+        const windowHeight = this.mainWindow.getBounds().height;
+        
+        // Calculate current position
+        const currentX = (data.mouseX * windowWidth) / this.screenWidth;
+        const currentY = (data.mouseY * windowHeight) / this.screenHeight;
+        
+        // Single log with all required info
+        console.log(`🖱️ Origin: Pos(${data.mouseX},${data.mouseY}) Size(${this.screenWidth}x${this.screenHeight}) → Current: Pos(${currentX.toFixed(1)},${currentY.toFixed(1)}) Size(${windowWidth}x${windowHeight})`);
+        console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
+      }
+      
       // Send high-frequency mouse data to renderer
       this.mainWindow.webContents.send('high-freq-mouse', {
         mouseX: data.mouseX,
@@ -446,6 +487,7 @@ class SupporterApp {
         timestamp: data.timestamp
       });
     });
+
 
     this.socket.on('screenshot-data', (data) => {
       // Save the full-quality screenshot
