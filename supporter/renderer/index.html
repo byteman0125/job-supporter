@@ -801,19 +801,55 @@
             cursor.style.left = x + 'px';
             cursor.style.top = y + 'px';
             
-            // Create realistic Windows-style arrow cursor using SVG
-            cursor.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 20 20" style="position: absolute; top: 0; left: 0;">
-                    <!-- Black outline -->
-                    <path d="M2,2 L2,16 L6,12 L10,18 L12,16 L8,10 L14,10 Z" fill="#000000" stroke="none"/>
-                    <!-- White fill -->
-                    <path d="M3,3 L3,15 L6,12 L9,17 L10,16 L7,10 L13,10 Z" fill="#ffffff" stroke="none"/>
-                </svg>
-            `;
+            // Create simple but visible arrow cursor using CSS
+            cursor.style.width = '0';
+            cursor.style.height = '0';
+            cursor.style.borderLeft = '12px solid #000000';
+            cursor.style.borderTop = '8px solid transparent';
+            cursor.style.borderBottom = '8px solid transparent';
+            cursor.style.position = 'relative';
+            
+            // Add white inner arrow
+            const innerArrow = document.createElement('div');
+            innerArrow.style.position = 'absolute';
+            innerArrow.style.left = '2px';
+            innerArrow.style.top = '-6px';
+            innerArrow.style.width = '0';
+            innerArrow.style.height = '0';
+            innerArrow.style.borderLeft = '10px solid #ffffff';
+            innerArrow.style.borderTop = '6px solid transparent';
+            innerArrow.style.borderBottom = '6px solid transparent';
+            
+            cursor.appendChild(innerArrow);
             
             screenViewer.appendChild(cursor);
             currentCursor = cursor;
             console.log('🖱️ REALISTIC CURSOR CREATED AT:', x, y);
+            
+            // Fallback: if cursor is not visible, create a simple red dot
+            setTimeout(() => {
+                if (!currentCursor || currentCursor.offsetWidth === 0) {
+                    console.log('🖱️ Creating fallback cursor');
+                    if (currentCursor) currentCursor.remove();
+                    
+                    const fallbackCursor = document.createElement('div');
+                    fallbackCursor.className = 'remote-cursor';
+                    fallbackCursor.style.position = 'absolute';
+                    fallbackCursor.style.width = '12px';
+                    fallbackCursor.style.height = '12px';
+                    fallbackCursor.style.backgroundColor = '#ff0000';
+                    fallbackCursor.style.borderRadius = '50%';
+                    fallbackCursor.style.border = '2px solid #ffffff';
+                    fallbackCursor.style.pointerEvents = 'none';
+                    fallbackCursor.style.zIndex = '1000';
+                    fallbackCursor.style.left = x + 'px';
+                    fallbackCursor.style.top = y + 'px';
+                    
+                    screenViewer.appendChild(fallbackCursor);
+                    currentCursor = fallbackCursor;
+                    console.log('🖱️ FALLBACK CURSOR CREATED AT:', x, y);
+                }
+            }, 100);
         }
 
         // Hide cursor when disconnected
