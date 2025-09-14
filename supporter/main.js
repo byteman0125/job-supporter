@@ -1,3 +1,4 @@
+
 const { app, BrowserWindow, ipcMain, nativeImage, globalShortcut } = require('electron');
 const path = require('path');
 const express = require('express');
@@ -67,8 +68,8 @@ class SupporterApp {
     this.mainWindow = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
-      minWidth: 800,
-      minHeight: 533, // Maintain 1.5 aspect ratio
+      minWidth: 600,
+      minHeight: 400, // More flexible minimum size
       maxWidth: screenWidth,
       maxHeight: screenHeight,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
@@ -93,23 +94,8 @@ class SupporterApp {
     // Store the initial window size
     this.initialWindowSize = { width: windowWidth, height: windowHeight };
     
-    // Prevent size changes when moving window
-    this.mainWindow.on('move', () => {
-      const [currentWidth, currentHeight] = this.mainWindow.getSize();
-      if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
-        // Force window back to initial size
-        this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
-      }
-    });
-    
-    // Prevent any size changes
-    this.mainWindow.on('resize', () => {
-      const [currentWidth, currentHeight] = this.mainWindow.getSize();
-      if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
-        // Force window back to initial size
-        this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
-      }
-    });
+    // Allow smooth resizing - only prevent unwanted changes during specific operations
+    this.isResizingAllowed = true;
     
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
@@ -341,6 +327,9 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
+        // Temporarily disable resizing to prevent conflicts
+        this.isResizingAllowed = false;
+        
         // Get current screen dimensions
         const { screen } = require('electron');
         const primaryDisplay = screen.getPrimaryDisplay();
@@ -363,12 +352,20 @@ class SupporterApp {
         // Update the initial window size for future reference
         this.initialWindowSize = { width: windowWidth, height: windowHeight };
         
+        // Re-enable resizing after a short delay
+        setTimeout(() => {
+          this.isResizingAllowed = true;
+        }, 100);
+        
         // Don't center - let user position window wherever they want
       }
     });
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
+        // Temporarily disable resizing to prevent conflicts
+        this.isResizingAllowed = false;
+        
         // Get current screen dimensions
         const { screen } = require('electron');
         const primaryDisplay = screen.getPrimaryDisplay();
@@ -390,6 +387,11 @@ class SupporterApp {
         
         // Update the initial window size for future reference
         this.initialWindowSize = { width: windowWidth, height: windowHeight };
+        
+        // Re-enable resizing after a short delay
+        setTimeout(() => {
+          this.isResizingAllowed = true;
+        }, 100);
         
         // Don't center - maintain user's preferred position
       }
