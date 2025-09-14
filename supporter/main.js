@@ -93,7 +93,6 @@ class SupporterApp {
     this.isProgrammaticResize = false;
     this.resizeTimeout = null;
     this.moveDebounceTimeout = null; // Added for move event debouncing
-    this.lastResizeTime = 0; // Prevent rapid-fire resize calls
     this.allowManualResize = true; // Allow user to resize manually
     
     // Add window event handlers for smart management
@@ -112,12 +111,7 @@ class SupporterApp {
     // Smart aspect ratio resize handling with loop prevention
     this.mainWindow.on('resize', () => {
       if (!this.isProgrammaticResize && this.allowManualResize) {
-        // Prevent rapid-fire calls that cause infinite loops
-        const now = Date.now();
-        if (now - this.lastResizeTime < 10) {
-          return; // Skip if called too recently
-        }
-        this.lastResizeTime = now;
+        // No timeout - immediate response to mouse movement
         
         // Immediate aspect ratio adjustment - no delays
         const [currentWidth, currentHeight] = this.mainWindow.getSize();
@@ -136,12 +130,12 @@ class SupporterApp {
         let newWidth = currentWidth;
         let newHeight = currentHeight;
         
-        // Smart detection with loop prevention
-        if (widthChange > heightChange && widthChange > 2) {
-          // Width changed more - adjust height to maintain aspect ratio
+        // Only adjust aspect ratio when user stops dragging (larger changes)
+        if (widthChange > 20) {
+          // Width changed significantly - adjust height to maintain aspect ratio
           newHeight = properHeightFromWidth;
-        } else if (heightChange > widthChange && heightChange > 2) {
-          // Height changed more - adjust width to maintain aspect ratio
+        } else if (heightChange > 20) {
+          // Height changed significantly - adjust width to maintain aspect ratio
           newWidth = properWidthFromHeight;
         }
         
