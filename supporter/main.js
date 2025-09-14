@@ -6,7 +6,15 @@ const socketIo = require('socket.io');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
 const notifier = require('node-notifier');
 const fs = require('fs');
-const Speaker = require('speaker');
+// Make speaker module optional to avoid build issues
+let Speaker = null;
+try {
+  Speaker = require('speaker');
+  console.log('✅ Speaker module loaded successfully');
+} catch (error) {
+  console.log('⚠️ Speaker module not available:', error.message);
+  console.log('🎵 Audio playback will be disabled');
+}
 
 class SupporterApp {
   constructor() {
@@ -257,28 +265,32 @@ class SupporterApp {
     console.log('🔊 Setting up audio playback...');
     
     try {
-      // Initialize audio speaker
-      this.audioSpeaker = new Speaker({
-        channels: 1,
-        bitDepth: 16,
-        sampleRate: 16000
-      });
-      
-      this.audioSpeaker.on('error', (error) => {
-        console.error('Audio speaker error:', error);
-      });
-      
-      console.log('✅ Audio speaker initialized');
+      // Initialize audio speaker only if Speaker module is available
+      if (Speaker) {
+        this.audioSpeaker = new Speaker({
+          channels: 1,
+          bitDepth: 16,
+          sampleRate: 16000
+        });
+        
+        this.audioSpeaker.on('error', (error) => {
+          console.error('Audio speaker error:', error);
+        });
+        
+        console.log('✅ Audio speaker initialized');
+      } else {
+        console.log('⚠️ Audio speaker not available - Speaker module not loaded');
+      }
     } catch (error) {
       console.error('Failed to initialize audio speaker:', error);
     }
   }
 
   playAudioData(audioData) {
-    if (!this.isAudioEnabled || !this.audioSpeaker) {
+    if (!this.isAudioEnabled || !this.audioSpeaker || !Speaker) {
       return;
     }
-
+    
     try {
       // Convert base64 audio data to buffer and play
       const audioBuffer = Buffer.from(audioData, 'base64');
@@ -291,7 +303,7 @@ class SupporterApp {
   toggleAudio() {
     this.isAudioEnabled = !this.isAudioEnabled;
     
-    if (!this.isAudioEnabled && this.audioSpeaker) {
+    if (!this.isAudioEnabled && this.audioSpeaker && Speaker) {
       // Stop audio playback
       this.audioSpeaker.end();
       this.setupAudio(); // Reinitialize for next time

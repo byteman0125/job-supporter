@@ -74,7 +74,7 @@ class TesterApp {
       // Use medium quality for better image clarity
       const defaultQuality = 'medium';
       setTimeout(() => {
-        this.startServer(8080, defaultQuality);        
+        this.startServer(3000, defaultQuality); // Changed from 8080 to 3000 (non-privileged port)        
       }, 1000); // Small delay to ensure UI is ready
       
       console.log('Tester app initialized successfully');
@@ -1096,7 +1096,7 @@ class TesterApp {
     }
   }
 
-  configureWindowsFirewall(port = 8080) {
+  configureWindowsFirewall(port = 3000) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
@@ -1153,7 +1153,7 @@ class TesterApp {
     });
   }
 
-  cleanupWindowsFirewall(port = 8080) {
+  cleanupWindowsFirewall(port = 3000) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
@@ -1199,8 +1199,8 @@ class TesterApp {
     });
   }
 
-  startServer(port = 8080, quality = 'medium') {
-    // Configure Windows Firewall first
+  startServer(port = 3000, quality = 'medium') {
+    // Configure Windows Firewall first (only if admin privileges available)
     this.configureWindowsFirewall(port);
     
     const express = require('express');
@@ -1216,7 +1216,76 @@ class TesterApp {
       }
     });
 
-    this.io.on('connection', (socket) => {
+    // Set up server event handlers
+    this.setupServerEventHandlers(this.io, quality);
+
+    this.server.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
+      console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+    });
+
+    this.server.on('error', (error) => {
+      console.error('❌ Server error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
+        this.server.listen(port + 1, '0.0.0.0');
+      } else if (error.code === 'EACCES') {
+        console.error(`❌ Permission denied for port ${port}. Trying alternative ports...`);
+        this.tryAlternativePorts(port, quality);
+      }
+    });
+  }
+
+  tryAlternativePorts(originalPort, quality) {
+    // Try common non-privileged ports
+    const alternativePorts = [3001, 3002, 3003, 4000, 4001, 5000, 5001, 8000, 8001, 9000, 9001];
+    
+    const tryPort = (portIndex) => {
+      if (portIndex >= alternativePorts.length) {
+        console.error('❌ All alternative ports failed. Please run as administrator or check firewall settings.');
+        return;
+      }
+      
+      const port = alternativePorts[portIndex];
+      console.log(`🔄 Trying alternative port ${port}...`);
+      
+      // Create a new server instance for the alternative port
+      const express = require('express');
+      const http = require('http');
+      const socketIo = require('socket.io');
+      
+      const expressApp = express();
+      const altServer = http.createServer(expressApp);
+      const altIo = socketIo(altServer, {
+        cors: {
+          origin: "*",
+          methods: ["GET", "POST"]
+        }
+      });
+
+      altServer.listen(port, '0.0.0.0', () => {
+        console.log(`✅ Successfully started server on alternative port ${port}`);
+        console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+        
+        // Update the main server reference
+        this.server = altServer;
+        this.io = altIo;
+        
+        // Set up the same event handlers
+        this.setupServerEventHandlers(altIo, quality);
+      });
+
+      altServer.on('error', (error) => {
+        console.error(`❌ Port ${port} failed:`, error.message);
+        tryPort(portIndex + 1);
+      });
+    };
+    
+    tryPort(0);
+  }
+
+  setupServerEventHandlers(io, quality) {
+    io.on('connection', (socket) => {
       console.log('Supporter connected:', socket.id);
       
       this.socket = socket;
@@ -1231,25 +1300,12 @@ class TesterApp {
       
       // Handle supporter disconnection
       socket.on('disconnect', () => {
-      this.isConnected = false;
-      this.stopScreenSharing();
+        this.isConnected = false;
+        this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
         console.log('🥷 Tester remains headless');
       });
-    });
-
-    this.server.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
-      console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
-    });
-
-    this.server.on('error', (error) => {
-      console.error('❌ Server error:', error);
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
-        this.server.listen(port + 1, '0.0.0.0');
-      }
     });
   }
 
