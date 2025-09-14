@@ -452,6 +452,9 @@
             mouseCursor.classList.add('hidden');
             cursorIndicator.classList.add('hidden');
             
+            // Stop smooth cursor interpolation
+            stopSmoothCursorInterpolation();
+            
             // Reset stored dimensions
             originalScreenWidth = 0;
             originalScreenHeight = 0;
@@ -503,14 +506,19 @@
             console.log(`📦 Container rect: ${containerRect.width}x${containerRect.height} at (${containerRect.left}, ${containerRect.top})`);
             console.log(`🎯 Final cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
             
-            // Position the cursor element to show real mouse cursor
-            mouseCursor.style.left = cursorX + 'px';
-            mouseCursor.style.top = cursorY + 'px';
-            mouseCursor.classList.remove('hidden');
+            // Use smooth interpolation for ultra-smooth cursor movement
+            cursorInterpolation.targetX = cursorX;
+            cursorInterpolation.targetY = cursorY;
             
-            // Also show fallback cursor
-            cursorIndicator.style.left = cursorX + 'px';
-            cursorIndicator.style.top = cursorY + 'px';
+            // Start smooth interpolation if not already active
+            if (!cursorInterpolation.isActive) {
+                cursorInterpolation.currentX = cursorX;
+                cursorInterpolation.currentY = cursorY;
+                startSmoothCursorInterpolation();
+            }
+            
+            // Show cursors
+            mouseCursor.classList.remove('hidden');
             cursorIndicator.classList.remove('hidden');
 
             console.log(`✅ Mouse cursor positioned: ${mouseX},${mouseY} → ${scaledX},${scaledY} at ${mouseCursor.style.left}, ${mouseCursor.style.top}`);
@@ -669,9 +677,12 @@
                 displayScreenImage(data.image);
             }
             
-            // Update mouse cursor position
+            // Update mouse cursor position with smooth interpolation
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
                 console.log(`📡 Received mouse data: X=${data.mouseX}, Y=${data.mouseY}`);
+                if (data.mouseDeltaX !== undefined && data.mouseDeltaY !== undefined) {
+                    console.log(`🔄 Mouse delta: ΔX=${data.mouseDeltaX}, ΔY=${data.mouseDeltaY}`);
+                }
                 console.log(`📊 Screen dimensions: ${originalScreenWidth}x${originalScreenHeight}`);
                 console.log(`🔗 Connection status: ${isConnected}`);
                 updateMouseCursor(data.mouseX, data.mouseY);
@@ -703,6 +714,15 @@
         let previousWidth = 0;
         let previousHeight = 0;
         
+        // Smooth cursor interpolation variables
+        let cursorInterpolation = {
+            targetX: 0,
+            targetY: 0,
+            currentX: 0,
+            currentY: 0,
+            isActive: false
+        };
+        
         // Test function to manually show cursor
         function testCursor(x = 100, y = 100) {
             console.log(`🧪 Testing cursor at position: ${x}, ${y}`);
@@ -711,6 +731,45 @@
         
         // Make test function available globally for console testing
         window.testCursor = testCursor;
+        
+        // Smooth cursor interpolation for ultra-smooth movement
+        function startSmoothCursorInterpolation() {
+            if (cursorInterpolation.isActive) return;
+            
+            cursorInterpolation.isActive = true;
+            
+            function interpolateCursor() {
+                if (!cursorInterpolation.isActive) return;
+                
+                const mouseCursor = document.getElementById('mouseCursor');
+                const cursorIndicator = document.getElementById('cursorIndicator');
+                
+                if (!mouseCursor || !cursorIndicator) {
+                    cursorInterpolation.isActive = false;
+                    return;
+                }
+                
+                // Smooth interpolation towards target position
+                const lerpFactor = 0.3; // Adjust for smoothness (0.1 = very smooth, 0.5 = faster)
+                cursorInterpolation.currentX += (cursorInterpolation.targetX - cursorInterpolation.currentX) * lerpFactor;
+                cursorInterpolation.currentY += (cursorInterpolation.targetY - cursorInterpolation.currentY) * lerpFactor;
+                
+                // Update cursor position
+                mouseCursor.style.left = cursorInterpolation.currentX + 'px';
+                mouseCursor.style.top = cursorInterpolation.currentY + 'px';
+                cursorIndicator.style.left = cursorInterpolation.currentX + 'px';
+                cursorIndicator.style.top = cursorInterpolation.currentY + 'px';
+                
+                // Continue interpolation
+                requestAnimationFrame(interpolateCursor);
+            }
+            
+            interpolateCursor();
+        }
+        
+        function stopSmoothCursorInterpolation() {
+            cursorInterpolation.isActive = false;
+        }
 
         // Window resize handler to maintain aspect ratio
         window.addEventListener('resize', () => {

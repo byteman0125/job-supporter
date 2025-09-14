@@ -1624,7 +1624,7 @@ class TesterApp {
           height: 1080,
           cursor: true       // Capture mouse cursor
         };
-        interval = 50; // 20 FPS (reduced for PNG quality)
+        interval = 33; // 30 FPS for ultra-smooth cursor tracking
         break;
       case 'medium':
         captureOptions = {
@@ -1685,9 +1685,22 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Get mouse position every frame for smooth cursor tracking
+          // Get mouse position every frame for ultra-smooth cursor tracking
           let mousePos = { x: 0, y: 0 };
           mousePos = await this.getMousePosition();
+          
+          // Store previous position for interpolation
+          if (!this.previousMousePos) {
+            this.previousMousePos = mousePos;
+          }
+          
+          // Calculate movement for smooth interpolation
+          const mouseDelta = {
+            x: mousePos.x - this.previousMousePos.x,
+            y: mousePos.y - this.previousMousePos.y
+          };
+          
+          this.previousMousePos = mousePos;
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1696,11 +1709,13 @@ class TesterApp {
           if (this.socket && this.socket.connected && this.isSharing) {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
-              // Send full frame
+              // Send full frame with smooth cursor data
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
+                mouseDeltaX: mouseDelta.x,
+                mouseDeltaY: mouseDelta.y,
                 isFullFrame: true,
                 regions: deltaInfo.regions
               });
@@ -1723,6 +1738,8 @@ class TesterApp {
                 regions: regionImages,
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
+                mouseDeltaX: mouseDelta.x,
+                mouseDeltaY: mouseDelta.y,
                 isFullFrame: false,
                 changedPixels: deltaInfo.changedPixels
               });
