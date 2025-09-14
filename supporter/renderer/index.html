@@ -489,14 +489,22 @@
             const scaleX = imgRect.width / originalScreenWidth;
             const scaleY = imgRect.height / originalScreenHeight;
 
+            console.log(`📐 Image rect: ${imgRect.width}x${imgRect.height} at (${imgRect.left}, ${imgRect.top})`);
+            console.log(`📏 Scale factors: X=${scaleX.toFixed(3)}, Y=${scaleY.toFixed(3)}`);
+
             // Convert tester's mouse coordinates to supporter's screen coordinates
             const scaledX = mouseX * scaleX;
             const scaledY = mouseY * scaleY;
+
+            console.log(`🔄 Scaled coordinates: ${scaledX.toFixed(1)}, ${scaledY.toFixed(1)}`);
 
             // Position the cursor overlay relative to the screen viewer container
             const containerRect = screenViewer.getBoundingClientRect();
             const cursorX = containerRect.left + scaledX - 10; // -10 to center the 20px cursor
             const cursorY = containerRect.top + scaledY - 10;
+            
+            console.log(`📦 Container rect: ${containerRect.width}x${containerRect.height} at (${containerRect.left}, ${containerRect.top})`);
+            console.log(`🎯 Final cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
             
             mouseCursor.style.left = cursorX + 'px';
             mouseCursor.style.top = cursorY + 'px';
@@ -508,6 +516,7 @@
             cursorIndicator.classList.remove('hidden');
 
             console.log(`✅ Mouse cursor positioned: ${mouseX},${mouseY} → ${scaledX},${scaledY} at ${mouseCursor.style.left}, ${mouseCursor.style.top}`);
+            console.log(`👁️ Cursor visibility: mouseCursor.hidden=${mouseCursor.classList.contains('hidden')}, cursorIndicator.hidden=${cursorIndicator.classList.contains('hidden')}`);
         }
 
         // Connection Status
@@ -664,10 +673,12 @@
             
             // Update mouse cursor position
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
-                console.log(`📡 Received mouse data: ${data.mouseX}, ${data.mouseY}`);
+                console.log(`📡 Received mouse data: X=${data.mouseX}, Y=${data.mouseY}`);
+                console.log(`📊 Screen dimensions: ${originalScreenWidth}x${originalScreenHeight}`);
+                console.log(`🔗 Connection status: ${isConnected}`);
                 updateMouseCursor(data.mouseX, data.mouseY);
             } else {
-                console.log('❌ No mouse data received');
+                console.log('❌ No mouse data received - data object:', data);
             }
             
             if (!data.image) {
@@ -693,6 +704,15 @@
         // Store previous window dimensions to detect resize direction
         let previousWidth = 0;
         let previousHeight = 0;
+        
+        // Test function to manually show cursor
+        function testCursor(x = 100, y = 100) {
+            console.log(`🧪 Testing cursor at position: ${x}, ${y}`);
+            updateMouseCursor(x, y);
+        }
+        
+        // Make test function available globally for console testing
+        window.testCursor = testCursor;
 
         // Window resize handler to maintain aspect ratio
         window.addEventListener('resize', () => {
