@@ -338,22 +338,30 @@
                 originalScreenWidth = img.naturalWidth;
                 originalScreenHeight = img.naturalHeight;
                 
-                // Use current window height or default to 600px if first connection
-                const currentHeight = window.innerHeight > 100 ? window.innerHeight : 600;
-                const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
-                
-                console.log('🖼️ Resizing supporter window to:', proportionalWidth, 'x', currentHeight);
-                console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ Scaled to:', proportionalWidth, 'x', currentHeight);
-                
-                // Initialize previous dimensions for resize detection
-                previousWidth = proportionalWidth;
-                previousHeight = currentHeight;
-                
-                // Send resize request to main process
-                ipcRenderer.send('resize-window-to-screen', {
-                    width: proportionalWidth,
-                    height: currentHeight
-                });
+                // Only resize window on first connection, not on every screen data update
+                if (!window.hasReceivedScreenData) {
+                    window.hasReceivedScreenData = true;
+                    
+                    // Use current window height or default to 600px if first connection
+                    const currentHeight = window.innerHeight > 100 ? window.innerHeight : 600;
+                    const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
+                    
+                    console.log('🖼️ First screen data - Resizing supporter window to:', proportionalWidth, 'x', currentHeight);
+                    console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ Scaled to:', proportionalWidth, 'x', currentHeight);
+                    
+                    // Initialize previous dimensions for resize detection
+                    previousWidth = proportionalWidth;
+                    previousHeight = currentHeight;
+                    
+                    // Send resize request to main process only on first connection
+                    ipcRenderer.send('resize-window-to-screen', {
+                        width: proportionalWidth,
+                        height: currentHeight
+                    });
+                } else {
+                    console.log('📺 Screen data update - maintaining current window size');
+                    // Just update the image without resizing the window
+                }
                 
                 // Set image to fill the entire container
                 img.style.width = '100%';
@@ -430,6 +438,10 @@
                 statusText.textContent = message || 'Disconnected';
                 connectionStatus.style.display = 'flex';
                 clearScreen();
+                
+                // Reset the screen data flag so window can resize on next connection
+                window.hasReceivedScreenData = false;
+                console.log('🔄 Reset screen data flag - window can resize on next connection');
             }
         }
 
