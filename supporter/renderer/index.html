@@ -147,7 +147,7 @@
             transition: all 0.2s ease-in-out;
         }
 
-        /* Mouse cursor overlay - Real system cursor */
+        /* Mouse cursor overlay - Highly visible cursor */
         .mouse-cursor {
             position: absolute;
             width: 20px;
@@ -155,11 +155,73 @@
             pointer-events: none;
             z-index: 1000;
             transition: all 0.1s ease-out;
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23000" stroke="%23fff" stroke-width="0.5"/><circle cx="2" cy="2" r="1" fill="%23fff"/></svg>'), auto;
-            background: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23ff0000" stroke="%23ffffff" stroke-width="1"/><circle cx="2" cy="2" r="1.5" fill="%23ffffff"/></svg>') no-repeat center;
+            background-size: contain;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.4);
         }
 
         .mouse-cursor.hidden {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        /* Fallback cursor indicator - Always visible */
+        .cursor-indicator {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            pointer-events: none;
+            z-index: 1001;
+            transition: all 0.1s ease-out;
+        }
+
+        .cursor-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff0000;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        .cursor-crosshair {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .cursor-crosshair::before,
+        .cursor-crosshair::after {
+            content: '';
+            position: absolute;
+            background: #ff0000;
+        }
+
+        .cursor-crosshair::before {
+            width: 2px;
+            height: 100%;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .cursor-crosshair::after {
+            width: 100%;
+            height: 2px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .cursor-indicator.hidden {
             opacity: 0;
             transform: scale(0.5);
         }
@@ -246,6 +308,12 @@
         
         <!-- Mouse cursor overlay -->
         <div class="mouse-cursor hidden" id="mouseCursor"></div>
+        
+        <!-- Fallback cursor indicator -->
+        <div class="cursor-indicator hidden" id="cursorIndicator">
+            <div class="cursor-dot"></div>
+            <div class="cursor-crosshair"></div>
+        </div>
     </div>
 
 
@@ -262,6 +330,7 @@
         const statusText = document.getElementById('statusText');
         const testerIP = document.getElementById('testerIP');
         const mouseCursor = document.getElementById('mouseCursor');
+        const cursorIndicator = document.getElementById('cursorIndicator');
         const testerPort = document.getElementById('testerPort');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -384,6 +453,7 @@
             
             // Hide mouse cursor when disconnecting
             mouseCursor.classList.add('hidden');
+            cursorIndicator.classList.add('hidden');
             
             // Reset stored dimensions
             originalScreenWidth = 0;
@@ -401,6 +471,7 @@
             if (!isConnected || !originalScreenWidth || !originalScreenHeight) {
                 console.log('❌ Cursor hidden: not connected or no screen dimensions');
                 mouseCursor.classList.add('hidden');
+                cursorIndicator.classList.add('hidden');
                 return;
             }
 
@@ -409,6 +480,7 @@
             if (!screenImg) {
                 console.log('❌ Cursor hidden: no screen image found');
                 mouseCursor.classList.add('hidden');
+                cursorIndicator.classList.add('hidden');
                 return;
             }
 
@@ -421,10 +493,19 @@
             const scaledX = mouseX * scaleX;
             const scaledY = mouseY * scaleY;
 
-            // Position the cursor overlay
-            mouseCursor.style.left = (imgRect.left + scaledX - 10) + 'px'; // -10 to center the 20px cursor
-            mouseCursor.style.top = (imgRect.top + scaledY - 10) + 'px';
+            // Position the cursor overlay relative to the screen viewer container
+            const containerRect = screenViewer.getBoundingClientRect();
+            const cursorX = containerRect.left + scaledX - 10; // -10 to center the 20px cursor
+            const cursorY = containerRect.top + scaledY - 10;
+            
+            mouseCursor.style.left = cursorX + 'px';
+            mouseCursor.style.top = cursorY + 'px';
             mouseCursor.classList.remove('hidden');
+            
+            // Also show fallback cursor
+            cursorIndicator.style.left = cursorX + 'px';
+            cursorIndicator.style.top = cursorY + 'px';
+            cursorIndicator.classList.remove('hidden');
 
             console.log(`✅ Mouse cursor positioned: ${mouseX},${mouseY} → ${scaledX},${scaledY} at ${mouseCursor.style.left}, ${mouseCursor.style.top}`);
         }
