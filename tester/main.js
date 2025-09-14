@@ -112,12 +112,15 @@ class TesterApp {
           }
         });
       } else {
-        this.useFFmpeg = false;
-        console.log('⚠️ FFmpeg not available - using screenshot-desktop fallback');
+        // Force FFmpeg usage - no fallback
+        this.useFFmpeg = true;
+        console.log('🎥 Forcing FFmpeg usage - no fallback to screenshot-desktop');
+        console.log('⚠️ FFmpeg check failed but forcing usage anyway');
       }
     } catch (error) {
-      this.useFFmpeg = false;
-      console.log('⚠️ FFmpeg initialization failed - using screenshot-desktop fallback:', error.message);
+      // Force FFmpeg usage - no fallback
+      this.useFFmpeg = true;
+      console.log('🎥 Forcing FFmpeg usage despite error:', error.message);
     }
   }
 

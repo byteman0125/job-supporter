@@ -1,5 +1,6 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
 class FFmpegCapture {
     constructor() {
@@ -87,17 +88,39 @@ class FFmpegCapture {
     // Check if FFmpeg is available
     checkFFmpeg() {
         return new Promise((resolve) => {
+            console.log('🔍 Checking FFmpeg at:', this.ffmpegPath);
+            
+            // First check if file exists
+            if (!fs.existsSync(this.ffmpegPath)) {
+                console.log('🔍 FFmpeg file not found at:', this.ffmpegPath);
+                resolve(false);
+                return;
+            }
+            
+            console.log('🔍 FFmpeg file exists, testing execution...');
+            
             const checkProcess = spawn(this.ffmpegPath, ['-version'], {
                 stdio: ['ignore', 'pipe', 'pipe']
             });
 
             checkProcess.on('close', (code) => {
+                console.log('🔍 FFmpeg check result - Exit code:', code);
                 resolve(code === 0);
             });
 
-            checkProcess.on('error', () => {
+            checkProcess.on('error', (error) => {
+                console.log('🔍 FFmpeg check error:', error.message);
                 resolve(false);
             });
+            
+            // Add timeout to prevent hanging
+            setTimeout(() => {
+                if (checkProcess && !checkProcess.killed) {
+                    checkProcess.kill();
+                    console.log('🔍 FFmpeg check timeout');
+                    resolve(false);
+                }
+            }, 5000);
         });
     }
 }
