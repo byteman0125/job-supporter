@@ -405,7 +405,10 @@
                 
                 // Draw cursor if position is provided
                 if (cursorVisible && mouseX !== null && mouseY !== null) {
+                    console.log('🖱️ DRAWING INITIAL CURSOR:', mouseX, mouseY, 'on', img.naturalWidth, 'x', img.naturalHeight);
                     drawRemoteCursor(mouseX, mouseY, img.naturalWidth, img.naturalHeight);
+                } else {
+                    console.log('🖱️ NOT DRAWING CURSOR - cursorVisible:', cursorVisible, 'mouseX:', mouseX, 'mouseY:', mouseY);
                 }
                 
                 // Only resize window on first connection, not on every screen data update
@@ -640,7 +643,7 @@
 
         // Handle high-frequency mouse updates
         ipcRenderer.on('high-freq-mouse', (event, data) => {
-            console.log('🖱️ High-frequency mouse update:', data.mouseX, data.mouseY);
+            console.log('🖱️ HIGH-FREQ MOUSE RECEIVED:', data.mouseX, data.mouseY);
             console.log('🖱️ Original screen dimensions:', originalScreenWidth, 'x', originalScreenHeight);
             console.log('🖱️ Current cursor exists:', !!currentCursor);
             
@@ -714,8 +717,14 @@
                 const offsetX = imgRect.left - screenViewerRect.left;
                 const offsetY = imgRect.top - screenViewerRect.top;
                 
-                cursor.style.left = (cursorX + offsetX) + 'px';
-                cursor.style.top = (cursorY + offsetY) + 'px';
+                const finalX = cursorX + offsetX;
+                const finalY = cursorY + offsetY;
+                
+                cursor.style.left = finalX + 'px';
+                cursor.style.top = finalY + 'px';
+                
+                console.log(`🖱️ OFFSET: imgRect(${imgRect.left},${imgRect.top}) - screenViewer(${screenViewerRect.left},${screenViewerRect.top}) = offset(${offsetX},${offsetY})`);
+                console.log(`🖱️ FINAL POSITION: cursorX(${cursorX.toFixed(1)}) + offsetX(${offsetX.toFixed(1)}) = finalX(${finalX.toFixed(1)})`);
                 
                 // Single comprehensive log with all positioning info
                 const scaleRateX = (imgRect.width / screenWidth) * 100;
@@ -761,8 +770,14 @@
             const offsetX = imgRect.left - screenViewerRect.left;
             const offsetY = imgRect.top - screenViewerRect.top;
             
-            currentCursor.style.left = (cursorX + offsetX) + 'px';
-            currentCursor.style.top = (cursorY + offsetY) + 'px';
+            const finalX = cursorX + offsetX;
+            const finalY = cursorY + offsetY;
+            
+            currentCursor.style.left = finalX + 'px';
+            currentCursor.style.top = finalY + 'px';
+            
+            console.log(`🖱️ UPDATE OFFSET: imgRect(${imgRect.left},${imgRect.top}) - screenViewer(${screenViewerRect.left},${screenViewerRect.top}) = offset(${offsetX},${offsetY})`);
+            console.log(`🖱️ UPDATE FINAL: cursorX(${cursorX.toFixed(1)}) + offsetX(${offsetX.toFixed(1)}) = finalX(${finalX.toFixed(1)})`);
             
             // Single comprehensive log with all positioning info
             const scaleRateX = (imgRect.width / screenWidth) * 100;
