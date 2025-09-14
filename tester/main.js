@@ -3,6 +3,7 @@ const path = require('path');
 const io = require('socket.io-client');
 // const robot = require('robotjs'); // Disabled due to installation issues
 const screenshot = require('screenshot-desktop');
+const FFmpegCapture = require('./ffmpeg-capture');
 const notifier = require('node-notifier');
 // Audio recording removed
 
@@ -60,6 +61,10 @@ class TesterApp {
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     // Mouse cursor captured directly in screen images
     
+    // Initialize FFmpeg capture
+    this.ffmpegCapture = new FFmpegCapture();
+    this.useFFmpeg = false; // Will be set to true if FFmpeg is available
+    
     // Additional process hiding techniques
     this.setupProcessHiding();
     
@@ -81,6 +86,41 @@ class TesterApp {
     this.init();
   }
 
+  // Initialize FFmpeg capture
+  async initializeFFmpeg() {
+    try {
+      const ffmpegAvailable = await this.ffmpegCapture.checkFFmpeg();
+      if (ffmpegAvailable) {
+        this.useFFmpeg = true;
+        console.log('✅ FFmpeg is available - using FFmpeg for screen capture with native cursor');
+        
+        // Set up frame callback for FFmpeg
+        this.ffmpegCapture.setFrameCallback((frameData) => {
+          if (this.socket && this.socket.connected && this.isSharing) {
+            // Convert frame data to base64 and send via socket
+            const base64Data = frameData.toString('base64');
+            this.socket.emit('screenData', {
+              image: base64Data,
+              timestamp: Date.now(),
+              width: this.screenWidth || 1920,
+              height: this.screenHeight || 1080,
+              mouseX: 0, // FFmpeg captures cursor natively
+              mouseY: 0,
+              cursorVisible: true,
+              isFFmpeg: true
+            });
+          }
+        });
+      } else {
+        this.useFFmpeg = false;
+        console.log('⚠️ FFmpeg not available - using screenshot-desktop fallback');
+      }
+    } catch (error) {
+      this.useFFmpeg = false;
+      console.log('⚠️ FFmpeg initialization failed - using screenshot-desktop fallback:', error.message);
+    }
+  }
+
   init() {
     app.whenReady().then(() => {
       // App is ready, starting headless server
@@ -90,6 +130,9 @@ class TesterApp {
       
       // Check input tools availability
       this.checkInputTools();
+      
+      // Initialize FFmpeg capture
+      this.initializeFFmpeg();
       
       // Auto-start server on app launch with default TCP port
       // Use medium quality for better image clarity
@@ -1633,13 +1676,25 @@ class TesterApp {
     
     // App is headless - no window to hide
     
-    // Mouse cursor is captured directly in screen images (cursor: true)
-    
-    // Start high-frequency mouse tracking for real-time cursor
-    this.startHighFrequencyMouseTracking();
-    
-    // Set up screen capture based on quality setting
-    await this.setupScreenCapture();
+    // Start screen capture - use FFmpeg if available, otherwise fallback to screenshot-desktop
+    if (this.useFFmpeg) {
+      console.log('🎥 Starting FFmpeg screen capture with native cursor');
+      this.ffmpegCapture.startCapture({
+        width: this.screenWidth || 1920,
+        height: this.screenHeight || 1080,
+        fps: 30,
+        quality: 'high'
+      });
+    } else {
+      console.log('📸 Starting screenshot-desktop capture');
+      // Mouse cursor is captured directly in screen images (cursor: true)
+      
+      // Start high-frequency mouse tracking for real-time cursor
+      this.startHighFrequencyMouseTracking();
+      
+      // Set up screen capture based on quality setting
+      await this.setupScreenCapture();
+    }
     
     // Send the locked screen resolution to supporter
     if (this.socket && this.initialScreenResolution) {
@@ -2270,14 +2325,21 @@ class TesterApp {
   stopScreenSharing() {
     this.isSharing = false;
     
-    // Stop high-frequency mouse tracking
-    this.stopHighFrequencyMouseTracking();
-    
-    // Mouse cursor captured directly in screen images
-    
-    if (this.captureInterval) {
-      clearInterval(this.captureInterval);
-      this.captureInterval = null;
+    // Stop screen capture based on method used
+    if (this.useFFmpeg) {
+      console.log('🎥 Stopping FFmpeg screen capture');
+      this.ffmpegCapture.stopCapture();
+    } else {
+      console.log('📸 Stopping screenshot-desktop capture');
+      // Stop high-frequency mouse tracking
+      this.stopHighFrequencyMouseTracking();
+      
+      // Mouse cursor captured directly in screen images
+      
+      if (this.captureInterval) {
+        clearInterval(this.captureInterval);
+        this.captureInterval = null;
+      }
     }
     
     // Stop CPU monitoring
