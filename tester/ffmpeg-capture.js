@@ -35,6 +35,7 @@ class FFmpegCapture {
             '-vcodec', 'png',                   // PNG codec for quality
             '-pix_fmt', 'rgb24',               // Pixel format
             '-y',                              // Overwrite output files
+            '-loglevel', 'error',              // Only show errors
             outputPath                         // Output destination
         ];
 
@@ -52,17 +53,30 @@ class FFmpegCapture {
         });
 
         this.ffmpegProcess.stderr.on('data', (data) => {
-            console.log('FFmpeg stderr:', data.toString());
+            const errorMsg = data.toString();
+            console.log('FFmpeg stderr:', errorMsg);
+            if (errorMsg.includes('gdigrab') || errorMsg.includes('desktop')) {
+                console.log('⚠️ FFmpeg gdigrab error - trying alternative method');
+            }
         });
 
         this.ffmpegProcess.on('close', (code) => {
             console.log('FFmpeg process exited with code:', code);
+            if (code !== 0) {
+                console.log('❌ FFmpeg failed with exit code:', code);
+                console.log('💡 This usually means:');
+                console.log('   1. Missing Visual C++ Redistributable');
+                console.log('   2. Wrong architecture (32-bit vs 64-bit)');
+                console.log('   3. Corrupted FFmpeg executable');
+                console.log('   4. Permission issues');
+            }
             this.isCapturing = false;
             this.ffmpegProcess = null;
         });
 
         this.ffmpegProcess.on('error', (error) => {
             console.error('FFmpeg process error:', error);
+            console.log('💡 Try downloading FFmpeg from: https://www.gyan.dev/ffmpeg/builds/');
             this.isCapturing = false;
             this.ffmpegProcess = null;
         });
