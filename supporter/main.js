@@ -48,13 +48,29 @@ class SupporterApp {
   }
 
   createMainWindow() {
+    // Get screen dimensions to calculate optimal window size
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Calculate window size to fit screen while maintaining aspect ratio
+    const aspectRatio = 1200 / 800; // 1.5
+    let windowWidth = Math.min(1200, screenWidth - 100); // Leave some margin
+    let windowHeight = Math.round(windowWidth / aspectRatio);
+    
+    // If height is too big, scale down based on height
+    if (windowHeight > screenHeight - 100) {
+      windowHeight = screenHeight - 100;
+      windowWidth = Math.round(windowHeight * aspectRatio);
+    }
+    
     this.mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      minWidth: 1200,
-      minHeight: 800,
-      maxWidth: 1200,
-      maxHeight: 800,
+      width: windowWidth,
+      height: windowHeight,
+      minWidth: 800,
+      minHeight: 533, // Maintain 1.5 aspect ratio
+      maxWidth: screenWidth,
+      maxHeight: screenHeight,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
@@ -66,16 +82,13 @@ class SupporterApp {
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
       fullscreenable: false,
-      resizable: false, // Prevent resizing
+      resizable: true, // Allow resizing to fit different screens
       maximizable: false, // Prevent maximizing
       minimizable: true, // Allow minimizing
       closable: true // Allow closing
     });
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-    
-    // Window size is controlled by the BrowserWindow properties above
-    // No need for event handlers that can cause flickering
     
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
@@ -294,14 +307,24 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        // Temporarily enable resizing to change size
-        this.mainWindow.setResizable(true);
+        // Get current screen dimensions
+        const { screen } = require('electron');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
         
-        // Set the window size to match the tester's screen resolution
-        this.mainWindow.setSize(width, height);
+        // Calculate optimal window size to fit the screen while maintaining aspect ratio
+        const aspectRatio = width / height;
+        let windowWidth = Math.min(width, screenWidth - 100);
+        let windowHeight = Math.round(windowWidth / aspectRatio);
         
-        // Disable resizing again to prevent further size changes
-        this.mainWindow.setResizable(false);
+        // If height is too big, scale down based on height
+        if (windowHeight > screenHeight - 100) {
+          windowHeight = screenHeight - 100;
+          windowWidth = Math.round(windowHeight * aspectRatio);
+        }
+        
+        // Set the window size to fit the screen properly
+        this.mainWindow.setSize(windowWidth, windowHeight);
         
         // Don't center - let user position window wherever they want
       }
@@ -309,14 +332,24 @@ class SupporterApp {
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
-        // Temporarily enable resizing to change size
-        this.mainWindow.setResizable(true);
+        // Get current screen dimensions
+        const { screen } = require('electron');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
         
-        // Reset to default size
-        this.mainWindow.setSize(1200, 800);
+        // Calculate optimal window size to fit screen while maintaining aspect ratio
+        const aspectRatio = 1200 / 800; // 1.5
+        let windowWidth = Math.min(1200, screenWidth - 100);
+        let windowHeight = Math.round(windowWidth / aspectRatio);
         
-        // Disable resizing again to prevent further size changes
-        this.mainWindow.setResizable(false);
+        // If height is too big, scale down based on height
+        if (windowHeight > screenHeight - 100) {
+          windowHeight = screenHeight - 100;
+          windowWidth = Math.round(windowHeight * aspectRatio);
+        }
+        
+        // Reset to calculated optimal size
+        this.mainWindow.setSize(windowWidth, windowHeight);
         
         // Don't center - maintain user's preferred position
       }
