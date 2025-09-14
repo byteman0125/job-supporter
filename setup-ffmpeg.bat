@@ -35,87 +35,79 @@ powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ff
 echo.
 echo Copying essential files for screen capture...
 
-REM Use PowerShell to copy only necessary files
-powershell -Command "& {
-    $extractedDir = Get-ChildItem 'ffmpeg-temp' -Directory | Select-Object -First 1
-    $binDir = Join-Path $extractedDir.FullName 'bin'
-    $targetDir = 'tester\assets\ffmpeg\bin'
-    
-    Write-Host 'Source directory:' $binDir
-    Write-Host 'Target directory:' $targetDir
-    
-    if (Test-Path $binDir) {
-        # Define only the essential files needed for screen capture
-        # These are the minimum required files for FFmpeg screen capture functionality
-        $essentialFiles = @(
-            'ffmpeg.exe',           # Main executable
-            'avcodec-*.dll',        # Video/audio codecs (encoding/decoding)
-            'avdevice-*.dll',       # Device input/output (screen capture)
-            'avfilter-*.dll',       # Filters (video processing)
-            'avformat-*.dll',       # Container formats (muxing/demuxing)
-            'avutil-*.dll',         # Utility functions
-            'swresample-*.dll',     # Audio resampling
-            'swscale-*.dll'         # Video scaling
-        )
-        
-        Write-Host 'Copying only essential files for screen capture:'
-        Write-Host ''
-        
-        $copiedCount = 0
-        $totalSize = 0
-        
-        foreach ($pattern in $essentialFiles) {
-            $files = Get-ChildItem $binDir -Name $pattern -ErrorAction SilentlyContinue
-            if ($files) {
-                foreach ($fileName in $files) {
-                    $sourcePath = Join-Path $binDir $fileName
-                    $targetPath = Join-Path $targetDir $fileName
-                    try {
-                        $fileSize = (Get-Item $sourcePath).Length
-                        Copy-Item $sourcePath $targetPath -Force
-                        Write-Host '✅ Copied:' $fileName '(' [math]::Round($fileSize/1MB, 2) 'MB)'
-                        $copiedCount++
-                        $totalSize += $fileSize
-                    } catch {
-                        Write-Host '❌ ERROR copying' $fileName ':' $_.Exception.Message
-                    }
-                }
-            } else {
-                Write-Host '⚠️  WARNING: Pattern not found:' $pattern
-            }
-        }
-        
-        Write-Host ''
-        Write-Host 'Copy Summary:'
-        Write-Host '  Essential files copied:' $copiedCount
-        Write-Host '  Total size:' [math]::Round($totalSize/1MB, 2) 'MB'
-        
-        # Verify all essential files are present
-        Write-Host ''
-        Write-Host 'Essential files verification:'
-        $allPresent = $true
-        foreach ($pattern in $essentialFiles) {
-            $found = Get-ChildItem $targetDir -Name $pattern -ErrorAction SilentlyContinue
-            if ($found) {
-                Write-Host '  ✅' $pattern
-            } else {
-                Write-Host '  ❌' $pattern 'MISSING'
-                $allPresent = $false
-            }
-        }
-        
-        if ($allPresent) {
-            Write-Host ''
-            Write-Host '🎉 All essential files copied successfully!'
-        } else {
-            Write-Host ''
-            Write-Host '⚠️  Some essential files are missing!'
-        }
-        
-    } else {
-        Write-Host 'ERROR: Source directory does not exist:' $binDir
-    }
-}"
+REM Find the extracted directory
+for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
+
+echo Found FFmpeg directory: %FFMPEG_DIR%
+
+REM Copy essential files using individual commands
+echo Copying ffmpeg.exe...
+copy "%FFMPEG_DIR%\bin\ffmpeg.exe" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
+    echo ✅ Copied: ffmpeg.exe
+) else (
+    echo ❌ Failed to copy ffmpeg.exe
+)
+
+echo Copying avcodec DLL...
+copy "%FFMPEG_DIR%\bin\avcodec-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avcodec-*.dll" (
+    echo ✅ Copied: avcodec-*.dll
+) else (
+    echo ❌ Failed to copy avcodec-*.dll
+)
+
+echo Copying avdevice DLL...
+copy "%FFMPEG_DIR%\bin\avdevice-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avdevice-*.dll" (
+    echo ✅ Copied: avdevice-*.dll
+) else (
+    echo ❌ Failed to copy avdevice-*.dll
+)
+
+echo Copying avfilter DLL...
+copy "%FFMPEG_DIR%\bin\avfilter-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avfilter-*.dll" (
+    echo ✅ Copied: avfilter-*.dll
+) else (
+    echo ❌ Failed to copy avfilter-*.dll
+)
+
+echo Copying avformat DLL...
+copy "%FFMPEG_DIR%\bin\avformat-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avformat-*.dll" (
+    echo ✅ Copied: avformat-*.dll
+) else (
+    echo ❌ Failed to copy avformat-*.dll
+)
+
+echo Copying avutil DLL...
+copy "%FFMPEG_DIR%\bin\avutil-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avutil-*.dll" (
+    echo ✅ Copied: avutil-*.dll
+) else (
+    echo ❌ Failed to copy avutil-*.dll
+)
+
+echo Copying swresample DLL...
+copy "%FFMPEG_DIR%\bin\swresample-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\swresample-*.dll" (
+    echo ✅ Copied: swresample-*.dll
+) else (
+    echo ❌ Failed to copy swresample-*.dll
+)
+
+echo Copying swscale DLL...
+copy "%FFMPEG_DIR%\bin\swscale-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\swscale-*.dll" (
+    echo ✅ Copied: swscale-*.dll
+) else (
+    echo ❌ Failed to copy swscale-*.dll
+)
+
+echo.
+echo Copy Summary:
+dir "tester\assets\ffmpeg\bin\" /b
 
 echo.
 echo Cleaning up temporary files...
