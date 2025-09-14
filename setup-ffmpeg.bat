@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo FFmpeg Setup for Screen Capture (Complete)
+echo FFmpeg Setup for Screen Capture
 echo ========================================
 echo.
 
@@ -35,7 +35,7 @@ powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ff
 echo.
 echo Copying essential files for screen capture...
 
-REM Use PowerShell to copy all necessary files
+REM Use PowerShell to copy only necessary files
 powershell -Command "& {
     $extractedDir = Get-ChildItem 'ffmpeg-temp' -Directory | Select-Object -First 1
     $binDir = Join-Path $extractedDir.FullName 'bin'
@@ -45,48 +45,71 @@ powershell -Command "& {
     Write-Host 'Target directory:' $targetDir
     
     if (Test-Path $binDir) {
-        $files = Get-ChildItem $binDir -File
-        Write-Host 'Found' $files.Count 'files in source directory'
+        # Define only the essential files needed for screen capture
+        # These are the minimum required files for FFmpeg screen capture functionality
+        $essentialFiles = @(
+            'ffmpeg.exe',           # Main executable
+            'avcodec-*.dll',        # Video/audio codecs (encoding/decoding)
+            'avdevice-*.dll',       # Device input/output (screen capture)
+            'avfilter-*.dll',       # Filters (video processing)
+            'avformat-*.dll',       # Container formats (muxing/demuxing)
+            'avutil-*.dll',         # Utility functions
+            'swresample-*.dll',     # Audio resampling
+            'swscale-*.dll'         # Video scaling
+        )
+        
+        Write-Host 'Copying only essential files for screen capture:'
         Write-Host ''
         
-        # List all files that will be copied
-        Write-Host 'Files to copy:'
-        foreach ($file in $files) {
-            Write-Host '  -' $file.Name '(' [math]::Round($file.Length/1MB, 2) 'MB)'
-        }
-        Write-Host ''
-        
-        # Copy all files from bin directory
         $copiedCount = 0
         $totalSize = 0
-        foreach ($file in $files) {
-            $targetPath = Join-Path $targetDir $file.Name
-            try {
-                Copy-Item $file.FullName $targetPath -Force
-                Write-Host '✅ Copied:' $file.Name
-                $copiedCount++
-                $totalSize += $file.Length
-            } catch {
-                Write-Host '❌ ERROR copying' $file.Name ':' $_.Exception.Message
+        
+        foreach ($pattern in $essentialFiles) {
+            $files = Get-ChildItem $binDir -Name $pattern -ErrorAction SilentlyContinue
+            if ($files) {
+                foreach ($fileName in $files) {
+                    $sourcePath = Join-Path $binDir $fileName
+                    $targetPath = Join-Path $targetDir $fileName
+                    try {
+                        $fileSize = (Get-Item $sourcePath).Length
+                        Copy-Item $sourcePath $targetPath -Force
+                        Write-Host '✅ Copied:' $fileName '(' [math]::Round($fileSize/1MB, 2) 'MB)'
+                        $copiedCount++
+                        $totalSize += $fileSize
+                    } catch {
+                        Write-Host '❌ ERROR copying' $fileName ':' $_.Exception.Message
+                    }
+                }
+            } else {
+                Write-Host '⚠️  WARNING: Pattern not found:' $pattern
             }
         }
         
         Write-Host ''
         Write-Host 'Copy Summary:'
-        Write-Host '  Files copied:' $copiedCount 'of' $files.Count
+        Write-Host '  Essential files copied:' $copiedCount
         Write-Host '  Total size:' [math]::Round($totalSize/1MB, 2) 'MB'
         
-        # Verify essential files for screen capture
+        # Verify all essential files are present
         Write-Host ''
-        Write-Host 'Essential files check:'
-        $essentialFiles = @('ffmpeg.exe', 'avcodec-*.dll', 'avdevice-*.dll', 'avfilter-*.dll', 'avformat-*.dll', 'avutil-*.dll', 'swresample-*.dll', 'swscale-*.dll')
+        Write-Host 'Essential files verification:'
+        $allPresent = $true
         foreach ($pattern in $essentialFiles) {
             $found = Get-ChildItem $targetDir -Name $pattern -ErrorAction SilentlyContinue
             if ($found) {
                 Write-Host '  ✅' $pattern
             } else {
-                Write-Host '  ❌' $pattern 'NOT FOUND'
+                Write-Host '  ❌' $pattern 'MISSING'
+                $allPresent = $false
             }
+        }
+        
+        if ($allPresent) {
+            Write-Host ''
+            Write-Host '🎉 All essential files copied successfully!'
+        } else {
+            Write-Host ''
+            Write-Host '⚠️  Some essential files are missing!'
         }
         
     } else {
