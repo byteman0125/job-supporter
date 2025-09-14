@@ -370,6 +370,7 @@
 
         function disconnectFromTester() {
             ipcRenderer.send('disconnect-from-tester');
+            hideRemoteCursor(); // Hide cursor when disconnecting
         }
 
         // Screen Display
@@ -380,14 +381,10 @@
             }
             noConnection.style.display = 'none';
             
-            // Remove existing image and cursor
+            // Remove existing image only (keep cursor)
             const existingImg = screenViewer.querySelector('.screen-image');
             if (existingImg) {
                 existingImg.remove();
-            }
-            const existingCursor = screenViewer.querySelector('.remote-cursor');
-            if (existingCursor) {
-                existingCursor.remove();
             }
 
             // Create new image
@@ -452,6 +449,7 @@
             if (existingImg) {
                 existingImg.remove();
             }
+            hideRemoteCursor(); // Hide cursor when clearing screen
             
             // Real system cursor will be visible automatically
             
@@ -643,9 +641,18 @@
         let originalScreenWidth = 0;
         let originalScreenHeight = 0;
 
+        // Store current cursor element
+        let currentCursor = null;
+
         // Draw remote cursor on screen
         function drawRemoteCursor(mouseX, mouseY, screenWidth, screenHeight) {
             console.log(`🖱️ Drawing remote cursor at: (${mouseX}, ${mouseY}) on ${screenWidth}x${screenHeight} screen`);
+            
+            // Remove existing cursor if it exists
+            if (currentCursor) {
+                currentCursor.remove();
+                currentCursor = null;
+            }
             
             // Create cursor element
             const cursor = document.createElement('div');
@@ -659,6 +666,7 @@
             cursor.style.pointerEvents = 'none';
             cursor.style.zIndex = '1000';
             cursor.style.transition = 'all 0.1s ease';
+            cursor.style.display = 'block';
             
             // Calculate cursor position relative to the screen image
             const screenImg = screenViewer.querySelector('.screen-image');
@@ -679,15 +687,18 @@
                 console.log(`🖱️ Cursor positioned at: (${cursorX}, ${cursorY}) on screen viewer`);
             }
             
-            // Add cursor to screen viewer
+            // Add cursor to screen viewer and store reference
             screenViewer.appendChild(cursor);
-            
-            // Remove cursor after a short delay to show movement
-            setTimeout(() => {
-                if (cursor.parentNode) {
-                    cursor.parentNode.removeChild(cursor);
-                }
-            }, 100);
+            currentCursor = cursor;
+        }
+
+        // Hide cursor when disconnected
+        function hideRemoteCursor() {
+            if (currentCursor) {
+                currentCursor.remove();
+                currentCursor = null;
+                console.log('🖱️ Remote cursor hidden');
+            }
         }
 
         // Store previous window dimensions to detect resize direction
