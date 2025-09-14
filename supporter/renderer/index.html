@@ -155,11 +155,8 @@
             pointer-events: none;
             z-index: 1000;
             transition: all 0.1s ease-out;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23ff0000" stroke="%23ffffff" stroke-width="1"/><circle cx="2" cy="2" r="1.5" fill="%23ffffff"/></svg>') no-repeat center;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M2 2l12 8-3 3-9-11z" fill="%23000000" stroke="%23ffffff" stroke-width="1"/><circle cx="2" cy="2" r="1.5" fill="%23ffffff"/></svg>') no-repeat center;
             background-size: contain;
-            border: 2px solid #ffffff;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.8), 0 0 20px rgba(255, 0, 0, 0.4);
         }
 
         .mouse-cursor.hidden {
@@ -506,6 +503,7 @@
             console.log(`📦 Container rect: ${containerRect.width}x${containerRect.height} at (${containerRect.left}, ${containerRect.top})`);
             console.log(`🎯 Final cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
             
+            // Position the cursor element to show real mouse cursor
             mouseCursor.style.left = cursorX + 'px';
             mouseCursor.style.top = cursorY + 'px';
             mouseCursor.classList.remove('hidden');
