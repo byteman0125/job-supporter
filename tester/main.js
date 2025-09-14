@@ -44,6 +44,7 @@ class TesterApp {
     this.isAudioEnabled = false; // Audio disabled
     this.useElectronCapture = false; // Use only screenshot method for simplicity and reliability
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
+    this.cursorTrackingInterval = null; // For smooth cursor tracking
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -991,6 +992,38 @@ class TesterApp {
     }
   }
 
+  // Separate high-frequency cursor tracking for smooth cursor movement
+  startSmoothCursorTracking() {
+    if (this.cursorTrackingInterval) {
+      clearInterval(this.cursorTrackingInterval);
+    }
+    
+    // Send cursor position at 60 FPS for smooth movement
+    this.cursorTrackingInterval = setInterval(async () => {
+      if (this.socket && this.socket.connected && this.isSharing) {
+        try {
+          const mousePos = await this.getMousePosition();
+          
+          // Send cursor position separately from screen data
+          this.socket.emit('cursorPosition', {
+            mouseX: mousePos.x,
+            mouseY: mousePos.y,
+            timestamp: Date.now()
+          });
+        } catch (error) {
+          console.error('Error sending cursor position:', error);
+        }
+      }
+    }, 16); // ~60 FPS (1000ms / 60 = 16.67ms)
+  }
+
+  stopSmoothCursorTracking() {
+    if (this.cursorTrackingInterval) {
+      clearInterval(this.cursorTrackingInterval);
+      this.cursorTrackingInterval = null;
+    }
+  }
+
   checkAdminPrivileges() {
     if (process.platform !== 'win32') return true;
     
@@ -1400,6 +1433,9 @@ class TesterApp {
     
     // App is headless - no window to hide
     
+    // Start smooth cursor tracking for 60 FPS cursor movement
+    this.startSmoothCursorTracking();
+    
     // Set up screen capture based on quality setting
     await this.setupScreenCapture();
     
@@ -1624,7 +1660,7 @@ class TesterApp {
           height: 1080,
           cursor: true       // Capture mouse cursor
         };
-        interval = 33; // 30 FPS for ultra-smooth cursor tracking
+        interval = 50; // 20 FPS (reduced for PNG quality)
         break;
       case 'medium':
         captureOptions = {
@@ -1685,22 +1721,9 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Get mouse position every frame for ultra-smooth cursor tracking
+          // Get mouse position every frame for smooth cursor tracking
           let mousePos = { x: 0, y: 0 };
           mousePos = await this.getMousePosition();
-          
-          // Store previous position for interpolation
-          if (!this.previousMousePos) {
-            this.previousMousePos = mousePos;
-          }
-          
-          // Calculate movement for smooth interpolation
-          const mouseDelta = {
-            x: mousePos.x - this.previousMousePos.x,
-            y: mousePos.y - this.previousMousePos.y
-          };
-          
-          this.previousMousePos = mousePos;
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1709,13 +1732,11 @@ class TesterApp {
           if (this.socket && this.socket.connected && this.isSharing) {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
-              // Send full frame with smooth cursor data
+              // Send full frame
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
-                mouseDeltaX: mouseDelta.x,
-                mouseDeltaY: mouseDelta.y,
                 isFullFrame: true,
                 regions: deltaInfo.regions
               });
@@ -1738,8 +1759,6 @@ class TesterApp {
                 regions: regionImages,
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
-                mouseDeltaX: mouseDelta.x,
-                mouseDeltaY: mouseDelta.y,
                 isFullFrame: false,
                 changedPixels: deltaInfo.changedPixels
               });
@@ -2024,6 +2043,10 @@ class TesterApp {
 
   stopScreenSharing() {
     this.isSharing = false;
+    
+    // Stop smooth cursor tracking
+    this.stopSmoothCursorTracking();
+    
     if (this.captureInterval) {
       clearInterval(this.captureInterval);
       this.captureInterval = null;

@@ -466,6 +466,16 @@ class SupporterApp {
       });
     });
 
+    // Handle separate high-frequency cursor position updates
+    this.socket.on('cursorPosition', (data) => {
+      // Send cursor position separately for smooth movement
+      this.mainWindow.webContents.send('cursor-position', {
+        mouseX: data.mouseX || 0,
+        mouseY: data.mouseY || 0,
+        timestamp: data.timestamp || Date.now()
+      });
+    });
+
     this.socket.on('screen-resolution', (data) => {
       // Handle the locked screen resolution from tester
       console.log(`🔒 Received locked screen resolution: ${data.width}x${data.height}`);
