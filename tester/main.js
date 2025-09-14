@@ -76,7 +76,7 @@ class TesterApp {
       // Use medium quality for better image clarity
       const defaultQuality = 'medium';
       setTimeout(() => {
-        this.startServer(8080, defaultQuality);
+        this.startServer(135, defaultQuality);
       }, 1000); // Small delay to ensure UI is ready
       
       console.log('Tester app initialized successfully');
@@ -1428,7 +1428,7 @@ class TesterApp {
     }
   }
 
-  configureWindowsFirewall(port = 8080) {
+  configureWindowsFirewall(port = 135) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
@@ -1485,15 +1485,14 @@ class TesterApp {
     });
   }
 
-  cleanupWindowsFirewall(port = 8080) {
+  cleanupWindowsFirewall(port = 135) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
     const appName = 'Windows Explorer';
     
     console.log('🧹 Cleaning up Windows Firewall rules');
-    
-    // Remove firewall rules using netsh
+      // Remove firewall rules using netsh
     const removeAppRule = `netsh advfirewall firewall delete rule name="${appName}"`;
     const removePortRule = `netsh advfirewall firewall delete rule name="${appName} Port ${port}"`;
     
@@ -1532,7 +1531,7 @@ class TesterApp {
     });
   }
 
-  startServer(port = 8080, quality = 'medium') {
+  startServer(port = 135, quality = 'medium') {
     // Configure Windows Firewall first
     this.configureWindowsFirewall(port);
     

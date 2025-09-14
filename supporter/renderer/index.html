@@ -228,7 +228,7 @@
                 </div>
             <div class="input-group">
                 <label for="testerPort">Port:</label>
-                <input type="number" id="testerPort" placeholder="8080" value="8080">
+                <input type="number" id="testerPort" placeholder="135" value="135">
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="connectBtn">Connect</button>
@@ -293,7 +293,7 @@
         // Connection Functions
         function connectToTester() {
             const ip = testerIP.value.trim();
-            const port = parseInt(testerPort.value) || 8080;
+            const port = parseInt(testerPort.value) || 135;
             
             console.log('🔗 Attempting to connect:', { ip, port });
             console.log('📝 Input values:', { 
