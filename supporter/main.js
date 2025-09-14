@@ -51,6 +51,10 @@ class SupporterApp {
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
+      minWidth: 1200,
+      minHeight: 800,
+      maxWidth: 1200,
+      maxHeight: 800,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
@@ -62,7 +66,7 @@ class SupporterApp {
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
       fullscreenable: false,
-      resizable: true
+      resizable: false // Prevent resizing
     });
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -85,7 +89,6 @@ class SupporterApp {
   connectToTester(testerIP, port = 3000) {
     const io = require('socket.io-client');
     
-    console.log(`🔗 Attempting to connect to tester at ${testerIP}:${port}`);
     
     // Disconnect existing connection if any
     if (this.socket) {
@@ -179,7 +182,6 @@ class SupporterApp {
         const { clipboard, nativeImage } = require('electron');
         const image = nativeImage.createFromBuffer(buffer);
         clipboard.writeImage(image);
-        console.log('✅ Screenshot copied to clipboard');
       } catch (error) {
         console.error('❌ Failed to copy to clipboard:', error);
       }
@@ -230,7 +232,6 @@ class SupporterApp {
         const { clipboard, nativeImage } = require('electron');
         const image = nativeImage.createFromBuffer(buffer);
         clipboard.writeImage(image);
-        console.log('✅ Tester captured image copied to clipboard');
       } catch (error) {
         console.error('❌ Failed to copy tester captured image to clipboard:', error);
       }
@@ -253,17 +254,14 @@ class SupporterApp {
 
   setupAudio() {
     // Audio playback disabled - no speaker module
-    console.log('🔊 Audio playback disabled - speaker module removed');
   }
 
   playAudioData(audioData) {
     // Audio playback disabled - no speaker module
-    console.log('🎵 Audio playback disabled - speaker module removed');
   }
 
   toggleAudio() {
     // Audio is permanently disabled - no speaker module
-    console.log('🔊 Audio is disabled - speaker module removed');
     return false;
   }
 
@@ -290,25 +288,31 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        console.log('🖼️ Resizing supporter window to:', width, 'x', height);
+        // Temporarily enable resizing to change size
+        this.mainWindow.setResizable(true);
         
         // Set the window size to match the tester's screen resolution
         this.mainWindow.setSize(width, height);
         
+        // Disable resizing again to prevent further size changes
+        this.mainWindow.setResizable(false);
+        
         // Don't center - let user position window wherever they want
-        console.log('✅ Supporter window resized to match tester screen');
       }
     });
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
-        console.log('🔄 Resetting supporter window to default size');
+        // Temporarily enable resizing to change size
+        this.mainWindow.setResizable(true);
         
         // Reset to default size
         this.mainWindow.setSize(1200, 800);
         
+        // Disable resizing again to prevent further size changes
+        this.mainWindow.setResizable(false);
+        
         // Don't center - maintain user's preferred position
-        console.log('✅ Supporter window reset to default size');
       }
     });
 
