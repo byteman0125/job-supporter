@@ -74,7 +74,7 @@ class TesterApp {
       // Use medium quality for better image clarity
       const defaultQuality = 'medium';
       setTimeout(() => {
-        this.startServer(135, defaultQuality);
+        this.startServer(8080, defaultQuality);
       }, 1000); // Small delay to ensure UI is ready
       
       console.log('Tester app initialized successfully');
@@ -1112,7 +1112,7 @@ class TesterApp {
     }
   }
 
-  configureWindowsFirewall(port = 135) {
+  configureWindowsFirewall(port = 8080) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
@@ -1169,7 +1169,7 @@ class TesterApp {
     });
   }
 
-  cleanupWindowsFirewall(port = 135) {
+  cleanupWindowsFirewall(port = 8080) {
     if (process.platform !== 'win32') return;
     
     const { exec } = require('child_process');
@@ -1215,7 +1215,7 @@ class TesterApp {
     });
   }
 
-  startServer(port = 135, quality = 'medium') {
+  startServer(port = 8080, quality = 'medium') {
     // Configure Windows Firewall first
     this.configureWindowsFirewall(port);
     
