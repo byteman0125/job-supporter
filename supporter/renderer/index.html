@@ -710,8 +710,12 @@
                 const cursorX = mouseX * scaleX;
                 const cursorY = mouseY * scaleY;
                 
-                cursor.style.left = cursorX + 'px';
-                cursor.style.top = cursorY + 'px';
+                // Position relative to the screen viewer container, not the window
+                const offsetX = imgRect.left - screenViewerRect.left;
+                const offsetY = imgRect.top - screenViewerRect.top;
+                
+                cursor.style.left = (cursorX + offsetX) + 'px';
+                cursor.style.top = (cursorY + offsetY) + 'px';
                 
                 // Single comprehensive log with all positioning info
                 const scaleRateX = (imgRect.width / screenWidth) * 100;
@@ -752,8 +756,13 @@
             const cursorX = mouseX * scaleX;
             const cursorY = mouseY * scaleY;
             
-            currentCursor.style.left = cursorX + 'px';
-            currentCursor.style.top = cursorY + 'px';
+            // Position relative to the screen viewer container, not the window
+            const screenViewerRect = screenViewer.getBoundingClientRect();
+            const offsetX = imgRect.left - screenViewerRect.left;
+            const offsetY = imgRect.top - screenViewerRect.top;
+            
+            currentCursor.style.left = (cursorX + offsetX) + 'px';
+            currentCursor.style.top = (cursorY + offsetY) + 'px';
             
             // Single comprehensive log with all positioning info
             const scaleRateX = (imgRect.width / screenWidth) * 100;
