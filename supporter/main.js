@@ -117,46 +117,9 @@ class SupporterApp {
           clearTimeout(this.resizeDebounceTimeout);
         }
         
-        // Debounce the size update for smoother resizing
-        this.resizeDebounceTimeout = setTimeout(() => {
-          const [currentWidth, currentHeight] = this.mainWindow.getSize();
-          
-          // Calculate proper aspect ratio based on original screen resolution
-          const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
-          
-          // Calculate what both dimensions should be
-          const properHeightFromWidth = Math.round(currentWidth / aspectRatio);
-          const properWidthFromHeight = Math.round(currentHeight * aspectRatio);
-          
-          // Determine which dimension changed more (user's intent)
-          const widthChange = Math.abs(currentWidth - this.initialWindowSize.width);
-          const heightChange = Math.abs(currentHeight - this.initialWindowSize.height);
-          
-          let newWidth = currentWidth;
-          let newHeight = currentHeight;
-          
-          if (widthChange > heightChange) {
-            // User is primarily changing width, adjust height
-            newHeight = properHeightFromWidth;
-          } else if (heightChange > widthChange) {
-            // User is primarily changing height, adjust width
-            newWidth = properWidthFromHeight;
-          } else {
-            // Both changed equally, prioritize width and adjust height
-            newHeight = properHeightFromWidth;
-          }
-          
-          // Apply the calculated size if it's significantly different
-          if (Math.abs(newWidth - currentWidth) > 5 || Math.abs(newHeight - currentHeight) > 5) {
-            this.isProgrammaticResize = true;
-            this.mainWindow.setSize(newWidth, newHeight);
-            this.isProgrammaticResize = false;
-            this.initialWindowSize = { width: newWidth, height: newHeight };
-          } else {
-            // Size is close enough, just update stored size
-            this.initialWindowSize = { width: currentWidth, height: currentHeight };
-          }
-        }, 16); // ~60fps for smooth updates
+        // Only update stored size - no automatic window size changes
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        this.initialWindowSize = { width: currentWidth, height: currentHeight };
       }
     });
 
