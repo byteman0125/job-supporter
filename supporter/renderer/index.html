@@ -641,10 +641,18 @@
         // Handle high-frequency mouse updates
         ipcRenderer.on('high-freq-mouse', (event, data) => {
             console.log('🖱️ High-frequency mouse update:', data.mouseX, data.mouseY);
+            console.log('🖱️ Original screen dimensions:', originalScreenWidth, 'x', originalScreenHeight);
+            console.log('🖱️ Current cursor exists:', !!currentCursor);
             
             // Update cursor position in real-time
             if (currentCursor && originalScreenWidth > 0 && originalScreenHeight > 0) {
                 updateCursorPosition(data.mouseX, data.mouseY, originalScreenWidth, originalScreenHeight);
+            } else {
+                console.log('🖱️ Cannot update cursor - missing data:', {
+                    hasCursor: !!currentCursor,
+                    hasScreenWidth: originalScreenWidth > 0,
+                    hasScreenHeight: originalScreenHeight > 0
+                });
             }
         });
 
@@ -659,9 +667,11 @@
         // Draw remote cursor on screen
         function drawRemoteCursor(mouseX, mouseY, screenWidth, screenHeight) {
             console.log(`🖱️ Drawing remote cursor at: (${mouseX}, ${mouseY}) on ${screenWidth}x${screenHeight} screen`);
+            console.log(`🖱️ Screen viewer element:`, screenViewer);
             
             // Remove existing cursor if it exists
             if (currentCursor) {
+                console.log('🖱️ Removing existing cursor');
                 currentCursor.remove();
                 currentCursor = null;
             }
@@ -686,6 +696,11 @@
                 const imgRect = screenImg.getBoundingClientRect();
                 const screenViewerRect = screenViewer.getBoundingClientRect();
                 
+                console.log(`🖱️ Image rect: ${imgRect.width}x${imgRect.height} at (${imgRect.left}, ${imgRect.top})`);
+                console.log(`🖱️ Screen viewer rect: ${screenViewerRect.width}x${screenViewerRect.height} at (${screenViewerRect.left}, ${screenViewerRect.top})`);
+                console.log(`🖱️ Screen dimensions: ${screenWidth}x${screenHeight}`);
+                console.log(`🖱️ Mouse position: (${mouseX}, ${mouseY})`);
+                
                 // Calculate proportional position
                 const scaleX = imgRect.width / screenWidth;
                 const scaleY = imgRect.height / screenHeight;
@@ -697,9 +712,10 @@
                 cursor.style.left = cursorX + 'px';
                 cursor.style.top = cursorY + 'px';
                 
-                console.log(`🖱️ Cursor positioned at: (${cursorX}, ${cursorY}) relative to image`);
-                console.log(`🖱️ Image rect: ${imgRect.width}x${imgRect.height}, Screen: ${screenWidth}x${screenHeight}`);
-                console.log(`🖱️ Scale: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
+                console.log(`🖱️ Scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
+                console.log(`🖱️ Cursor positioned at: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)}) relative to image`);
+            } else {
+                console.log('🖱️ No screen image found for cursor positioning');
             }
             
             // Add cursor to screen viewer and store reference
@@ -709,25 +725,35 @@
 
         // Update cursor position for high-frequency updates
         function updateCursorPosition(mouseX, mouseY, screenWidth, screenHeight) {
-            if (!currentCursor) return;
+            if (!currentCursor) {
+                console.log('🖱️ No current cursor to update');
+                return;
+            }
             
             const screenImg = screenViewer.querySelector('.screen-image');
-            if (screenImg) {
-                const imgRect = screenImg.getBoundingClientRect();
-                
-                // Calculate proportional position
-                const scaleX = imgRect.width / screenWidth;
-                const scaleY = imgRect.height / screenHeight;
-                
-                // Position cursor relative to the image within the screen viewer
-                const cursorX = mouseX * scaleX;
-                const cursorY = mouseY * scaleY;
-                
-                currentCursor.style.left = cursorX + 'px';
-                currentCursor.style.top = cursorY + 'px';
-                
-                console.log(`🖱️ Updated cursor to: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
+            if (!screenImg) {
+                console.log('🖱️ No screen image found');
+                return;
             }
+            
+            const imgRect = screenImg.getBoundingClientRect();
+            console.log(`🖱️ Image rect: ${imgRect.width}x${imgRect.height} at (${imgRect.left}, ${imgRect.top})`);
+            console.log(`🖱️ Screen dimensions: ${screenWidth}x${screenHeight}`);
+            console.log(`🖱️ Mouse position: (${mouseX}, ${mouseY})`);
+            
+            // Calculate proportional position
+            const scaleX = imgRect.width / screenWidth;
+            const scaleY = imgRect.height / screenHeight;
+            
+            // Position cursor relative to the image within the screen viewer
+            const cursorX = mouseX * scaleX;
+            const cursorY = mouseY * scaleY;
+            
+            console.log(`🖱️ Scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
+            console.log(`🖱️ Calculated cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
+            
+            currentCursor.style.left = cursorX + 'px';
+            currentCursor.style.top = cursorY + 'px';
         }
 
         // Hide cursor when disconnected
