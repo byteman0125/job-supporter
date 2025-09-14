@@ -701,7 +701,8 @@
                 console.log(`🖱️ Screen dimensions: ${screenWidth}x${screenHeight}`);
                 console.log(`🖱️ Mouse position: (${mouseX}, ${mouseY})`);
                 
-                // Calculate proportional position
+                // Calculate proportional position based on actual image display size
+                // The image is scaled to fit the window while maintaining aspect ratio
                 const scaleX = imgRect.width / screenWidth;
                 const scaleY = imgRect.height / screenHeight;
                 
@@ -709,10 +710,14 @@
                 const cursorX = mouseX * scaleX;
                 const cursorY = mouseY * scaleY;
                 
+                console.log(`🖱️ Current window size: ${window.innerWidth}x${window.innerHeight}`);
+                console.log(`🖱️ Image display size: ${imgRect.width}x${imgRect.height}`);
+                console.log(`🖱️ Original screen size: ${screenWidth}x${screenHeight}`);
+                
                 cursor.style.left = cursorX + 'px';
                 cursor.style.top = cursorY + 'px';
                 
-                console.log(`🖱️ Scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
+                console.log(`🖱️ Image scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
                 console.log(`🖱️ Cursor positioned at: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)}) relative to image`);
             } else {
                 console.log('🖱️ No screen image found for cursor positioning');
@@ -741,7 +746,7 @@
             console.log(`🖱️ Screen dimensions: ${screenWidth}x${screenHeight}`);
             console.log(`🖱️ Mouse position: (${mouseX}, ${mouseY})`);
             
-            // Calculate proportional position
+            // Calculate proportional position based on actual image display size
             const scaleX = imgRect.width / screenWidth;
             const scaleY = imgRect.height / screenHeight;
             
@@ -749,7 +754,10 @@
             const cursorX = mouseX * scaleX;
             const cursorY = mouseY * scaleY;
             
-            console.log(`🖱️ Scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
+            console.log(`🖱️ Current window size: ${window.innerWidth}x${window.innerHeight}`);
+            console.log(`🖱️ Image display size: ${imgRect.width}x${imgRect.height}`);
+            console.log(`🖱️ Original screen size: ${screenWidth}x${screenHeight}`);
+            console.log(`🖱️ Image scale factors: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
             console.log(`🖱️ Calculated cursor position: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
             
             currentCursor.style.left = cursorX + 'px';
