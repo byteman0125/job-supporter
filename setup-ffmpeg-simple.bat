@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo FFmpeg Setup for Screen Capture
+echo FFmpeg Setup for Screen Capture (Simple)
 echo ========================================
 echo.
 
@@ -35,20 +35,22 @@ powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ff
 echo.
 echo Copying essential files...
 
-REM Find the extracted directory
-for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
-
-echo Found FFmpeg directory: %FFMPEG_DIR%
-
-REM Copy only the essential files using PowerShell for better wildcard handling
-powershell -Command "& {Copy-Item '%FFMPEG_DIR%\bin\ffmpeg.exe' 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied: ffmpeg.exe'}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\avcodec-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\avdevice-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\avfilter-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\avformat-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\avutil-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\swresample-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
-powershell -Command "& {Get-ChildItem '%FFMPEG_DIR%\bin\swscale-*.dll' | ForEach-Object {Copy-Item $_.FullName 'tester\assets\ffmpeg\bin\' -Force; Write-Host 'Copied:' $_.Name}}"
+REM Use PowerShell to copy all files from bin directory
+powershell -Command "& {
+    $extractedDir = Get-ChildItem 'ffmpeg-temp' -Directory | Select-Object -First 1
+    $binDir = Join-Path $extractedDir.FullName 'bin'
+    $targetDir = 'tester\assets\ffmpeg\bin'
+    
+    Write-Host 'Source directory:' $binDir
+    Write-Host 'Target directory:' $targetDir
+    
+    # Copy all files from bin directory
+    Get-ChildItem $binDir | ForEach-Object {
+        $targetPath = Join-Path $targetDir $_.Name
+        Copy-Item $_.FullName $targetPath -Force
+        Write-Host 'Copied:' $_.Name
+    }
+}"
 
 echo.
 echo Cleaning up temporary files...
@@ -76,12 +78,8 @@ echo ========================================
 echo Setup Complete!
 echo ========================================
 echo.
-echo Essential files installed:
+echo Files in tester\assets\ffmpeg\bin\:
 dir "tester\assets\ffmpeg\bin\" /b
-
-echo.
-echo Total size:
-for /f "tokens=3" %%a in ('dir "tester\assets\ffmpeg\bin\" /-c ^| find "File(s)"') do echo %%a bytes
 
 echo.
 echo You can now run:
