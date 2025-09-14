@@ -396,7 +396,10 @@
         }
 
         function updateMouseCursor(mouseX, mouseY) {
+            console.log(`🖱️ updateMouseCursor called with: ${mouseX}, ${mouseY}`);
+            
             if (!isConnected || !originalScreenWidth || !originalScreenHeight) {
+                console.log('❌ Cursor hidden: not connected or no screen dimensions');
                 mouseCursor.classList.add('hidden');
                 return;
             }
@@ -404,6 +407,7 @@
             // Get the current screen image dimensions
             const screenImg = screenViewer.querySelector('.screen-image');
             if (!screenImg) {
+                console.log('❌ Cursor hidden: no screen image found');
                 mouseCursor.classList.add('hidden');
                 return;
             }
@@ -422,7 +426,7 @@
             mouseCursor.style.top = (imgRect.top + scaledY - 10) + 'px';
             mouseCursor.classList.remove('hidden');
 
-            console.log(`🖱️ Mouse cursor: ${mouseX},${mouseY} → ${scaledX},${scaledY}`);
+            console.log(`✅ Mouse cursor positioned: ${mouseX},${mouseY} → ${scaledX},${scaledY} at ${mouseCursor.style.left}, ${mouseCursor.style.top}`);
         }
 
         // Connection Status
@@ -579,7 +583,10 @@
             
             // Update mouse cursor position
             if (data.mouseX !== undefined && data.mouseY !== undefined) {
+                console.log(`📡 Received mouse data: ${data.mouseX}, ${data.mouseY}`);
                 updateMouseCursor(data.mouseX, data.mouseY);
+            } else {
+                console.log('❌ No mouse data received');
             }
             
             if (!data.image) {
