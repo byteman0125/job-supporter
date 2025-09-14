@@ -1842,7 +1842,13 @@ class TesterApp {
     // Get actual screen resolution and lock it
     const { screen } = require('electron');
     const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Use actual screen size (not work area) to handle DPI scaling correctly
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.size;
+    
+    // Get DPI scale factor for debugging
+    const scaleFactor = primaryDisplay.scaleFactor;
+    console.log(`🖥️ Screen: ${screenWidth}x${screenHeight} | DPI Scale: ${scaleFactor}x | Work Area: ${primaryDisplay.workAreaSize.width}x${primaryDisplay.workAreaSize.height}`);
     
     // Store the initial screen resolution if not already stored
     if (!this.initialScreenResolution) {
@@ -1864,8 +1870,8 @@ class TesterApp {
           format: 'jpeg',    // JPEG for better performance
           quality: 0.8,      // Good quality but not maximum
           screen: 0,
-          width: 1920,       // Full HD resolution
-          height: 1080,
+          width: screenWidth,       // Use actual screen resolution
+          height: screenHeight,
           cursor: true       // Capture mouse cursor
         };
         interval = 100; // 10 FPS (reduced to prevent freezing)

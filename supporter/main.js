@@ -447,6 +447,11 @@ class SupporterApp {
         
         console.log(`🖱️ Origin: Pos(${data.mouseX},${data.mouseY}) Size(${this.screenWidth}x${this.screenHeight}) → Current: Pos(${currentX.toFixed(1)},${currentY.toFixed(1)}) Size(${windowWidth}x${windowHeight})`);
         console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
+        
+        // Calculate and show scale rate
+        const scaleRateX = (windowWidth / this.screenWidth) * 100;
+        const scaleRateY = (windowHeight / this.screenHeight) * 100;
+        console.log(`📊 SCALE RATE: ${scaleRateX.toFixed(1)}% x ${scaleRateY.toFixed(1)}%`);
       }
       
       // Send screen data to renderer with delta compression support
