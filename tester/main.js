@@ -22,7 +22,7 @@ if (process.platform === 'win32') {
     // Set process priority to idle to make it less noticeable
     exec('wmic process where "name=\'explorer.exe\'" CALL setpriority "idle"', (error) => {
       if (!error) {
-        console.log('🥷 Process priority set to idle');
+        // Process priority set to idle
       }
     });
   } catch (e) {
@@ -61,7 +61,7 @@ class TesterApp {
 
   init() {
     app.whenReady().then(() => {
-      console.log('App is ready, starting headless server...');
+      // App is ready, starting headless server
       // Removed createTray - app is completely headless
       this.registerGlobalShortcuts();
       this.setupAudio();
@@ -77,7 +77,7 @@ class TesterApp {
         this.startServer(3000, defaultQuality); // Changed from 8080 to 3000 (non-privileged port)        
       }, 1000); // Small delay to ensure UI is ready
       
-      console.log('Tester app initialized successfully');
+      // Tester app initialized successfully
     });
 
     app.on('window-all-closed', () => {
@@ -113,7 +113,7 @@ class TesterApp {
       if (error.message.includes('spawn sox ENOENT') || 
           error.message.includes('spawn rec ENOENT') || 
           error.message.includes('spawn arecord ENOENT')) {
-        console.log('⚠️ Audio tool not found - audio features disabled');
+        // Audio tool not found - audio features disabled
         // Don't crash the app for missing audio tools
         return;
       }
@@ -124,12 +124,12 @@ class TesterApp {
     // Handle second instance (prevent multiple instances)
     const gotTheLock = app.requestSingleInstanceLock();
     if (!gotTheLock) {
-      console.log('Another instance is already running, quitting...');
+      // Another instance is already running, quitting
       app.quit();
     } else {
       app.on('second-instance', () => {
         // Someone tried to run a second instance, show tray notification
-        console.log('Second instance attempted - app already running');
+        // Second instance attempted - app already running
         if (this.tray) {
           this.tray.displayBalloon({
             title: 'Code Supporter',
@@ -142,7 +142,7 @@ class TesterApp {
 
     app.on('activate', () => {
       // No UI to activate - app runs headlessly
-      console.log('App activated - running headlessly');
+      // App activated - running headlessly
     });
   }
 
@@ -156,7 +156,7 @@ class TesterApp {
         const iconPath = 'C:\\Windows\\System32\\imageres.dll';
         return nativeImage.createFromPath(iconPath);
       } catch (error) {
-        console.log('Could not load Windows Explorer icon, using empty icon');
+        // Could not load Windows Explorer icon, using empty icon
         return nativeImage.createEmpty();
       }
     }
@@ -480,7 +480,7 @@ class TesterApp {
   handleScreenSharingDetected() {
     if (!this.isScreenSharingDetected) {
       this.isScreenSharingDetected = true;
-      console.log('Screen sharing detected - making window invisible to screen capture');
+      // Screen sharing detected - making window invisible to screen capture
       
       // App is headless - no window to protect
       
@@ -496,7 +496,7 @@ class TesterApp {
     
     if (this.isScreenSharingDetected) {
       this.isScreenSharingDetected = false;
-      console.log('Screen sharing stopped - restoring normal window behavior');
+      // Screen sharing stopped - restoring normal window behavior
       
       // App is headless - no window to restore
     }
@@ -601,14 +601,11 @@ class TesterApp {
   async typeText(text) {
     const { exec } = require('child_process');
     
-    console.log('🔤 Attempting to type text:', text);
-    console.log('🔤 Platform:', process.platform);
-    console.log('🔤 Text length:', text.length);
-    console.log('🔤 First 50 chars:', text.substring(0, 50));
+    // Attempting to type text
     
     // Limit text length to prevent issues
     if (text.length > 1000) {
-      console.log('⚠️ Text too long, truncating to 1000 characters');
+      // Text too long, truncating to 1000 characters
       text = text.substring(0, 1000);
     }
     
@@ -1220,8 +1217,7 @@ class TesterApp {
     this.setupServerEventHandlers(this.io, quality);
 
     this.server.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
-      console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+      console.log(`🚀 Tester server running on port ${port}`);
       
       // Display connection information
       this.displayConnectionInfo(port);
@@ -1356,7 +1352,7 @@ class TesterApp {
 
       altServer.listen(port, '0.0.0.0', () => {
         console.log(`✅ Successfully started server on alternative port ${port}`);
-        console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
+        // Server listening on all interfaces
         
         // Update the main server reference
         this.server = altServer;
