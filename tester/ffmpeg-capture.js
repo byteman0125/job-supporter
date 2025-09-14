@@ -4,7 +4,7 @@ const fs = require('fs');
 
 class FFmpegCapture {
     constructor() {
-        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'ffmpeg.exe');
+        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
         this.isCapturing = false;
         this.ffmpegProcess = null;
     }
@@ -41,8 +41,16 @@ class FFmpegCapture {
 
         console.log('Starting FFmpeg capture with args:', args);
 
+        // Set up environment with DLL path
+        const binDir = path.dirname(this.ffmpegPath);
+        const env = {
+            ...process.env,
+            PATH: `${binDir};${path.join(binDir, '..', 'lib')};${process.env.PATH}`
+        };
+
         this.ffmpegProcess = spawn(this.ffmpegPath, args, {
-            stdio: ['ignore', 'pipe', 'pipe']
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: env
         });
 
         this.ffmpegProcess.stdout.on('data', (data) => {

@@ -4,7 +4,7 @@ const fs = require('fs');
 
 class FFmpegWindows {
     constructor() {
-        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'ffmpeg.exe');
+        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
         this.isCapturing = false;
         this.ffmpegProcess = null;
         this.useSystemFFmpeg = false;
@@ -99,14 +99,20 @@ class FFmpegWindows {
 
         console.log('🎥 Starting FFmpeg capture via PowerShell...');
 
-        // Use PowerShell to run FFmpeg with proper environment
+        // Use PowerShell to run FFmpeg with proper environment and DLL path
+        const binDir = path.dirname(this.ffmpegPath);
         const psCommand = `
-            $env:PATH += ";${path.dirname(this.ffmpegPath)}"
+            $env:PATH += ";${binDir}"
+            $env:PATH += ";${path.join(binDir, '..', 'lib')}"
             & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height} -f image2pipe -vcodec png -pix_fmt rgb24 -y pipe:1
         `;
 
         this.ffmpegProcess = spawn('powershell', ['-Command', psCommand], {
-            stdio: ['ignore', 'pipe', 'pipe']
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: {
+                ...process.env,
+                PATH: `${binDir};${path.join(binDir, '..', 'lib')};${process.env.PATH}`
+            }
         });
 
         this.ffmpegProcess.stdout.on('data', (data) => {
