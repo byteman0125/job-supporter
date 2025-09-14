@@ -1273,50 +1273,14 @@
             }
         });
         
-        ipcRenderer.on('request-webrtc-capture', async (event, options) => {
+        ipcRenderer.on('request-webrtc-capture', (event) => {
             try {
-                // Use getDisplayMedia with cursor: "always" for perfect cursor capture
-                const stream = await navigator.mediaDevices.getDisplayMedia({ 
-                    video: { 
-                        cursor: "always",
-                        width: options.width,
-                        height: options.height
-                    } 
-                });
-                
-                // Create video element to capture frame
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.play();
-                
-                // Wait for video to be ready
-                await new Promise(resolve => {
-                    video.onloadedmetadata = resolve;
-                });
-                
-                // Create canvas to capture frame
-                const canvas = document.createElement('canvas');
-                canvas.width = options.width;
-                canvas.height = options.height;
-                const ctx = canvas.getContext('2d');
-                
-                // Draw video frame to canvas
-                ctx.drawImage(video, 0, 0, options.width, options.height);
-                
-                // Convert to PNG buffer
-                const imageData = canvas.toDataURL('image/png');
-                const base64Data = imageData.split(',')[1];
-                const buffer = Buffer.from(base64Data, 'base64');
-                
-                // Stop the stream
-                stream.getTracks().forEach(track => track.stop());
-                
+                const imageData = captureWebRTCFrame();
                 ipcRenderer.send('webrtc-capture-result', {
                     success: true,
-                    imageData: buffer
+                    imageData: imageData
                 });
             } catch (error) {
-                console.error('WebRTC capture with cursor failed:', error);
                 ipcRenderer.send('webrtc-capture-result', {
                     success: false,
                     error: error.message

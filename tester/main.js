@@ -70,7 +70,7 @@ class TesterApp {
     
     // High-frequency mouse tracking (enabled for real-time cursor)
     this.mouseTrackingInterval = null;
-    this.mouseTrackingFPS = 30; // 30 FPS for smooth mouse tracking with lower CPU usage
+    this.mouseTrackingFPS = 60; // 60 FPS for ultra-smooth mouse tracking
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -946,101 +946,6 @@ class TesterApp {
     };
   }
 
-  // Enhanced cursor capture using WebRTC getDisplayMedia (via renderer)
-  async captureScreenWithCursor() {
-    try {
-      // Request WebRTC capture from renderer process
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          ipcMain.removeAllListeners('webrtc-capture-result');
-          reject(new Error('WebRTC capture timeout'));
-        }, 5000);
-
-        // Listen for WebRTC capture result
-        const handleCaptureResult = (event, result) => {
-          clearTimeout(timeout);
-          ipcMain.removeListener('webrtc-capture-result', handleCaptureResult);
-          
-          if (result.success) {
-            console.log('🖱️ Captured with WebRTC getDisplayMedia (cursor: always)');
-            resolve(result.imageData);
-          } else {
-            reject(new Error(result.error || 'WebRTC capture failed'));
-          }
-        };
-
-        ipcMain.on('webrtc-capture-result', handleCaptureResult);
-        
-        // Request capture from renderer
-        this.mainWindow.webContents.send('request-webrtc-capture', {
-          width: this.screenWidth,
-          height: this.screenHeight
-        });
-      });
-      
-    } catch (error) {
-      console.error('Error with WebRTC capture:', error);
-      
-      // Fallback to screenshot-desktop
-      try {
-        const screenshot = require('screenshot-desktop');
-        const img = await screenshot({
-          format: 'png',
-          quality: 1.0,
-          screen: 0,
-          width: this.screenWidth,
-          height: this.screenHeight,
-          cursor: true
-        });
-        
-        console.log('🖱️ Fallback to screenshot-desktop (cursor: true)');
-        return img;
-      } catch (fallbackError) {
-        console.error('Fallback capture also failed:', fallbackError);
-        throw fallbackError;
-      }
-    }
-  }
-
-  // Add custom cursor overlay to ensure cursor is visible
-  async addCursorOverlay(imageBuffer, mouseX, mouseY) {
-    try {
-      // Simple cursor overlay by modifying pixel data
-      const buffer = Buffer.from(imageBuffer);
-      
-      // Convert to array for easier manipulation
-      const pixels = new Uint8Array(buffer);
-      
-      // Draw a simple red cursor (8x8 pixels)
-      const cursorSize = 8;
-      const startX = Math.max(0, mouseX - cursorSize/2);
-      const startY = Math.max(0, mouseY - cursorSize/2);
-      const endX = Math.min(this.screenWidth - 1, mouseX + cursorSize/2);
-      const endY = Math.min(this.screenHeight - 1, mouseY + cursorSize/2);
-      
-      for (let y = startY; y < endY; y++) {
-        for (let x = startX; x < endX; x++) {
-          const pixelIndex = (y * this.screenWidth + x) * 4; // RGBA format
-          
-          if (pixelIndex < pixels.length - 3) {
-            // Set pixel to red
-            pixels[pixelIndex] = 255;     // Red
-            pixels[pixelIndex + 1] = 0;   // Green
-            pixels[pixelIndex + 2] = 0;   // Blue
-            pixels[pixelIndex + 3] = 255; // Alpha
-          }
-        }
-      }
-      
-      console.log('🖱️ Added simple cursor overlay at:', mouseX, mouseY);
-      return Buffer.from(pixels);
-      
-    } catch (error) {
-      console.error('Error adding cursor overlay:', error);
-      return imageBuffer; // Return original if overlay fails
-    }
-  }
-
   async getMousePosition() {
     try {
       // Use Electron's screen API to get cursor position
@@ -1787,16 +1692,16 @@ class TesterApp {
 
     switch (quality) {
       case 'high':
-        interval = 200; // 5 FPS (optimized for lower CPU usage)
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'medium':
-        interval = 150; // ~7 FPS (balanced for lower CPU)
+        interval = 50; // 20 FPS (balanced)
         break;
       case 'low':
-        interval = 200; // 5 FPS (efficient with low CPU)
+        interval = 100; // 10 FPS (efficient)
         break;
       default:
-        interval = 200; // 5 FPS (default optimized)
+        interval = 50;
     }
 
     // Add CPU monitoring and adaptive quality
@@ -1969,7 +1874,7 @@ class TesterApp {
           height: screenHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 200; // 5 FPS (optimized for lower CPU usage)
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'medium':
         captureOptions = {
@@ -1980,7 +1885,7 @@ class TesterApp {
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 200; // 5 FPS (optimized for lower CPU usage)
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'low':
         captureOptions = {
@@ -1991,7 +1896,7 @@ class TesterApp {
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 250; // 4 FPS (very low CPU usage)
+        interval = 150; // ~7 FPS (very low to prevent freezing)
         break;
       default:
         captureOptions = {
@@ -2028,19 +1933,14 @@ class TesterApp {
           this.frameSkipCount = 0;
 
           const startTime = Date.now();
-          
-          // Use the best cursor capture method
-          const img = await this.captureScreenWithCursor();
+          const img = await screenshot(captureOptions);
           
           // Get mouse position for cursor display
           const mousePos = await this.getMousePosition();
           console.log(`🖱️ Mouse position: ${mousePos.x}, ${mousePos.y}`);
           
-          // Add custom cursor overlay if needed
-          const imgWithCursor = await this.addCursorOverlay(img, mousePos.x, mousePos.y);
-          
           // For high frame rates, send full frames more frequently for better quality
-          const deltaInfo = await this.detectChangedRegions(imgWithCursor, captureOptions.width, captureOptions.height);
+          const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
           
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
@@ -2048,7 +1948,7 @@ class TesterApp {
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
               // Send full frame with mouse position
               this.socket.emit('screenData', {
-                image: imgWithCursor.toString('base64'),
+                image: img.toString('base64'),
                 isFullFrame: true,
                 regions: deltaInfo.regions,
                 mouseX: mousePos.x,
