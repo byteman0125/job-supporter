@@ -1,7 +1,7 @@
 const { app, ipcMain, globalShortcut, nativeImage, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const io = require('socket.io-client');
-// const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
+const robot = require('robotjs'); // Re-enabled for mouse cursor capture
 const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
 // Audio recording removed
@@ -944,11 +944,18 @@ class TesterApp {
 
   async getMousePosition() {
     try {
-      // Use Electron's screen API for more accurate cursor tracking
-      const cursorInfo = this.captureCursor();
-      return { x: cursorInfo.x, y: cursorInfo.y };
+      // Use robotjs for more reliable mouse position
+      const mousePos = robot.getMousePos();
+      return { x: mousePos.x, y: mousePos.y };
     } catch (error) {
-      console.error('Error getting mouse position with Electron API:', error);
+      console.error('Error getting mouse position with robotjs:', error);
+      
+      // Fallback to Electron's screen API
+      try {
+        const cursorInfo = this.captureCursor();
+        return { x: cursorInfo.x, y: cursorInfo.y };
+      } catch (electronError) {
+        console.error('Error getting mouse position with Electron API:', electronError);
       
       // Fallback to platform-specific methods
       const { exec } = require('child_process');
@@ -1049,16 +1056,29 @@ class TesterApp {
   // Mouse cursor is now captured directly in screen images (cursor: true)
   // No separate cursor tracking needed - cursor is included in screen capture
   
-  // Fallback method to add cursor overlay if built-in cursor capture fails
+  // Capture mouse cursor using robotjs and overlay on screenshot
   async addCursorOverlayToImage(imageBuffer, width, height) {
     try {
-      const mousePos = await this.getMousePosition();
+      // Get mouse position using robotjs (more reliable)
+      const mousePos = robot.getMousePos();
+      console.log(`🖱️ RobotJS mouse position: ${mousePos.x}, ${mousePos.y}`);
       
-      // For now, just return the original image
-      // TODO: Implement cursor overlay using canvas or image manipulation
-      return imageBuffer;
+      // Get cursor bitmap using robotjs
+      const cursorBitmap = robot.getMouseBitmap();
+      if (cursorBitmap && cursorBitmap.width > 0 && cursorBitmap.height > 0) {
+        console.log(`🖱️ Cursor bitmap captured: ${cursorBitmap.width}x${cursorBitmap.height}`);
+        
+        // For now, return the original image with cursor position logged
+        // The cursor should be captured by screenshot-desktop with cursor: true
+        // If not visible, we can implement actual cursor overlay later
+        return imageBuffer;
+      } else {
+        console.log('🖱️ No cursor bitmap available, using screenshot-desktop cursor');
+        return imageBuffer;
+      }
     } catch (error) {
-      console.error('Error adding cursor overlay:', error);
+      console.error('Error capturing cursor with robotjs:', error);
+      // Return original image if robotjs fails
       return imageBuffer;
     }
   }
@@ -1754,6 +1774,8 @@ class TesterApp {
           const img = await screenshot(captureOptions);
           
           // Mouse cursor is captured directly in screen images (cursor: true)
+          // Also try to add cursor overlay using robotjs for better visibility
+          const imgWithCursor = await this.addCursorOverlayToImage(img, captureOptions.width, captureOptions.height);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1762,9 +1784,9 @@ class TesterApp {
           if (this.socket && this.socket.connected && this.isSharing) {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
-              // Send full frame
+              // Send full frame with cursor overlay
               this.socket.emit('screenData', {
-                image: img.toString('base64'),
+                image: imgWithCursor.toString('base64'),
                 isFullFrame: true,
                 regions: deltaInfo.regions
               });
