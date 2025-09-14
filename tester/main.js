@@ -949,20 +949,7 @@ class TesterApp {
   // Enhanced cursor capture using multiple methods
   async captureScreenWithCursor() {
     try {
-      // Method 1: Try Electron's desktopCapturer (best for cursor on Windows)
-      const { desktopCapturer } = require('electron');
-      const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: { width: this.screenWidth, height: this.screenHeight }
-      });
-      
-      if (sources.length > 0) {
-        const screenshot = sources[0].thumbnail.toPNG();
-        console.log('🖱️ Captured with Electron desktopCapturer (includes cursor)');
-        return screenshot;
-      }
-      
-      // Method 2: Fallback to screenshot-desktop with cursor
+      // Force use screenshot-desktop with cursor: true for better cursor capture
       const screenshot = require('screenshot-desktop');
       const img = await screenshot({
         format: 'png',
@@ -978,7 +965,64 @@ class TesterApp {
       
     } catch (error) {
       console.error('Error capturing screen with cursor:', error);
+      
+      // Fallback to Electron desktopCapturer without cursor
+      try {
+        const { desktopCapturer } = require('electron');
+        const sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          thumbnailSize: { width: this.screenWidth, height: this.screenHeight }
+        });
+        
+        if (sources.length > 0) {
+          const screenshot = sources[0].thumbnail.toPNG();
+          console.log('🖱️ Fallback to Electron desktopCapturer (no cursor)');
+          return screenshot;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback capture also failed:', fallbackError);
+      }
+      
       throw error;
+    }
+  }
+
+  // Add custom cursor overlay to ensure cursor is visible
+  async addCursorOverlay(imageBuffer, mouseX, mouseY) {
+    try {
+      // Simple cursor overlay by modifying pixel data
+      const buffer = Buffer.from(imageBuffer);
+      
+      // Convert to array for easier manipulation
+      const pixels = new Uint8Array(buffer);
+      
+      // Draw a simple red cursor (8x8 pixels)
+      const cursorSize = 8;
+      const startX = Math.max(0, mouseX - cursorSize/2);
+      const startY = Math.max(0, mouseY - cursorSize/2);
+      const endX = Math.min(this.screenWidth - 1, mouseX + cursorSize/2);
+      const endY = Math.min(this.screenHeight - 1, mouseY + cursorSize/2);
+      
+      for (let y = startY; y < endY; y++) {
+        for (let x = startX; x < endX; x++) {
+          const pixelIndex = (y * this.screenWidth + x) * 4; // RGBA format
+          
+          if (pixelIndex < pixels.length - 3) {
+            // Set pixel to red
+            pixels[pixelIndex] = 255;     // Red
+            pixels[pixelIndex + 1] = 0;   // Green
+            pixels[pixelIndex + 2] = 0;   // Blue
+            pixels[pixelIndex + 3] = 255; // Alpha
+          }
+        }
+      }
+      
+      console.log('🖱️ Added simple cursor overlay at:', mouseX, mouseY);
+      return Buffer.from(pixels);
+      
+    } catch (error) {
+      console.error('Error adding cursor overlay:', error);
+      return imageBuffer; // Return original if overlay fails
     }
   }
 
@@ -1977,8 +2021,11 @@ class TesterApp {
           const mousePos = await this.getMousePosition();
           console.log(`🖱️ Mouse position: ${mousePos.x}, ${mousePos.y}`);
           
+          // Add custom cursor overlay if needed
+          const imgWithCursor = await this.addCursorOverlay(img, mousePos.x, mousePos.y);
+          
           // For high frame rates, send full frames more frequently for better quality
-          const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
+          const deltaInfo = await this.detectChangedRegions(imgWithCursor, captureOptions.width, captureOptions.height);
           
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
@@ -1986,7 +2033,7 @@ class TesterApp {
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
               // Send full frame with mouse position
               this.socket.emit('screenData', {
-                image: img.toString('base64'),
+                image: imgWithCursor.toString('base64'),
                 isFullFrame: true,
                 regions: deltaInfo.regions,
                 mouseX: mousePos.x,
