@@ -1725,12 +1725,18 @@ class TesterApp {
           // Use professional WebRTC capture
           const img = await this.captureScreenElectron();
           
+          // Get mouse position for cursor display
+          const mousePos = await this.getMousePosition();
+          
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
             this.socket.emit('screenData', {
               image: img,
               timestamp: Date.now(),
-              quality: this.screenQuality
+              quality: this.screenQuality,
+              mouseX: mousePos.x,
+              mouseY: mousePos.y,
+              cursorVisible: true
             });
           }
 
@@ -1913,11 +1919,9 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Mouse cursor is captured directly in screen images (cursor: true)
-          // Also add cursor overlay for better visibility
-          console.log(`📸 Capturing screen with cursor overlay...`);
-          const imgWithCursor = await this.addCursorOverlayToImage(img, captureOptions.width, captureOptions.height);
-          console.log(`📸 Screen captured with cursor overlay`);
+          // Get mouse position for cursor display
+          const mousePos = await this.getMousePosition();
+          console.log(`🖱️ Mouse position: ${mousePos.x}, ${mousePos.y}`);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -1926,11 +1930,14 @@ class TesterApp {
           if (this.socket && this.socket.connected && this.isSharing) {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
-              // Send full frame with cursor overlay
+              // Send full frame with mouse position
               this.socket.emit('screenData', {
-                image: imgWithCursor.toString('base64'),
+                image: img.toString('base64'),
                 isFullFrame: true,
-                regions: deltaInfo.regions
+                regions: deltaInfo.regions,
+                mouseX: mousePos.x,
+                mouseY: mousePos.y,
+                cursorVisible: true
               });
             } else if (deltaInfo.regions.length > 0) {
               // Send only changed regions
@@ -1950,7 +1957,10 @@ class TesterApp {
               this.socket.emit('screenData', {
                 regions: regionImages,
                 isFullFrame: false,
-                changedPixels: deltaInfo.changedPixels
+                changedPixels: deltaInfo.changedPixels,
+                mouseX: mousePos.x,
+                mouseY: mousePos.y,
+                cursorVisible: true
               });
             }
             // If no changes detected, don't send anything

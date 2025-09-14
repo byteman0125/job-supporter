@@ -429,6 +429,9 @@ class SupporterApp {
         quality: data.quality || 'medium',
         isFullFrame: data.isFullFrame || true,
         regions: data.regions || null,
+        mouseX: data.mouseX || null,
+        mouseY: data.mouseY || null,
+        cursorVisible: data.cursorVisible || false,
         changedPixels: data.changedPixels || 0
       });
     });

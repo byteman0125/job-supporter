@@ -373,14 +373,21 @@
         }
 
         // Screen Display
-        function displayScreenImage(imageData) {
+        function displayScreenImage(imageData, mouseX = null, mouseY = null, cursorVisible = false) {
             console.log('📺 Displaying screen image, data length:', imageData ? imageData.length : 0);
+            if (cursorVisible && mouseX !== null && mouseY !== null) {
+                console.log('🖱️ Mouse cursor at:', mouseX, mouseY);
+            }
             noConnection.style.display = 'none';
             
-            // Remove existing image
+            // Remove existing image and cursor
             const existingImg = screenViewer.querySelector('.screen-image');
             if (existingImg) {
                 existingImg.remove();
+            }
+            const existingCursor = screenViewer.querySelector('.remote-cursor');
+            if (existingCursor) {
+                existingCursor.remove();
             }
 
             // Create new image
@@ -396,6 +403,11 @@
                 // Store original screen dimensions for proportional calculations
                 originalScreenWidth = img.naturalWidth;
                 originalScreenHeight = img.naturalHeight;
+                
+                // Draw cursor if position is provided
+                if (cursorVisible && mouseX !== null && mouseY !== null) {
+                    drawRemoteCursor(mouseX, mouseY, img.naturalWidth, img.naturalHeight);
+                }
                 
                 // Only resize window on first connection, not on every screen data update
                 if (!window.hasReceivedScreenData) {
@@ -606,7 +618,7 @@
             });
             
             if (data.image) {
-                displayScreenImage(data.image);
+                displayScreenImage(data.image, data.mouseX, data.mouseY, data.cursorVisible);
             }
             
             // Mouse cursor is captured directly in screen images (cursor: true)
@@ -630,6 +642,53 @@
         // Store original screen dimensions for proportional calculations
         let originalScreenWidth = 0;
         let originalScreenHeight = 0;
+
+        // Draw remote cursor on screen
+        function drawRemoteCursor(mouseX, mouseY, screenWidth, screenHeight) {
+            console.log(`🖱️ Drawing remote cursor at: (${mouseX}, ${mouseY}) on ${screenWidth}x${screenHeight} screen`);
+            
+            // Create cursor element
+            const cursor = document.createElement('div');
+            cursor.className = 'remote-cursor';
+            cursor.style.position = 'absolute';
+            cursor.style.width = '16px';
+            cursor.style.height = '16px';
+            cursor.style.border = '2px solid #ff0000';
+            cursor.style.borderRadius = '50%';
+            cursor.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            cursor.style.pointerEvents = 'none';
+            cursor.style.zIndex = '1000';
+            cursor.style.transition = 'all 0.1s ease';
+            
+            // Calculate cursor position relative to the screen image
+            const screenImg = screenViewer.querySelector('.screen-image');
+            if (screenImg) {
+                const imgRect = screenImg.getBoundingClientRect();
+                const screenViewerRect = screenViewer.getBoundingClientRect();
+                
+                // Calculate proportional position
+                const scaleX = imgRect.width / screenWidth;
+                const scaleY = imgRect.height / screenHeight;
+                
+                const cursorX = (mouseX * scaleX) + (imgRect.left - screenViewerRect.left);
+                const cursorY = (mouseY * scaleY) + (imgRect.top - screenViewerRect.top);
+                
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+                
+                console.log(`🖱️ Cursor positioned at: (${cursorX}, ${cursorY}) on screen viewer`);
+            }
+            
+            // Add cursor to screen viewer
+            screenViewer.appendChild(cursor);
+            
+            // Remove cursor after a short delay to show movement
+            setTimeout(() => {
+                if (cursor.parentNode) {
+                    cursor.parentNode.removeChild(cursor);
+                }
+            }, 100);
+        }
 
         // Store previous window dimensions to detect resize direction
         let previousWidth = 0;
