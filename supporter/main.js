@@ -234,6 +234,19 @@ class SupporterApp {
       });
     });
 
+    this.socket.on('screen-resolution', (data) => {
+      // Handle the locked screen resolution from tester
+      console.log(`🔒 Received locked screen resolution: ${data.width}x${data.height}`);
+      
+      // Send the resolution to renderer to resize window
+      if (this.mainWindow) {
+        this.mainWindow.webContents.send('resize-window-to-screen', {
+          width: data.width,
+          height: data.height
+        });
+      }
+    });
+
     this.socket.on('chatMessage', (message) => {
       // Store message locally
       if (!this.chatMessages.has('tester')) {

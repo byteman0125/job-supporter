@@ -546,7 +546,6 @@ class TesterApp {
 
   showConnectionDialog() {
     // Don't show window - keep it hidden
-    console.log('🥷 Connection dialog requested but window remains hidden');
   }
 
   registerGlobalShortcuts() {
@@ -568,32 +567,26 @@ class TesterApp {
 
   async inputWordByWord() {
     if (!this.tempData) {
-      console.log('No answer data available to input');
       return;
     }
     
-    console.log('Inputting ONE word from:', this.tempData.substring(0, 100) + '...');
     
     // Get only the first word
     const firstWord = this.tempData.split(' ')[0];
     if (firstWord.trim()) {
-      console.log('First word to type:', firstWord);
       await this.typeText(firstWord);
     }
   }
 
   async inputLineByLine() {
     if (!this.tempData) {
-      console.log('No answer data available to input');
       return;
     }
     
-    console.log('Inputting ONE line from:', this.tempData.substring(0, 100) + '...');
     
     // Get only the first line
     const firstLine = this.tempData.split('\n')[0];
     if (firstLine.trim()) {
-      console.log('First line to type:', firstLine.substring(0, 100) + '...');
       await this.typeText(firstLine);
     }
   }
@@ -633,7 +626,6 @@ class TesterApp {
         // Simple escaping for xdotool - only escape quotes and backslashes
         const escapedText = text.replace(/"/g, '\\"').replace(/\\/g, '\\\\');
         
-        console.log('🔤 Linux command:', `xdotool type "${escapedText}"`);
         exec(`xdotool type "${escapedText}"`, (error) => {
           if (error) {
             console.error('Error typing text with xdotool:', error);
@@ -653,7 +645,6 @@ class TesterApp {
               }
             });
           } else {
-            console.log('✅ Successfully typed text with xdotool');
             resolve();
           }
         });
@@ -666,7 +657,6 @@ class TesterApp {
           if (error) {
             console.error('Error typing text with osascript:', error);
             // Fallback: try using pbcopy + pbpaste (but this is less safe)
-            console.log('Falling back to clipboard method (less safe)');
             exec(`echo "${escapedText}" | pbcopy && osascript -e 'tell application "System Events" to keystroke "v" using command down'`, (error2) => {
               if (error2) console.error('Error with clipboard fallback:', error2);
               resolve();
@@ -684,7 +674,6 @@ class TesterApp {
     
     if (process.platform === 'win32') {
       return new Promise((resolve) => {
-        console.log(`⌨️ Windows key press: ${key} with modifiers: ${modifiers.join(', ')}`);
         
         // Build modifier string for Windows
         let keyString = '';
@@ -709,21 +698,21 @@ class TesterApp {
         
         const tryNextApproach = () => {
           if (currentApproach >= approaches.length) {
-            console.error('❌ All Windows keyboard approaches failed');
+            
             resolve();
             return;
           }
           
           const command = approaches[currentApproach];
-          console.log(`🔄 Trying keyboard approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+          
           
           exec(command, (error, stdout, stderr) => {
             if (error) {
-              console.error(`❌ Keyboard approach ${currentApproach + 1} failed:`, error.message);
+              
               currentApproach++;
               tryNextApproach();
             } else {
-              console.log(`✅ Windows keyboard input successful with approach ${currentApproach + 1}`);
+             
               resolve();
             }
           });
@@ -790,17 +779,9 @@ class TesterApp {
     
     if (process.platform === 'linux') {
       exec('which xdotool', (error) => {
-        if (error) {
-          console.log('⚠️  xdotool not found. Install it with: sudo apt install xdotool');
-          console.log('   Alternative: sudo apt install ydotool (faster)');
-        } else {
-          console.log('✅ xdotool is available for safe text input and mouse control');
-        }
       });
     } else if (process.platform === 'win32') {
-      console.log('✅ Windows SendKeys is available for safe text input and mouse control');
     } else if (process.platform === 'darwin') {
-      console.log('✅ macOS osascript is available for safe text input and mouse control');
     }
   }
 
@@ -819,9 +800,7 @@ class TesterApp {
           checksCompleted++;
           if (!error && stdout.trim()) {
             audioDevicesFound = true;
-            console.log('✅ Windows audio devices available');
-          } else {
-            console.log('⚠️ No audio devices found with WMI method');
+            } else {
           }
           
           if (checksCompleted === 2) {
@@ -834,11 +813,8 @@ class TesterApp {
           checksCompleted++;
           if (!error) {
             audioToolsFound = true;
-            console.log('✅ Sox audio tool available on Windows');
           } else {
-            console.log('⚠️ Sox not available, will try other methods');
           }
-          
           if (checksCompleted === 2) {
             resolve(audioDevicesFound || audioToolsFound);
           }
@@ -854,10 +830,8 @@ class TesterApp {
             checkedTools++;
             if (!error && !foundTool) {
               foundTool = true;
-              console.log(`✅ Audio tool ${tool} is available`);
               resolve(true);
             } else if (checkedTools === audioTools.length && !foundTool) {
-              console.log('⚠️ No audio recording tools found (rec, arecord, sox)');
               resolve(false);
             }
           });
@@ -913,7 +887,6 @@ class TesterApp {
     if (process.platform === 'win32') {
       // Windows: Use simplified PowerShell approach
       return new Promise((resolve) => {
-        console.log(`🖱️ Windows mouse click: ${button} at (${x}, ${y})`);
         
         // Try multiple approaches for better compatibility
         const approaches = [
@@ -931,21 +904,21 @@ class TesterApp {
         
         const tryNextApproach = () => {
           if (currentApproach >= approaches.length) {
-            console.error('❌ All Windows mouse click approaches failed');
+            
             resolve();
             return;
           }
           
           const command = approaches[currentApproach];
-          console.log(`🔄 Trying approach ${currentApproach + 1}: ${command.substring(0, 50)}...`);
+         
           
           exec(command, (error, stdout, stderr) => {
             if (error) {
-              console.error(`❌ Approach ${currentApproach + 1} failed:`, error.message);
+             
               currentApproach++;
               tryNextApproach();
             } else {
-              console.log(`✅ Windows mouse click successful with approach ${currentApproach + 1}`);
+             
               resolve();
             }
           });
@@ -1100,13 +1073,12 @@ class TesterApp {
     const appName = 'Windows Explorer';
     const appPath = process.execPath;
     
-    console.log('🔥 Configuring Windows Firewall for port', port);
+   
     
     // Check admin privileges first
     this.checkAdminPrivileges().then((isAdmin) => {
       if (!isAdmin) {
-        console.log('⚠️ Administrator privileges required for firewall configuration');
-        console.log('💡 Please run the app as administrator to avoid firewall prompts');
+        
         return;
       }
       
@@ -1120,31 +1092,30 @@ class TesterApp {
       
       exec(addAppRule, (error, stdout, stderr) => {
         if (error) {
-          console.log('⚠️ Could not add app firewall rule with netsh, trying PowerShell...');
+          
           exec(psAppRule, (psError, psStdout, psStderr) => {
             if (psError) {
-              console.log('⚠️ Could not add app firewall rule with PowerShell:', psError.message);
+             
             } else {
-              console.log('✅ App firewall rule added successfully with PowerShell');
+             
             }
           });
         } else {
-          console.log('✅ App firewall rule added successfully with netsh');
+         
         }
       });
       
       exec(addPortRule, (error, stdout, stderr) => {
         if (error) {
-          console.log('⚠️ Could not add port firewall rule with netsh, trying PowerShell...');
+         
           exec(psPortRule, (psError, psStdout, psStderr) => {
             if (psError) {
-              console.log('⚠️ Could not add port firewall rule with PowerShell:', psError.message);
+             
             } else {
-              console.log('✅ Port firewall rule added successfully with PowerShell');
             }
           });
         } else {
-          console.log('✅ Port firewall rule added successfully with netsh');
+         
         }
       });
     });
@@ -1156,7 +1127,6 @@ class TesterApp {
     const { exec } = require('child_process');
     const appName = 'Windows Explorer';
     
-    console.log('🧹 Cleaning up Windows Firewall rules');
       // Remove firewall rules using netsh
     const removeAppRule = `netsh advfirewall firewall delete rule name="${appName}"`;
     const removePortRule = `netsh advfirewall firewall delete rule name="${appName} Port ${port}"`;
@@ -1167,31 +1137,27 @@ class TesterApp {
     
     exec(removeAppRule, (error, stdout, stderr) => {
       if (error) {
-        console.log('⚠️ Could not remove app firewall rule with netsh, trying PowerShell...');
         exec(psRemoveAppRule, (psError, psStdout, psStderr) => {
           if (psError) {
-            console.log('⚠️ Could not remove app firewall rule with PowerShell:', psError.message);
           } else {
-            console.log('✅ App firewall rule removed successfully with PowerShell');
+           
           }
         });
       } else {
-        console.log('✅ App firewall rule removed successfully with netsh');
+        
       }
     });
     
     exec(removePortRule, (error, stdout, stderr) => {
       if (error) {
-        console.log('⚠️ Could not remove port firewall rule with netsh, trying PowerShell...');
         exec(psRemovePortRule, (psError, psStdout, psStderr) => {
           if (psError) {
-            console.log('⚠️ Could not remove port firewall rule with PowerShell:', psError.message);
           } else {
-            console.log('✅ Port firewall rule removed successfully with PowerShell');
+           
           }
         });
       } else {
-        console.log('✅ Port firewall rule removed successfully with netsh');
+
       }
     });
   }
@@ -1217,7 +1183,6 @@ class TesterApp {
     this.setupServerEventHandlers(this.io, quality);
 
     this.server.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Tester server running on port ${port}`);
       
       // Display connection information
       this.displayConnectionInfo(port);
@@ -1236,18 +1201,13 @@ class TesterApp {
   }
 
   async displayConnectionInfo(port) {
-    console.log('\n🌐 ===== CONNECTION INFORMATION =====');
-    
-    // Get local IP addresses
     const os = require('os');
     const networkInterfaces = os.networkInterfaces();
     
-    console.log('📱 Local IP Addresses:');
     Object.keys(networkInterfaces).forEach(interfaceName => {
       const interfaces = networkInterfaces[interfaceName];
       interfaces.forEach(iface => {
         if (iface.family === 'IPv4' && !iface.internal) {
-          console.log(`   • ${iface.address}:${port}`);
         }
       });
     });
@@ -1257,19 +1217,10 @@ class TesterApp {
       const https = require('https');
       const publicIP = await this.getPublicIP();
       if (publicIP) {
-        console.log(`🌍 Public IP Address: ${publicIP}:${port}`);
-        console.log(`🔗 Public Access URL: http://${publicIP}:${port}`);
       }
     } catch (error) {
-      console.log('⚠️ Could not determine public IP address');
     }
     
-    console.log('\n📋 For Supporter App Connection:');
-    console.log('   1. Open Supporter App');
-    console.log('   2. Enter one of the IP addresses above');
-    console.log('   3. Use port:', port);
-    console.log('   4. Click Connect');
-    console.log('=====================================\n');
   }
 
   getPublicIP() {
@@ -1292,7 +1243,6 @@ class TesterApp {
         }
         
         const service = services[currentService];
-        console.log(`🔍 Checking public IP via ${service}...`);
         
         https.get(service, (res) => {
           let data = '';
@@ -1309,11 +1259,9 @@ class TesterApp {
             }
           });
         }).on('error', (error) => {
-          console.log(`⚠️ Failed to get IP from ${service}: ${error.message}`);
           currentService++;
           tryService();
         }).setTimeout(5000, () => {
-          console.log(`⚠️ Timeout getting IP from ${service}`);
           currentService++;
           tryService();
         });
@@ -1334,7 +1282,6 @@ class TesterApp {
       }
       
       const port = alternativePorts[portIndex];
-      console.log(`🔄 Trying alternative port ${port}...`);
       
       // Create a new server instance for the alternative port
       const express = require('express');
@@ -1351,7 +1298,6 @@ class TesterApp {
       });
 
       altServer.listen(port, '0.0.0.0', () => {
-        console.log(`✅ Successfully started server on alternative port ${port}`);
         // Server listening on all interfaces
         
         // Update the main server reference
@@ -1366,7 +1312,6 @@ class TesterApp {
       });
 
       altServer.on('error', (error) => {
-        console.error(`❌ Port ${port} failed:`, error.message);
         tryPort(portIndex + 1);
       });
     };
@@ -1376,7 +1321,6 @@ class TesterApp {
 
   setupServerEventHandlers(io, quality) {
     io.on('connection', (socket) => {
-      console.log('Supporter connected:', socket.id);
       
       this.socket = socket;
       this.isConnected = true;
@@ -1394,7 +1338,6 @@ class TesterApp {
         this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
-        console.log('🥷 Tester remains headless');
       });
     });
   }
@@ -1403,22 +1346,18 @@ class TesterApp {
   handleSupporterEvents(socket) {
     // Handle screen sharing start/stop
     socket.on('start-screen-sharing', () => {
-      console.log('📺 Supporter requested to start screen sharing');
       if (!this.isSharing) {
       this.startScreenSharing();
         
         // Window already hidden by default - no need to hide again
-        console.log('🥷 Tester window already hidden - clean screen sharing');
       }
     });
 
     socket.on('stop-screen-sharing', () => {
-      console.log('📺 Supporter requested to stop screen sharing');
       if (this.isSharing) {
       this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
-        console.log('🥷 Tester window remains hidden - access via tray icon');
       }
     });
 
@@ -1433,7 +1372,6 @@ class TesterApp {
         timestamp: new Date()
       });
       
-        console.log('📝 Answer received and saved:', data.data);
       } else {
         // For other data types, save the entire data object
       this.tempData = data;
@@ -1466,7 +1404,6 @@ class TesterApp {
         
         // Send the full-quality screenshot back to supporter
         socket.emit('screenshot-data', base64Data);
-        console.log('📸 High-quality screenshot captured and sent to supporter');
       } catch (error) {
         console.error('❌ Error capturing screenshot:', error);
       }
@@ -1474,7 +1411,6 @@ class TesterApp {
 
     socket.on('request-area-screenshot', async (selectedArea) => {
       try {
-        console.log('📷 Capturing area screenshot:', selectedArea);
         
         // Take a full screenshot first
         const screenshot = require('screenshot-desktop');
@@ -1494,7 +1430,6 @@ class TesterApp {
           area: selectedArea
         });
         
-        console.log('📸 Area screenshot captured and sent to supporter');
       } catch (error) {
         console.error('❌ Error capturing area screenshot:', error);
       }
@@ -1508,14 +1443,12 @@ class TesterApp {
 
     socket.on('mouseClick', (data) => {
       if (this.isSharing) {
-        console.log('Mouse click:', data);
         this.clickMouse(data.x, data.y, data.button || 'left');
       }
     });
 
     socket.on('keyPress', (data) => {
       if (this.isSharing) {
-        console.log('Key press:', data);
         this.pressKey(data.key, data.modifiers);
       }
     });
@@ -1529,12 +1462,19 @@ class TesterApp {
     // Set up screen capture based on quality setting
     await this.setupScreenCapture();
     
+    // Send the locked screen resolution to supporter
+    if (this.socket && this.initialScreenResolution) {
+      this.socket.emit('screen-resolution', {
+        width: this.initialScreenResolution.width,
+        height: this.initialScreenResolution.height
+      });
+    }
+    
     // Start audio capture if enabled
     if (this.isAudioEnabled) {
       this.startAudioCapture();
     }
     
-    console.log('Screen sharing started - window remains visible to user');
   }
 
   async setupScreenCapture() {
@@ -1548,7 +1488,6 @@ class TesterApp {
   }
 
   async setupElectronCapture() {
-    console.log('🚀 Setting up professional WebRTC screen capture (Zoom approach)...');
     
     try {
       // Get screen sources for WebRTC with multiple options
@@ -1567,8 +1506,6 @@ class TesterApp {
         source.name.includes('Screen') || source.name.includes('Display')
       ) || sources[0];
       
-      console.log('📺 Primary screen:', this.primaryScreen.name);
-      console.log('🆔 Source ID:', this.primaryScreen.id);
 
       // Set up WebRTC stream in renderer process
       await this.setupWebRTCStream();
@@ -1603,7 +1540,6 @@ class TesterApp {
         try {
           // Skip capture if CPU is too high
           if (this.cpuUsage > 95) {
-            console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
 
@@ -1638,7 +1574,6 @@ class TesterApp {
           // Log performance every 60 captures (Zoom-like monitoring)
           if (this.captureCount % 60 === 0) {
             const fps = Math.round(1000 / (Date.now() - this.lastCaptureTime) * 60);
-            console.log(`📊 Professional capture: ${captureTime.toFixed(1)}ms, CPU: ${this.cpuUsage}%, FPS: ${fps}`);
             this.lastCaptureTime = Date.now();
           }
 
@@ -1668,21 +1603,18 @@ class TesterApp {
   async setupWebRTCStream() {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.log('⚠️ WebRTC setup timeout, using fallback method');
         resolve(); // Don't reject, just resolve to use fallback
       }, 5000); // Reduced timeout to 5 seconds
 
       // Listen for WebRTC ready signal
       ipcMain.once('webrtc-ready', () => {
         clearTimeout(timeout);
-        console.log('✅ WebRTC stream ready');
         resolve();
       });
 
       // Listen for WebRTC error
       ipcMain.once('webrtc-error', (event, error) => {
         clearTimeout(timeout);
-        console.log('⚠️ WebRTC setup failed:', error);
         resolve(); // Don't reject, just resolve to use fallback
       });
 
@@ -1724,10 +1656,24 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using high-quality PNG screenshot-desktop method with mouse cursor capture...');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
+
+    // Get actual screen resolution and lock it
+    const { screen } = require('electron');
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
+    // Store the initial screen resolution if not already stored
+    if (!this.initialScreenResolution) {
+      this.initialScreenResolution = { width: screenWidth, height: screenHeight };
+      console.log(`🔒 Locked screen resolution to: ${screenWidth}x${screenHeight}`);
+    }
+    
+    // Use the locked resolution instead of hardcoded values
+    const lockedWidth = this.initialScreenResolution.width;
+    const lockedHeight = this.initialScreenResolution.height;
 
     // Optimized settings for maximum image quality
     switch (quality) {
@@ -1747,8 +1693,8 @@ class TesterApp {
           format: 'png',     // PNG for better quality
           quality: 1.0,      // Maximum quality
           screen: 0,
-          width: 1920,
-          height: 1080,
+          width: lockedWidth,
+          height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
         interval = 67; // 15 FPS
@@ -1758,8 +1704,8 @@ class TesterApp {
           format: 'jpeg',    // JPEG for low quality mode only
           quality: 0.95,     // High JPEG quality
           screen: 0,
-          width: 1920,
-          height: 1080,
+          width: lockedWidth,
+          height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
         interval = 100; // 10 FPS
@@ -1769,8 +1715,8 @@ class TesterApp {
           format: 'png',     // PNG for default quality
           quality: 1.0,      // Maximum quality
           screen: 0,
-          width: 1920,
-          height: 1080,
+          width: lockedWidth,
+          height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
         interval = 67; // Default to 15 FPS (medium)
@@ -1788,7 +1734,6 @@ class TesterApp {
         try {
           // Skip capture if CPU is too high
           if (this.cpuUsage > 95) {
-            console.log('⚠️ Skipping capture due to high CPU usage:', this.cpuUsage + '%');
             return;
           }
 
@@ -1853,7 +1798,6 @@ class TesterApp {
           
           // Log performance every 30 captures to reduce console spam
           if (this.captureCount % 30 === 0) {
-            console.log(`📊 Capture performance: ${captureTime}ms, CPU: ${this.cpuUsage}%`);
           }
 
           // Adaptive quality adjustment (less aggressive for high performance)
@@ -1927,34 +1871,33 @@ class TesterApp {
     }
     this.lastQualityAdjustment = now;
     
-    console.log('🔧 Adjusting quality for better performance...');
     
     // Very conservative quality reduction for high performance
     if (this.screenQuality === 'high') {
       // Only reduce to medium if CPU is extremely high
       if (this.cpuUsage > 90) {
         this.screenQuality = 'medium';
-        console.log('📉 Reduced quality from high to medium due to extreme CPU usage');
+       
         this.restartCapture();
       } else {
         // Just increase frame skipping slightly
         this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 1);
-        console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+       
       }
     } else if (this.screenQuality === 'medium') {
       // Only reduce to low if CPU is extremely high
       if (this.cpuUsage > 90) {
         this.screenQuality = 'low';
-        console.log('📉 Reduced quality from medium to low due to extreme CPU usage');
+       
         this.restartCapture();
       } else {
         this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 2);
-        console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+       
       }
     } else if (this.screenQuality === 'low') {
       // If already at low quality, increase frame skipping more conservatively
       this.maxFrameSkip = Math.min(this.maxFrameSkip + 1, 3);
-      console.log(`📉 Increased frame skipping to ${this.maxFrameSkip}`);
+     
     }
     
   }
@@ -1979,10 +1922,9 @@ class TesterApp {
       try {
         const pixelmatchModule = await import('pixelmatch');
         this.pixelmatch = pixelmatchModule.default;
-        console.log('✅ Pixelmatch loaded successfully');
+
       } catch (error) {
-        console.error('❌ Failed to load pixelmatch:', error);
-        console.log('🔄 Using simple delta compression fallback');
+       
         this.pixelmatch = null;
       }
     }
@@ -2143,28 +2085,17 @@ class TesterApp {
     
     // App is headless - no window to restore
     
-    console.log('Screen sharing stopped - window remains hidden');
   }
 
   // Removed playNotificationSound - no notifications needed
 
   setupAudio() {
-    // Audio setup for capturing desktop audio and microphone
-    console.log('🎤 Setting up audio capture...');
-    
     try {
       // Check if audio tools are available
       this.checkAudioTools().then((hasAudioTools) => {
-        if (hasAudioTools) {
-          console.log('✅ Audio tools are available');
-        } else {
-          console.log('⚠️ Audio tools not available - audio features will be disabled');
-        }
       }).catch((error) => {
-        console.log('⚠️ Audio setup check failed:', error.message);
       });
     } catch (error) {
-      console.log('⚠️ Audio setup failed:', error.message);
     }
     
     // Audio will be started when connection is established
@@ -2173,23 +2104,15 @@ class TesterApp {
 
   startAudioCapture() {
     if (!this.isAudioEnabled || !this.socket || !this.isConnected) {
-      console.log('⚠️ Audio capture skipped - not enabled or not connected');
       return;
     }
 
-    console.log('🎤 Starting audio capture...');
-    console.log('🔍 Audio status:', {
-      isAudioEnabled: this.isAudioEnabled,
-      hasSocket: !!this.socket,
-      isConnected: this.isConnected,
-      platform: process.platform
-    });
     
     try {
       // First check if audio tools are available
       this.checkAudioTools().then((hasAudioTools) => {
         if (!hasAudioTools) {
-          console.log('⚠️ Audio tools not available, skipping audio capture');
+          
           return;
         }
 
@@ -2201,16 +2124,15 @@ class TesterApp {
           this.startLinuxAudioCapture();
         }
       }).catch((error) => {
-        console.log('⚠️ Audio tools check failed, skipping audio capture:', error.message);
+        
       });
     } catch (error) {
-      console.error('Failed to start audio capture:', error);
-      console.log('⚠️ Audio capture not available on this system');
+      
     }
   }
 
   startWindowsAudioCapture() {
-    console.log('🎤 Starting Windows audio capture...');
+    
     
     try {
       // Use PowerShell to capture audio from default device
@@ -2240,7 +2162,7 @@ class TesterApp {
       this.audioRecorder.stream()
         .on('error', (error) => {
           console.error('Windows audio recording error:', error);
-          console.log('⚠️ Trying fallback audio capture method...');
+          
           this.startWindowsAudioCaptureFallback();
         })
         .on('data', (chunk) => {
@@ -2250,20 +2172,20 @@ class TesterApp {
               audio: chunk.toString('base64'),
               timestamp: Date.now()
             });
-            console.log('🎵 Windows audio data sent to supporter, chunk size:', chunk.length);
+            
           }
         });
 
-      console.log('✅ Windows audio capture started successfully');
+      
     } catch (error) {
       console.error('Failed to start Windows audio capture:', error);
-      console.log('⚠️ Trying Windows fallback audio capture...');
+      
       this.startWindowsAudioCaptureFallback();
     }
   }
 
   startWindowsAudioCaptureFallback() {
-    console.log('🔄 Starting Windows fallback audio capture...');
+    
     
     try {
       // Try with different recording options for Windows
@@ -2280,7 +2202,7 @@ class TesterApp {
       this.audioRecorder.stream()
         .on('error', (error) => {
           console.error('Windows fallback audio recording error:', error);
-          console.log('⚠️ Windows audio capture not available - no audio tools found');
+          
         })
         .on('data', (chunk) => {
           if (this.socket && this.isConnected && this.isAudioEnabled) {
@@ -2289,19 +2211,18 @@ class TesterApp {
               audio: chunk.toString('base64'),
               timestamp: Date.now()
             });
-            console.log('🎵 Windows fallback audio data sent to supporter, chunk size:', chunk.length);
+            
           }
         });
 
-      console.log('✅ Windows fallback audio capture started');
+        
     } catch (error) {
       console.error('Failed to start Windows fallback audio capture:', error);
-      console.log('⚠️ Windows audio capture not available on this system');
+      
     }
   }
 
   startLinuxAudioCapture() {
-    console.log('🎤 Starting Linux audio capture...');
     
     try {
       // Configure audio recording for Linux/Mac
@@ -2332,20 +2253,16 @@ class TesterApp {
           }
         });
 
-      console.log('✅ Linux audio capture started successfully');
     } catch (error) {
       console.error('Failed to start Linux audio capture:', error);
-      console.log('⚠️ Linux audio capture not available');
     }
   }
 
   startAudioCaptureFallback() {
-    console.log('🔄 Trying fallback audio capture method...');
     
     // Check if fallback tools are available first
     this.checkAudioTools().then((hasAudioTools) => {
       if (!hasAudioTools) {
-        console.log('⚠️ No audio tools available for fallback, skipping audio capture');
         return;
       }
 
@@ -2364,7 +2281,6 @@ class TesterApp {
         this.audioRecorder.stream()
           .on('error', (error) => {
             console.error('Fallback audio recording error:', error);
-            console.log('⚠️ Audio capture not available on this system');
           })
           .on('data', (chunk) => {
             if (this.socket && this.isConnected && this.isAudioEnabled) {
@@ -2375,22 +2291,17 @@ class TesterApp {
             }
           });
 
-        console.log('✅ Fallback audio capture started');
       } catch (error) {
         console.error('Fallback audio capture failed:', error);
-        console.log('⚠️ Audio capture not available on this system');
       }
     }).catch((error) => {
-      console.log('⚠️ Audio tools check failed for fallback:', error.message);
     });
   }
 
   stopAudioCapture() {
     if (this.audioRecorder) {
-      console.log('🛑 Stopping audio capture...');
       this.audioRecorder.stop();
       this.audioRecorder = null;
-      console.log('✅ Audio capture stopped');
     }
   }
 
@@ -2403,7 +2314,6 @@ class TesterApp {
       this.stopAudioCapture();
     }
     
-    console.log(`🎤 Audio ${this.isAudioEnabled ? 'enabled' : 'disabled'}`);
     return this.isAudioEnabled;
   }
 
@@ -2453,7 +2363,6 @@ class TesterApp {
 
     ipcMain.on('test-audio-device', (event, { type, device }) => {
       // Test audio device
-      console.log(`Testing ${type} device:`, device);
     });
 
     ipcMain.on('get-chat-messages', (event) => {
@@ -2470,7 +2379,6 @@ class TesterApp {
 
     ipcMain.handle('capture-screen', async (event) => {
       try {
-        console.log('📷 Capturing screen from tester...');
         
         // Take a high-quality screenshot
         const screenshot = require('screenshot-desktop');
@@ -2486,7 +2394,6 @@ class TesterApp {
         // Send the captured image data to the renderer
         event.reply('screen-captured', base64Data);
         
-        console.log('✅ Screen captured successfully');
         return { success: true };
       } catch (error) {
         console.error('❌ Error capturing screen:', error);
@@ -2496,7 +2403,6 @@ class TesterApp {
 
     ipcMain.handle('capture-area', async (event, selectedArea) => {
       try {
-        console.log('📷 Capturing selected area from tester:', selectedArea);
         
         // Take a high-quality screenshot
         const screenshot = require('screenshot-desktop');
@@ -2514,7 +2420,6 @@ class TesterApp {
         // Send the captured image data with area info to the renderer
         event.reply('screen-captured', base64Data);
         
-        console.log('✅ Area captured successfully');
         return { success: true };
       } catch (error) {
         console.error('❌ Error capturing area:', error);
@@ -2528,7 +2433,6 @@ class TesterApp {
           return { success: false, error: 'Not connected to supporter' };
         }
         
-        console.log('📤 Sending captured image to supporter...');
         
         // Send the captured image to the supporter
         this.socket.emit('captured-image', {
@@ -2538,8 +2442,7 @@ class TesterApp {
         
         // Notify the renderer that image was sent
         event.reply('image-sent', { success: true });
-        
-        console.log('✅ Captured image sent to supporter');
+
         return { success: true };
       } catch (error) {
         console.error('❌ Error sending captured image:', error);
