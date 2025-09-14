@@ -107,12 +107,15 @@ class SupporterApp {
   }
 
   setupWindowEventHandlers() {
-    // Allow manual resizing but prevent unwanted changes
+    // Instant resize handling - no delays or timeouts
     this.mainWindow.on('resize', () => {
       if (!this.isProgrammaticResize && this.allowManualResize) {
-        // User is manually resizing - allow it and update stored size
+        // User is manually resizing - instantly update stored size
         const [currentWidth, currentHeight] = this.mainWindow.getSize();
         this.initialWindowSize = { width: currentWidth, height: currentHeight };
+        
+        // Instantly ensure flexible constraints are maintained
+        this.ensureFlexibleConstraints();
       }
     });
 
@@ -143,13 +146,10 @@ class SupporterApp {
       clearTimeout(this.resizeTimeout);
     }
     
-    this.resizeTimeout = setTimeout(() => {
-      this.isProgrammaticResize = true;
-      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
-      setTimeout(() => {
-        this.isProgrammaticResize = false;
-      }, 50);
-    }, 10);
+    // Instantly restore window size using remembered resolution
+    this.isProgrammaticResize = true;
+    this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+    this.isProgrammaticResize = false;
   }
 
   checkAndRestoreSize() {
@@ -165,6 +165,24 @@ class SupporterApp {
     this.mainWindow.setMaximumSize(this.firstScreenResolution.width, this.firstScreenResolution.height);
   }
 
+  calculateOptimalSize(targetWidth, targetHeight) {
+    // Instantly calculate optimal size using remembered first screen resolution
+    const { width: screenWidth, height: screenHeight } = this.firstScreenResolution;
+    
+    // Calculate optimal window size to fit the first screen while maintaining aspect ratio
+    const aspectRatio = targetWidth / targetHeight;
+    let windowWidth = Math.min(targetWidth, screenWidth - 100);
+    let windowHeight = Math.round(windowWidth / aspectRatio);
+    
+    // If height is too big, scale down based on height
+    if (windowHeight > screenHeight - 100) {
+      windowHeight = screenHeight - 100;
+      windowWidth = Math.round(windowHeight * aspectRatio);
+    }
+    
+    return { width: windowWidth, height: windowHeight };
+  }
+
   professionalResize(width, height) {
     // Clear any pending resize operations
     if (this.resizeTimeout) {
@@ -175,20 +193,16 @@ class SupporterApp {
     this.isProgrammaticResize = true;
     this.allowManualResize = false; // Temporarily disable manual resize
 
-    // Set the new size
+    // Instantly set the new size using remembered resolution
     this.mainWindow.setSize(width, height);
 
-    // Update stored size
+    // Instantly update stored size
     this.initialWindowSize = { width, height };
 
-    // Reset flags and restore flexible constraints after a short delay
-    setTimeout(() => {
-      this.isProgrammaticResize = false;
-      this.allowManualResize = true; // Re-enable manual resize
-      
-      // Restore flexible constraints to allow manual resizing
-      this.ensureFlexibleConstraints();
-    }, 100);
+    // Instantly restore flexible constraints and re-enable manual resize
+    this.ensureFlexibleConstraints();
+    this.isProgrammaticResize = false;
+    this.allowManualResize = true;
   }
 
   registerGlobalShortcuts() {
@@ -399,22 +413,11 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        // Use the first screen resolution (remembered from startup)
-        const { width: screenWidth, height: screenHeight } = this.firstScreenResolution;
+        // Instantly calculate optimal size using remembered resolution
+        const optimalSize = this.calculateOptimalSize(width, height);
         
-        // Calculate optimal window size to fit the first screen while maintaining aspect ratio
-        const aspectRatio = width / height;
-        let windowWidth = Math.min(width, screenWidth - 100);
-        let windowHeight = Math.round(windowWidth / aspectRatio);
-        
-        // If height is too big, scale down based on height
-        if (windowHeight > screenHeight - 100) {
-          windowHeight = screenHeight - 100;
-          windowWidth = Math.round(windowHeight * aspectRatio);
-        }
-        
-        // Professional resize with proper constraints
-        this.professionalResize(windowWidth, windowHeight);
+        // Instantly resize with calculated size
+        this.professionalResize(optimalSize.width, optimalSize.height);
         
         // Don't center - let user position window wherever they want
       }
@@ -422,22 +425,11 @@ class SupporterApp {
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
-        // Use the first screen resolution (remembered from startup)
-        const { width: screenWidth, height: screenHeight } = this.firstScreenResolution;
+        // Instantly calculate optimal size using remembered resolution (default 1200x800)
+        const optimalSize = this.calculateOptimalSize(1200, 800);
         
-        // Calculate optimal window size to fit first screen while maintaining aspect ratio
-        const aspectRatio = 1200 / 800; // 1.5
-        let windowWidth = Math.min(1200, screenWidth - 100);
-        let windowHeight = Math.round(windowWidth / aspectRatio);
-        
-        // If height is too big, scale down based on height
-        if (windowHeight > screenHeight - 100) {
-          windowHeight = screenHeight - 100;
-          windowWidth = Math.round(windowHeight * aspectRatio);
-        }
-        
-        // Professional resize with proper constraints
-        this.professionalResize(windowWidth, windowHeight);
+        // Instantly resize with calculated size
+        this.professionalResize(optimalSize.width, optimalSize.height);
         
         // Don't center - maintain user's preferred position
       }
