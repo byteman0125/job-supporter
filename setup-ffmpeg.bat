@@ -40,7 +40,7 @@ for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
 
 echo Found FFmpeg directory: %FFMPEG_DIR%
 
-REM Copy essential files using individual commands
+REM Copy essential files using individual commands with exact filenames
 echo Copying ffmpeg.exe...
 copy "%FFMPEG_DIR%\bin\ffmpeg.exe" "tester\assets\ffmpeg\bin\" >nul 2>&1
 if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
@@ -49,60 +49,60 @@ if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
     echo ❌ Failed to copy ffmpeg.exe
 )
 
-echo Copying avcodec DLL...
-copy "%FFMPEG_DIR%\bin\avcodec-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avcodec-*.dll" (
-    echo ✅ Copied: avcodec-*.dll
+echo Copying avcodec-62.dll...
+copy "%FFMPEG_DIR%\bin\avcodec-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avcodec-62.dll" (
+    echo ✅ Copied: avcodec-62.dll
 ) else (
-    echo ❌ Failed to copy avcodec-*.dll
+    echo ❌ Failed to copy avcodec-62.dll
 )
 
-echo Copying avdevice DLL...
-copy "%FFMPEG_DIR%\bin\avdevice-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avdevice-*.dll" (
-    echo ✅ Copied: avdevice-*.dll
+echo Copying avdevice-62.dll...
+copy "%FFMPEG_DIR%\bin\avdevice-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avdevice-62.dll" (
+    echo ✅ Copied: avdevice-62.dll
 ) else (
-    echo ❌ Failed to copy avdevice-*.dll
+    echo ❌ Failed to copy avdevice-62.dll
 )
 
-echo Copying avfilter DLL...
-copy "%FFMPEG_DIR%\bin\avfilter-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avfilter-*.dll" (
-    echo ✅ Copied: avfilter-*.dll
+echo Copying avfilter-11.dll...
+copy "%FFMPEG_DIR%\bin\avfilter-11.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avfilter-11.dll" (
+    echo ✅ Copied: avfilter-11.dll
 ) else (
-    echo ❌ Failed to copy avfilter-*.dll
+    echo ❌ Failed to copy avfilter-11.dll
 )
 
-echo Copying avformat DLL...
-copy "%FFMPEG_DIR%\bin\avformat-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avformat-*.dll" (
-    echo ✅ Copied: avformat-*.dll
+echo Copying avformat-62.dll...
+copy "%FFMPEG_DIR%\bin\avformat-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avformat-62.dll" (
+    echo ✅ Copied: avformat-62.dll
 ) else (
-    echo ❌ Failed to copy avformat-*.dll
+    echo ❌ Failed to copy avformat-62.dll
 )
 
-echo Copying avutil DLL...
-copy "%FFMPEG_DIR%\bin\avutil-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avutil-*.dll" (
-    echo ✅ Copied: avutil-*.dll
+echo Copying avutil-60.dll...
+copy "%FFMPEG_DIR%\bin\avutil-60.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\avutil-60.dll" (
+    echo ✅ Copied: avutil-60.dll
 ) else (
-    echo ❌ Failed to copy avutil-*.dll
+    echo ❌ Failed to copy avutil-60.dll
 )
 
-echo Copying swresample DLL...
-copy "%FFMPEG_DIR%\bin\swresample-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\swresample-*.dll" (
-    echo ✅ Copied: swresample-*.dll
+echo Copying swresample-6.dll...
+copy "%FFMPEG_DIR%\bin\swresample-6.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\swresample-6.dll" (
+    echo ✅ Copied: swresample-6.dll
 ) else (
-    echo ❌ Failed to copy swresample-*.dll
+    echo ❌ Failed to copy swresample-6.dll
 )
 
-echo Copying swscale DLL...
-copy "%FFMPEG_DIR%\bin\swscale-*.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\swscale-*.dll" (
-    echo ✅ Copied: swscale-*.dll
+echo Copying swscale-9.dll...
+copy "%FFMPEG_DIR%\bin\swscale-9.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
+if exist "tester\assets\ffmpeg\bin\swscale-9.dll" (
+    echo ✅ Copied: swscale-9.dll
 ) else (
-    echo ❌ Failed to copy swscale-*.dll
+    echo ❌ Failed to copy swscale-9.dll
 )
 
 echo.
