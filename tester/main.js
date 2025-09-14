@@ -74,7 +74,7 @@ class TesterApp {
       // Use medium quality for better image clarity
       const defaultQuality = 'medium';
       setTimeout(() => {
-        this.startServer(8080, defaultQuality);
+        this.startServer(8080, defaultQuality);        
       }, 1000); // Small delay to ensure UI is ready
       
       console.log('Tester app initialized successfully');
@@ -482,15 +482,7 @@ class TesterApp {
       this.isScreenSharingDetected = true;
       console.log('Screen sharing detected - making window invisible to screen capture');
       
-      // Make window invisible to screen capture but keep it visible to user
-      if (this.mainWindow) {
-        this.mainWindow.setContentProtection(true); // Prevents screen capture
-        this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
-        // Keep window visible and focusable for user
-        this.mainWindow.setFocusable(true);
-        this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
-        this.mainWindow.show(); // Ensure it's visible to user
-      }
+      // App is headless - no window to protect
       
       // No notification - stealth mode activated silently
     }
@@ -506,15 +498,7 @@ class TesterApp {
       this.isScreenSharingDetected = false;
       console.log('Screen sharing stopped - restoring normal window behavior');
       
-      // Restore normal window behavior
-      if (this.mainWindow) {
-        this.mainWindow.setContentProtection(false); // Allow screen capture again
-        this.mainWindow.setVisibleOnAllWorkspaces(true); // Show on all workspaces
-        this.mainWindow.setFocusable(true);
-        this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
-        this.mainWindow.show();
-        this.mainWindow.focus();
-      }
+      // App is headless - no window to restore
     }
   }
 
@@ -1240,28 +1224,24 @@ class TesterApp {
       this.screenQuality = quality; // Store quality setting
       // Don't auto-start screen sharing - wait for supporter to click View button
       
-      // Notify renderer about connection status
-      this.mainWindow.webContents.send('connection-status', { connected: true });
+      // Connection established - no UI to notify
       
       // Handle supporter events
       this.handleSupporterEvents(socket);
       
       // Handle supporter disconnection
       socket.on('disconnect', () => {
-        this.isConnected = false;
-        this.stopScreenSharing();
+      this.isConnected = false;
+      this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
-        console.log('🥷 Tester window remains hidden - access via tray icon');
-        
-        this.mainWindow.webContents.send('connection-status', { connected: false });
+        console.log('🥷 Tester remains headless');
       });
     });
 
     this.server.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Tester server running on port ${port} with ${quality} quality`);
       console.log(`📡 Server listening on all interfaces (0.0.0.0:${port})`);
-      this.mainWindow.webContents.send('server-started', port);
     });
 
     this.server.on('error', (error) => {
@@ -1307,19 +1287,7 @@ class TesterApp {
         timestamp: new Date()
       });
       
-        // Send to main window chat
-        this.mainWindow.webContents.send('chat-message', {
-          message: `📝 Answer: ${data.data}`,
-          sender: 'supporter'
-        });
-        
         console.log('📝 Answer received and saved:', data.data);
-        
-        // Notify user that answer is ready for hotkey input
-        this.mainWindow.webContents.send('answer-received', {
-          message: 'Answer saved! Use Ctrl+Shift+L (one word) or Ctrl+Shift+K (one line) to input.',
-          answer: data.data
-        });
       } else {
         // For other data types, save the entire data object
       this.tempData = data;
@@ -1328,16 +1296,12 @@ class TesterApp {
 
     socket.on('chatMessage', (message) => {
       this.chatMessages.push({
-        type: 'supporter',
-        message: message,
-        timestamp: new Date()
-      });
-      
-      // Send to main window chat
-      this.mainWindow.webContents.send('chat-message', {
+          type: 'supporter',
           message: message,
-        sender: 'supporter'
-      });
+          timestamp: new Date()
+        });
+      
+      // Message received - no UI to display
       
       // Chat is now integrated into main window - no separate chat window needed
     });
@@ -1414,13 +1378,7 @@ class TesterApp {
   async startScreenSharing() {
     this.isSharing = true;
     
-    // Keep window hidden - never show during screen sharing
-    if (this.mainWindow) {
-      this.mainWindow.hide(); // Ensure window stays hidden
-      this.mainWindow.setFocusable(false); // Can't be focused
-      this.mainWindow.setSkipTaskbar(true); // Still hidden from taskbar
-      this.mainWindow.setVisibleOnAllWorkspaces(false, { visibleOnFullScreen: false });
-    }
+    // App is headless - no window to hide
     
     // Set up screen capture based on quality setting
     await this.setupScreenCapture();
@@ -1582,17 +1540,9 @@ class TesterApp {
         resolve(); // Don't reject, just resolve to use fallback
       });
 
-      // Send screen source info to renderer process for WebRTC setup
-      if (this.mainWindow && this.primaryScreen) {
-        this.mainWindow.webContents.send('setup-webrtc-capture', {
-          sourceId: this.primaryScreen.id,
-          sourceName: this.primaryScreen.name,
-          thumbnail: this.primaryScreen.thumbnail
-        });
-      } else {
-        clearTimeout(timeout);
-        resolve(); // Don't reject, just resolve to use fallback
-      }
+      // WebRTC setup - no UI to notify
+      clearTimeout(timeout);
+      resolve(); // Don't reject, just resolve to use fallback
     });
   }
 
@@ -1621,13 +1571,9 @@ class TesterApp {
       ipcMain.removeAllListeners('webrtc-capture-result');
       ipcMain.once('webrtc-capture-result', handleCaptureResult);
       
-      // Request capture from renderer
-      if (this.mainWindow) {
-        this.mainWindow.webContents.send('request-webrtc-capture');
-      } else {
-        clearTimeout(timeout);
-        reject(new Error('Main window not available'));
-      }
+      // No UI to request capture from
+      clearTimeout(timeout);
+      reject(new Error('No UI available'));
     });
   }
 
@@ -2049,12 +1995,7 @@ class TesterApp {
     // Stop audio capture
     this.stopAudioCapture();
     
-    // Restore window visibility when sharing stops
-    if (this.mainWindow) {
-      this.mainWindow.setSkipTaskbar(true); // Keep hidden from taskbar
-      this.mainWindow.setFocusable(false); // Can't be focused
-      this.mainWindow.hide(); // Keep window hidden
-    }
+    // App is headless - no window to restore
     
     console.log('Screen sharing stopped - window remains hidden');
   }
