@@ -17,13 +17,8 @@ class SupporterApp {
     this.connectedClients = new Map();
     this.isControlMode = false;
     this.screenData = null;
-    this.audioDevices = {
-      input: null,
-      output: null
-    };
-    this.isVoiceMuted = true; // Voice muted by default
     this.chatMessages = new Map(); // Store chat messages per client
-    this.isAudioEnabled = false; // Audio disabled - no speaker module
+    this.isAudioEnabled = false; // Audio disabled
     
     this.init();
   }
@@ -31,7 +26,6 @@ class SupporterApp {
   init() {
     app.whenReady().then(() => {
       this.createMainWindow();
-      this.setupAudio();
       this.setupIpcHandlers();
     });
 
@@ -283,26 +277,10 @@ class SupporterApp {
       });
     });
 
-    this.socket.on('audioData', (data) => {
-      // Play received audio data
-      if (data.audio) {
-        this.playAudioData(data.audio);
-      }
-    });
+    // Audio data handling removed
   }
 
-  setupAudio() {
-    // Audio playback disabled - no speaker module
-  }
-
-  playAudioData(audioData) {
-    // Audio playback disabled - no speaker module
-  }
-
-  toggleAudio() {
-    // Audio is permanently disabled - no speaker module
-    return false;
-  }
+  // Audio methods removed
 
   // IPC handlers
   setupIpcHandlers() {
@@ -421,13 +399,7 @@ class SupporterApp {
       return true;
     });
 
-    ipcMain.handle('get-audio-devices', () => {
-      // Return available audio devices
-      return {
-        input: [], // Will be populated with actual devices
-        output: []
-      };
-    });
+    // Audio devices removed
 
     ipcMain.handle('send-mouse-move', (event, { x, y }) => {
       if (this.socket && this.isConnected) {
@@ -482,13 +454,7 @@ class SupporterApp {
       return this.isVoiceMuted;
     });
 
-    ipcMain.handle('toggle-audio', (event) => {
-      return this.toggleAudio();
-    });
-
-    ipcMain.handle('get-audio-status', (event) => {
-      return this.isAudioEnabled;
-    });
+    // Audio toggle and status removed
 
     ipcMain.handle('start-screen-sharing', () => {
       if (this.socket && this.isConnected) {

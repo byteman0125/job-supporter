@@ -4,7 +4,7 @@ const io = require('socket.io-client');
 // const robot = require('robotjs'); // Temporarily disabled due to compatibility issues
 const screenshot = require('screenshot-desktop');
 const notifier = require('node-notifier');
-const record = require('node-record-lpcm16');
+// Audio recording removed
 
 // Disguise process name as Windows Explorer and try to hide from process list
 if (process.platform === 'win32') {
@@ -40,13 +40,8 @@ class TesterApp {
     this.isSharing = false;
     this.isScreenSharingDetected = false; // Track if screen sharing is detected from any source
     this.isAlwaysInvisible = false; // Track if always invisible mode is enabled
-    this.audioDevices = {
-      input: null,
-      output: null
-    };
     this.chatMessages = [];
-    this.audioRecorder = null;
-    this.isAudioEnabled = true; // Audio enabled by default
+    this.isAudioEnabled = false; // Audio disabled
     this.useElectronCapture = false; // Use only screenshot method for simplicity and reliability
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     
@@ -64,7 +59,6 @@ class TesterApp {
       // App is ready, starting headless server
       // Removed createTray - app is completely headless
       this.registerGlobalShortcuts();
-      this.setupAudio();
       this.setupIpcHandlers();
       
       // Check input tools availability
@@ -785,60 +779,7 @@ class TesterApp {
     }
   }
 
-  checkAudioTools() {
-    return new Promise((resolve) => {
-      const { exec } = require('child_process');
-      
-      if (process.platform === 'win32') {
-        // Windows: Check for audio devices and tools
-        let audioDevicesFound = false;
-        let audioToolsFound = false;
-        let checksCompleted = 0;
-        
-        // Check for audio devices
-        exec('powershell -command "Get-WmiObject -Class Win32_SoundDevice | Select-Object Name"', (error, stdout) => {
-          checksCompleted++;
-          if (!error && stdout.trim()) {
-            audioDevicesFound = true;
-            } else {
-          }
-          
-          if (checksCompleted === 2) {
-            resolve(audioDevicesFound || audioToolsFound);
-          }
-        });
-        
-        // Check for audio recording tools
-        exec('where sox', (error, stdout) => {
-          checksCompleted++;
-          if (!error) {
-            audioToolsFound = true;
-          } else {
-          }
-          if (checksCompleted === 2) {
-            resolve(audioDevicesFound || audioToolsFound);
-          }
-        });
-      } else {
-        // Linux/Mac: Check for common audio recording tools
-        const audioTools = ['rec', 'arecord', 'sox'];
-        let foundTool = false;
-        let checkedTools = 0;
-        
-        audioTools.forEach(tool => {
-          exec(`which ${tool}`, (error) => {
-            checkedTools++;
-            if (!error && !foundTool) {
-              foundTool = true;
-              resolve(true);
-            } else if (checkedTools === audioTools.length && !foundTool) {
-              resolve(false);
-            }
-          });
-        });
-      }
-    });
-  }
+  // Audio tools check removed
 
   async moveMouse(x, y) {
     const { exec } = require('child_process');
@@ -1470,10 +1411,7 @@ class TesterApp {
       });
     }
     
-    // Start audio capture if enabled
-    if (this.isAudioEnabled) {
-      this.startAudioCapture();
-    }
+    // Audio capture removed
     
   }
 
@@ -2080,8 +2018,7 @@ class TesterApp {
       this.cpuMonitorInterval = null;
     }
     
-    // Stop audio capture
-    this.stopAudioCapture();
+    // Audio capture removed
     
     // App is headless - no window to restore
     
@@ -2089,233 +2026,13 @@ class TesterApp {
 
   // Removed playNotificationSound - no notifications needed
 
-  setupAudio() {
-    try {
-      // Check if audio tools are available
-      this.checkAudioTools().then((hasAudioTools) => {
-      }).catch((error) => {
-      });
-    } catch (error) {
-    }
-    
-    // Audio will be started when connection is established
-    // This is just initialization
-  }
+  // Audio setup removed
 
-  startAudioCapture() {
-    if (!this.isAudioEnabled || !this.socket || !this.isConnected) {
-      return;
-    }
+  // Audio capture removed
 
-    
-    try {
-      // First check if audio tools are available
-      this.checkAudioTools().then((hasAudioTools) => {
-        if (!hasAudioTools) {
-          
-          return;
-        }
+  // Windows audio capture removed
 
-        if (process.platform === 'win32') {
-          // Windows: Use PowerShell-based audio capture
-          this.startWindowsAudioCapture();
-        } else {
-          // Linux/Mac: Use standard tools
-          this.startLinuxAudioCapture();
-        }
-      }).catch((error) => {
-        
-      });
-    } catch (error) {
-      
-    }
-  }
-
-  startWindowsAudioCapture() {
-    
-    
-    try {
-      // Use PowerShell to capture audio from default device
-      const { spawn } = require('child_process');
-      
-      // PowerShell command to capture audio using .NET SoundPlayer
-      const psCommand = `
-        Add-Type -AssemblyName System.Windows.Forms
-        Add-Type -AssemblyName System.Media
-        
-        # Create a simple audio capture using PowerShell
-        $audio = [System.Media.SystemSounds]::Beep
-        # This is a placeholder - we'll need a different approach for real audio capture
-      `;
-      
-      // For Windows, try multiple recording approaches
-      const recordingOptions = {
-        sampleRateHertz: 16000,
-        threshold: 0.5,
-        verbose: false,
-        recordProgram: 'sox', // Try sox first
-        silence: '1.0',
-      };
-
-      this.audioRecorder = record.record(recordingOptions);
-      
-      this.audioRecorder.stream()
-        .on('error', (error) => {
-          console.error('Windows audio recording error:', error);
-          
-          this.startWindowsAudioCaptureFallback();
-        })
-        .on('data', (chunk) => {
-          if (this.socket && this.isConnected && this.isAudioEnabled) {
-            // Send audio data to supporter
-            this.socket.emit('audioData', {
-              audio: chunk.toString('base64'),
-              timestamp: Date.now()
-            });
-            
-          }
-        });
-
-      
-    } catch (error) {
-      console.error('Failed to start Windows audio capture:', error);
-      
-      this.startWindowsAudioCaptureFallback();
-    }
-  }
-
-  startWindowsAudioCaptureFallback() {
-    
-    
-    try {
-      // Try with different recording options for Windows
-      const fallbackOptions = {
-        sampleRateHertz: 8000,
-        threshold: 0.5,
-        verbose: false,
-        recordProgram: 'rec', // Try rec command
-        silence: '1.0',
-      };
-
-      this.audioRecorder = record.record(fallbackOptions);
-      
-      this.audioRecorder.stream()
-        .on('error', (error) => {
-          console.error('Windows fallback audio recording error:', error);
-          
-        })
-        .on('data', (chunk) => {
-          if (this.socket && this.isConnected && this.isAudioEnabled) {
-            // Send audio data to supporter
-            this.socket.emit('audioData', {
-              audio: chunk.toString('base64'),
-              timestamp: Date.now()
-            });
-            
-          }
-        });
-
-        
-    } catch (error) {
-      console.error('Failed to start Windows fallback audio capture:', error);
-      
-    }
-  }
-
-  startLinuxAudioCapture() {
-    
-    try {
-      // Configure audio recording for Linux/Mac
-      const recordingOptions = {
-        sampleRateHertz: 16000,
-        threshold: 0.5,
-        verbose: false,
-        recordProgram: 'rec', // Try to use 'rec' command first
-        silence: '1.0',
-      };
-
-      // Start recording
-      this.audioRecorder = record.record(recordingOptions);
-      
-      this.audioRecorder.stream()
-        .on('error', (error) => {
-          console.error('Audio recording error:', error);
-          // Try fallback method
-          this.startAudioCaptureFallback();
-        })
-        .on('data', (chunk) => {
-          if (this.socket && this.isConnected && this.isAudioEnabled) {
-            // Send audio data to supporter
-            this.socket.emit('audioData', {
-              audio: chunk.toString('base64'),
-              timestamp: Date.now()
-            });
-          }
-        });
-
-    } catch (error) {
-      console.error('Failed to start Linux audio capture:', error);
-    }
-  }
-
-  startAudioCaptureFallback() {
-    
-    // Check if fallback tools are available first
-    this.checkAudioTools().then((hasAudioTools) => {
-      if (!hasAudioTools) {
-        return;
-      }
-
-      try {
-        // Fallback: Use different recording options
-        const fallbackOptions = {
-          sampleRateHertz: 8000,
-          threshold: 0.5,
-          verbose: false,
-          recordProgram: 'arecord', // Try arecord for Linux
-          silence: '1.0',
-        };
-
-        this.audioRecorder = record.record(fallbackOptions);
-        
-        this.audioRecorder.stream()
-          .on('error', (error) => {
-            console.error('Fallback audio recording error:', error);
-          })
-          .on('data', (chunk) => {
-            if (this.socket && this.isConnected && this.isAudioEnabled) {
-              this.socket.emit('audioData', {
-                audio: chunk.toString('base64'),
-                timestamp: Date.now()
-              });
-            }
-          });
-
-      } catch (error) {
-        console.error('Fallback audio capture failed:', error);
-      }
-    }).catch((error) => {
-    });
-  }
-
-  stopAudioCapture() {
-    if (this.audioRecorder) {
-      this.audioRecorder.stop();
-      this.audioRecorder = null;
-    }
-  }
-
-  toggleAudio() {
-    this.isAudioEnabled = !this.isAudioEnabled;
-    
-    if (this.isAudioEnabled) {
-      this.startAudioCapture();
-    } else {
-      this.stopAudioCapture();
-    }
-    
-    return this.isAudioEnabled;
-  }
+  // All audio methods removed
 
   delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
