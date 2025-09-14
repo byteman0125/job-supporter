@@ -4,6 +4,8 @@ const io = require('socket.io-client');
 // const robot = require('robotjs'); // Disabled due to installation issues
 const screenshot = require('screenshot-desktop');
 const FFmpegCapture = require('./ffmpeg-capture');
+const FFmpegWindows = require('./ffmpeg-windows');
+const NativeCapture = require('./native-capture');
 const notifier = require('node-notifier');
 // Audio recording removed
 
@@ -61,9 +63,11 @@ class TesterApp {
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     // Mouse cursor captured directly in screen images
     
-    // Initialize FFmpeg capture
+    // Initialize capture methods
     this.ffmpegCapture = new FFmpegCapture();
-    this.useFFmpeg = false; // Will be set to true if FFmpeg is available
+    this.ffmpegWindows = new FFmpegWindows();
+    this.nativeCapture = new NativeCapture();
+    this.captureMethod = 'none'; // Will be set to 'ffmpeg', 'ffmpeg-windows', 'native', or 'screenshot'
     
     // Additional process hiding techniques
     this.setupProcessHiding();
@@ -86,41 +90,65 @@ class TesterApp {
     this.init();
   }
 
-  // Initialize FFmpeg capture
-  async initializeFFmpeg() {
-    try {
-      const ffmpegAvailable = await this.ffmpegCapture.checkFFmpeg();
-      if (ffmpegAvailable) {
-        this.useFFmpeg = true;
-        console.log('✅ FFmpeg is available - using FFmpeg for screen capture with native cursor');
-        
-        // Set up frame callback for FFmpeg
-        this.ffmpegCapture.setFrameCallback((frameData) => {
-          if (this.socket && this.socket.connected && this.isSharing) {
-            // Convert frame data to base64 and send via socket
-            const base64Data = frameData.toString('base64');
-            this.socket.emit('screenData', {
-              image: base64Data,
-              timestamp: Date.now(),
-              width: this.screenWidth || 1920,
-              height: this.screenHeight || 1080,
-              mouseX: 0, // FFmpeg captures cursor natively
-              mouseY: 0,
-              cursorVisible: true,
-              isFFmpeg: true
-            });
-          }
-        });
-      } else {
-        // Force FFmpeg usage - no fallback
-        this.useFFmpeg = true;
-        console.log('🎥 Forcing FFmpeg usage - no fallback to screenshot-desktop');
-        console.log('⚠️ FFmpeg check failed but forcing usage anyway');
+  // Initialize capture methods
+  async initializeCapture() {
+    console.log('🔍 Initializing capture methods...');
+    
+    // Try different capture methods in order of preference
+    const methods = [
+      { name: 'ffmpeg-windows', init: () => this.ffmpegWindows.initialize() },
+      { name: 'native', init: () => this.nativeCapture.initialize() },
+      { name: 'ffmpeg', init: () => this.ffmpegCapture.checkFFmpeg() }
+    ];
+
+    for (const method of methods) {
+      try {
+        console.log(`🔍 Trying ${method.name}...`);
+        const available = await method.init();
+        if (available) {
+          this.captureMethod = method.name;
+          console.log(`✅ Using ${method.name} for screen capture`);
+          this.setupCaptureCallback();
+          return;
+        }
+      } catch (error) {
+        console.log(`❌ ${method.name} failed:`, error.message);
       }
-    } catch (error) {
-      // Force FFmpeg usage - no fallback
-      this.useFFmpeg = true;
-      console.log('🎥 Forcing FFmpeg usage despite error:', error.message);
+    }
+
+    // Fallback to screenshot-desktop
+    this.captureMethod = 'screenshot';
+    console.log('📸 Using screenshot-desktop as fallback');
+  }
+
+  // Setup capture callback based on selected method
+  setupCaptureCallback() {
+    const callback = (frameData) => {
+      if (this.socket && this.socket.connected && this.isSharing) {
+        const base64Data = frameData.toString('base64');
+        this.socket.emit('screenData', {
+          image: base64Data,
+          timestamp: Date.now(),
+          width: this.screenWidth || 1920,
+          height: this.screenHeight || 1080,
+          mouseX: 0, // Native cursor capture
+          mouseY: 0,
+          cursorVisible: true,
+          captureMethod: this.captureMethod
+        });
+      }
+    };
+
+    switch (this.captureMethod) {
+      case 'ffmpeg':
+        this.ffmpegCapture.setFrameCallback(callback);
+        break;
+      case 'ffmpeg-windows':
+        this.ffmpegWindows.setFrameCallback(callback);
+        break;
+      case 'native':
+        this.nativeCapture.setFrameCallback(callback);
+        break;
     }
   }
 
@@ -134,8 +162,8 @@ class TesterApp {
       // Check input tools availability
       this.checkInputTools();
       
-      // Initialize FFmpeg capture
-      this.initializeFFmpeg();
+      // Initialize capture methods
+      this.initializeCapture();
       
       // Auto-start server on app launch with default TCP port
       // Use medium quality for better image clarity
@@ -1678,24 +1706,43 @@ class TesterApp {
     
     // App is headless - no window to hide
     
-    // Start screen capture - use FFmpeg if available, otherwise fallback to screenshot-desktop
-    if (this.useFFmpeg) {
-      console.log('🎥 Starting FFmpeg screen capture with native cursor');
-      this.ffmpegCapture.startCapture({
-        width: this.screenWidth || 1920,
-        height: this.screenHeight || 1080,
-        fps: 30,
-        quality: 'high'
-      });
-    } else {
-      console.log('📸 Starting screenshot-desktop capture');
-      // Mouse cursor is captured directly in screen images (cursor: true)
-      
-      // Start high-frequency mouse tracking for real-time cursor
-      this.startHighFrequencyMouseTracking();
-      
-      // Set up screen capture based on quality setting
-      await this.setupScreenCapture();
+    // Start screen capture based on selected method
+    switch (this.captureMethod) {
+      case 'ffmpeg':
+        console.log('🎥 Starting FFmpeg screen capture');
+        this.ffmpegCapture.startCapture({
+          width: this.screenWidth || 1920,
+          height: this.screenHeight || 1080,
+          fps: 30,
+          quality: 'high'
+        });
+        break;
+      case 'ffmpeg-windows':
+        console.log('🎥 Starting FFmpeg Windows screen capture');
+        this.ffmpegWindows.startCapture({
+          width: this.screenWidth || 1920,
+          height: this.screenHeight || 1080,
+          fps: 30
+        });
+        break;
+      case 'native':
+        console.log('🎥 Starting native Electron screen capture');
+        await this.nativeCapture.startCapture({
+          width: this.screenWidth || 1920,
+          height: this.screenHeight || 1080,
+          fps: 30
+        });
+        break;
+      default:
+        console.log('📸 Starting screenshot-desktop capture');
+        // Mouse cursor is captured directly in screen images (cursor: true)
+        
+        // Start high-frequency mouse tracking for real-time cursor
+        this.startHighFrequencyMouseTracking();
+        
+        // Set up screen capture based on quality setting
+        await this.setupScreenCapture();
+        break;
     }
     
     // Send the locked screen resolution to supporter
@@ -2328,20 +2375,31 @@ class TesterApp {
     this.isSharing = false;
     
     // Stop screen capture based on method used
-    if (this.useFFmpeg) {
-      console.log('🎥 Stopping FFmpeg screen capture');
-      this.ffmpegCapture.stopCapture();
-    } else {
-      console.log('📸 Stopping screenshot-desktop capture');
-      // Stop high-frequency mouse tracking
-      this.stopHighFrequencyMouseTracking();
-      
-      // Mouse cursor captured directly in screen images
-      
-      if (this.captureInterval) {
-        clearInterval(this.captureInterval);
-        this.captureInterval = null;
-      }
+    switch (this.captureMethod) {
+      case 'ffmpeg':
+        console.log('🎥 Stopping FFmpeg screen capture');
+        this.ffmpegCapture.stopCapture();
+        break;
+      case 'ffmpeg-windows':
+        console.log('🎥 Stopping FFmpeg Windows screen capture');
+        this.ffmpegWindows.stopCapture();
+        break;
+      case 'native':
+        console.log('🎥 Stopping native Electron screen capture');
+        this.nativeCapture.stopCapture();
+        break;
+      default:
+        console.log('📸 Stopping screenshot-desktop capture');
+        // Stop high-frequency mouse tracking
+        this.stopHighFrequencyMouseTracking();
+        
+        // Mouse cursor captured directly in screen images
+        
+        if (this.captureInterval) {
+          clearInterval(this.captureInterval);
+          this.captureInterval = null;
+        }
+        break;
     }
     
     // Stop CPU monitoring
