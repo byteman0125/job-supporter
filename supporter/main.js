@@ -93,6 +93,7 @@ class SupporterApp {
     this.isProgrammaticResize = false;
     this.resizeTimeout = null;
     this.moveDebounceTimeout = null; // Added for move event debouncing
+    this.lastResizeTime = 0; // Prevent rapid-fire resize calls
     this.allowManualResize = true; // Allow user to resize manually
     
     // Add window event handlers for smart management
@@ -108,9 +109,16 @@ class SupporterApp {
   }
 
   setupWindowEventHandlers() {
-    // Smart aspect ratio resize handling
+    // Smart aspect ratio resize handling with loop prevention
     this.mainWindow.on('resize', () => {
       if (!this.isProgrammaticResize && this.allowManualResize) {
+        // Prevent rapid-fire calls that cause infinite loops
+        const now = Date.now();
+        if (now - this.lastResizeTime < 10) {
+          return; // Skip if called too recently
+        }
+        this.lastResizeTime = now;
+        
         // Immediate aspect ratio adjustment - no delays
         const [currentWidth, currentHeight] = this.mainWindow.getSize();
         
@@ -128,12 +136,12 @@ class SupporterApp {
         let newWidth = currentWidth;
         let newHeight = currentHeight;
         
-        // Ultra-aggressive detection - adjust immediately on any change
-        if (widthChange > 0) {
-          // Width changed - adjust height to maintain aspect ratio
+        // Smart detection with loop prevention
+        if (widthChange > heightChange && widthChange > 2) {
+          // Width changed more - adjust height to maintain aspect ratio
           newHeight = properHeightFromWidth;
-        } else if (heightChange > 0) {
-          // Height changed - adjust width to maintain aspect ratio
+        } else if (heightChange > widthChange && heightChange > 2) {
+          // Height changed more - adjust width to maintain aspect ratio
           newWidth = properWidthFromHeight;
         }
         
