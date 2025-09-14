@@ -946,117 +946,41 @@ class TesterApp {
     };
   }
 
-  // Enhanced cursor capture using FFmpeg (best method)
+  // Simple cursor capture using desktop-screenshot library
   async captureScreenWithCursor() {
     try {
-      // Method 1: Try FFmpeg for screen capture with cursor
-      const ffmpegResult = await this.captureWithFFmpeg();
-      if (ffmpegResult) {
-        console.log('🖱️ Captured with FFmpeg (includes cursor)');
-        return ffmpegResult;
-      }
+      // Use desktop-screenshot library (includes cursor automatically)
+      const screenshot = require('desktop-screenshot');
+      const fs = require('fs');
+      const path = require('path');
       
-      // Method 2: Fallback to screenshot-desktop with cursor
-      const screenshot = require('screenshot-desktop');
-      const img = await screenshot({
-        format: 'png',
-        quality: 1.0,
-        screen: 0,
-        width: this.screenWidth,
-        height: this.screenHeight,
-        cursor: true
+      return new Promise((resolve, reject) => {
+        const tempFile = path.join(__dirname, 'temp_screenshot.png');
+        
+        screenshot(tempFile, (error, complete) => {
+          if (error) {
+            console.error('desktop-screenshot failed:', error);
+            reject(error);
+          } else {
+            try {
+              const imageBuffer = fs.readFileSync(tempFile);
+              fs.unlinkSync(tempFile); // Clean up temp file
+              console.log('🖱️ Captured with desktop-screenshot (includes cursor)');
+              resolve(imageBuffer);
+            } catch (readError) {
+              console.error('Error reading screenshot:', readError);
+              reject(readError);
+            }
+          }
+        });
       });
-      
-      console.log('🖱️ Fallback to screenshot-desktop (cursor: true)');
-      return img;
       
     } catch (error) {
       console.error('Error capturing screen with cursor:', error);
-      
-      // Method 3: Final fallback to Electron desktopCapturer
-      try {
-        const { desktopCapturer } = require('electron');
-        const sources = await desktopCapturer.getSources({
-          types: ['screen'],
-          thumbnailSize: { width: this.screenWidth, height: this.screenHeight }
-        });
-        
-        if (sources.length > 0) {
-          const screenshot = sources[0].thumbnail.toPNG();
-          console.log('🖱️ Final fallback to Electron desktopCapturer');
-          return screenshot;
-        }
-      } catch (fallbackError) {
-        console.error('All capture methods failed:', fallbackError);
-      }
-      
       throw error;
     }
   }
 
-  // Capture screen with cursor using FFmpeg
-  async captureWithFFmpeg() {
-    return new Promise((resolve, reject) => {
-      const { spawn } = require('child_process');
-      const fs = require('fs');
-      const path = require('path');
-      
-      // Create temporary file for output
-      const tempFile = path.join(__dirname, 'temp_screenshot.png');
-      
-      // FFmpeg command for Windows screen capture with cursor
-      const ffmpegArgs = [
-        '-f', 'gdigrab',                    // Use Windows GDI capture
-        '-framerate', '1',                  // Low framerate for single capture
-        '-i', 'desktop',                    // Capture entire desktop
-        '-show_region', '1',                // Show capture region
-        '-draw_mouse', '1',                 // Include mouse cursor
-        '-vf', 'scale=' + this.screenWidth + ':' + this.screenHeight, // Scale to desired size
-        '-vframes', '1',                    // Capture only 1 frame
-        '-y',                               // Overwrite output file
-        tempFile
-      ];
-      
-      console.log('🖱️ Running FFmpeg command:', 'ffmpeg', ffmpegArgs.join(' '));
-      
-      const ffmpeg = spawn('ffmpeg', ffmpegArgs);
-      
-      let errorOutput = '';
-      
-      ffmpeg.stderr.on('data', (data) => {
-        errorOutput += data.toString();
-      });
-      
-      ffmpeg.on('close', (code) => {
-        if (code === 0) {
-          // FFmpeg succeeded, read the captured image
-          try {
-            const imageBuffer = fs.readFileSync(tempFile);
-            fs.unlinkSync(tempFile); // Clean up temp file
-            resolve(imageBuffer);
-          } catch (readError) {
-            console.error('Error reading FFmpeg output:', readError);
-            resolve(null);
-          }
-        } else {
-          console.error('FFmpeg failed with code:', code);
-          console.error('FFmpeg error output:', errorOutput);
-          resolve(null);
-        }
-      });
-      
-      ffmpeg.on('error', (error) => {
-        console.error('FFmpeg spawn error:', error);
-        resolve(null);
-      });
-      
-      // Timeout after 5 seconds
-      setTimeout(() => {
-        ffmpeg.kill();
-        resolve(null);
-      }, 5000);
-    });
-  }
 
   // Add custom cursor overlay to ensure cursor is visible
   async addCursorOverlay(imageBuffer, mouseX, mouseY) {
