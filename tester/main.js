@@ -946,41 +946,61 @@ class TesterApp {
     };
   }
 
-  // Simple cursor capture using desktop-screenshot library
+  // Enhanced cursor capture using WebRTC getDisplayMedia (via renderer)
   async captureScreenWithCursor() {
     try {
-      // Use desktop-screenshot library (includes cursor automatically)
-      const screenshot = require('desktop-screenshot');
-      const fs = require('fs');
-      const path = require('path');
-      
+      // Request WebRTC capture from renderer process
       return new Promise((resolve, reject) => {
-        const tempFile = path.join(__dirname, 'temp_screenshot.png');
-        
-        screenshot(tempFile, (error, complete) => {
-          if (error) {
-            console.error('desktop-screenshot failed:', error);
-            reject(error);
+        const timeout = setTimeout(() => {
+          ipcMain.removeAllListeners('webrtc-capture-result');
+          reject(new Error('WebRTC capture timeout'));
+        }, 5000);
+
+        // Listen for WebRTC capture result
+        const handleCaptureResult = (event, result) => {
+          clearTimeout(timeout);
+          ipcMain.removeListener('webrtc-capture-result', handleCaptureResult);
+          
+          if (result.success) {
+            console.log('🖱️ Captured with WebRTC getDisplayMedia (cursor: always)');
+            resolve(result.imageData);
           } else {
-            try {
-              const imageBuffer = fs.readFileSync(tempFile);
-              fs.unlinkSync(tempFile); // Clean up temp file
-              console.log('🖱️ Captured with desktop-screenshot (includes cursor)');
-              resolve(imageBuffer);
-            } catch (readError) {
-              console.error('Error reading screenshot:', readError);
-              reject(readError);
-            }
+            reject(new Error(result.error || 'WebRTC capture failed'));
           }
+        };
+
+        ipcMain.on('webrtc-capture-result', handleCaptureResult);
+        
+        // Request capture from renderer
+        this.mainWindow.webContents.send('request-webrtc-capture', {
+          width: this.screenWidth,
+          height: this.screenHeight
         });
       });
       
     } catch (error) {
-      console.error('Error capturing screen with cursor:', error);
-      throw error;
+      console.error('Error with WebRTC capture:', error);
+      
+      // Fallback to screenshot-desktop
+      try {
+        const screenshot = require('screenshot-desktop');
+        const img = await screenshot({
+          format: 'png',
+          quality: 1.0,
+          screen: 0,
+          width: this.screenWidth,
+          height: this.screenHeight,
+          cursor: true
+        });
+        
+        console.log('🖱️ Fallback to screenshot-desktop (cursor: true)');
+        return img;
+      } catch (fallbackError) {
+        console.error('Fallback capture also failed:', fallbackError);
+        throw fallbackError;
+      }
     }
   }
-
 
   // Add custom cursor overlay to ensure cursor is visible
   async addCursorOverlay(imageBuffer, mouseX, mouseY) {
