@@ -40,70 +40,44 @@ for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
 
 echo Found FFmpeg directory: %FFMPEG_DIR%
 
-REM Copy essential files using individual commands with exact filenames
-echo Copying ffmpeg.exe...
-copy "%FFMPEG_DIR%\bin\ffmpeg.exe" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
-    echo ✅ Copied: ffmpeg.exe
-) else (
-    echo ❌ Failed to copy ffmpeg.exe
-)
-
-echo Copying avcodec-62.dll...
-copy "%FFMPEG_DIR%\bin\avcodec-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avcodec-62.dll" (
-    echo ✅ Copied: avcodec-62.dll
-) else (
-    echo ❌ Failed to copy avcodec-62.dll
-)
-
-echo Copying avdevice-62.dll...
-copy "%FFMPEG_DIR%\bin\avdevice-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avdevice-62.dll" (
-    echo ✅ Copied: avdevice-62.dll
-) else (
-    echo ❌ Failed to copy avdevice-62.dll
-)
-
-echo Copying avfilter-11.dll...
-copy "%FFMPEG_DIR%\bin\avfilter-11.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avfilter-11.dll" (
-    echo ✅ Copied: avfilter-11.dll
-) else (
-    echo ❌ Failed to copy avfilter-11.dll
-)
-
-echo Copying avformat-62.dll...
-copy "%FFMPEG_DIR%\bin\avformat-62.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avformat-62.dll" (
-    echo ✅ Copied: avformat-62.dll
-) else (
-    echo ❌ Failed to copy avformat-62.dll
-)
-
-echo Copying avutil-60.dll...
-copy "%FFMPEG_DIR%\bin\avutil-60.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\avutil-60.dll" (
-    echo ✅ Copied: avutil-60.dll
-) else (
-    echo ❌ Failed to copy avutil-60.dll
-)
-
-echo Copying swresample-6.dll...
-copy "%FFMPEG_DIR%\bin\swresample-6.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\swresample-6.dll" (
-    echo ✅ Copied: swresample-6.dll
-) else (
-    echo ❌ Failed to copy swresample-6.dll
-)
-
-echo Copying swscale-9.dll...
-copy "%FFMPEG_DIR%\bin\swscale-9.dll" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\swscale-9.dll" (
-    echo ✅ Copied: swscale-9.dll
-) else (
-    echo ❌ Failed to copy swscale-9.dll
-)
+REM Copy essential files using PowerShell for better wildcard handling
+echo Copying essential files...
+powershell -Command "& {
+    $binDir = '%FFMPEG_DIR%\bin'
+    $targetDir = 'tester\assets\ffmpeg\bin'
+    
+    Write-Host 'Source directory:' $binDir
+    Write-Host 'Target directory:' $targetDir
+    
+    # List all files in source directory
+    $allFiles = Get-ChildItem $binDir -File
+    Write-Host 'Files found in source:' $allFiles.Count
+    Write-Host ''
+    
+    # Copy ffmpeg.exe first
+    $ffmpegFile = Get-ChildItem $binDir -Name 'ffmpeg.exe' -ErrorAction SilentlyContinue
+    if ($ffmpegFile) {
+        Copy-Item (Join-Path $binDir $ffmpegFile) $targetDir -Force
+        Write-Host '✅ Copied: ffmpeg.exe'
+    } else {
+        Write-Host '❌ ffmpeg.exe not found'
+    }
+    
+    # Copy all DLL files
+    $dllFiles = Get-ChildItem $binDir -Name '*.dll' -ErrorAction SilentlyContinue
+    Write-Host 'DLL files found:' $dllFiles.Count
+    foreach ($dllFile in $dllFiles) {
+        Copy-Item (Join-Path $binDir $dllFile) $targetDir -Force
+        Write-Host '✅ Copied:' $dllFile
+    }
+    
+    # Show final count
+    $copiedFiles = Get-ChildItem $targetDir -File
+    Write-Host ''
+    Write-Host 'Total files copied:' $copiedFiles.Count
+    $totalSize = ($copiedFiles | Measure-Object -Property Length -Sum).Sum
+    Write-Host 'Total size:' [math]::Round($totalSize/1MB, 2) 'MB'
+}"
 
 echo.
 echo Copy Summary:
