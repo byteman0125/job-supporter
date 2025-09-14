@@ -404,11 +404,11 @@
                 console.log(`📐 Screen dimensions stored: ${originalScreenWidth}x${originalScreenHeight}`);
                 
                 // Draw cursor if position is provided
-                if (cursorVisible && mouseX !== null && mouseY !== null) {
-                    console.log('🖱️ DRAWING INITIAL CURSOR:', mouseX, mouseY, 'on', img.naturalWidth, 'x', img.naturalHeight);
-                    drawRemoteCursor(mouseX, mouseY, img.naturalWidth, img.naturalHeight);
+                if (data.cursor && data.cursor.cursorVisible) {
+                    console.log('🖱️ DRAWING INITIAL CURSOR:', data.cursor.mouseX, data.cursor.mouseY, '→ Scaled:', data.cursor.scaledX, data.cursor.scaledY);
+                    createSimpleCursor(data.cursor.scaledX, data.cursor.scaledY);
                 } else {
-                    console.log('🖱️ NOT DRAWING CURSOR - cursorVisible:', cursorVisible, 'mouseX:', mouseX, 'mouseY:', mouseY);
+                    console.log('🖱️ NOT DRAWING CURSOR - no cursor data');
                 }
                 
                 // Only resize window on first connection, not on every screen data update
@@ -643,19 +643,16 @@
 
         // Handle high-frequency mouse updates
         ipcRenderer.on('high-freq-mouse', (event, data) => {
-            console.log('🖱️ HIGH-FREQ MOUSE RECEIVED:', data.mouseX, data.mouseY);
-            console.log('🖱️ Original screen dimensions:', originalScreenWidth, 'x', originalScreenHeight);
-            console.log('🖱️ Current cursor exists:', !!currentCursor);
+            console.log('🖱️ HIGH-FREQ MOUSE RECEIVED:', data.mouseX, data.mouseY, '→ Scaled:', data.scaledX, data.scaledY);
             
-            // Update cursor position in real-time
-            if (currentCursor && originalScreenWidth > 0 && originalScreenHeight > 0) {
-                updateCursorPosition(data.mouseX, data.mouseY, originalScreenWidth, originalScreenHeight);
+            // Use pre-calculated position from main process
+            if (currentCursor) {
+                currentCursor.style.left = data.scaledX + 'px';
+                currentCursor.style.top = data.scaledY + 'px';
+                console.log('🖱️ UPDATED CURSOR TO:', data.scaledX, data.scaledY);
             } else {
-                console.log('🖱️ Cannot update cursor - missing data:', {
-                    hasCursor: !!currentCursor,
-                    hasScreenWidth: originalScreenWidth > 0,
-                    hasScreenHeight: originalScreenHeight > 0
-                });
+                console.log('🖱️ Creating new cursor from high-freq data');
+                createSimpleCursor(data.scaledX, data.scaledY);
             }
         });
 
@@ -783,6 +780,33 @@
             const scaleRateX = (imgRect.width / screenWidth) * 100;
             const scaleRateY = (imgRect.height / screenHeight) * 100;
             console.log(`🖱️ CURSOR: Origin(${mouseX},${mouseY}) → Current(${cursorX.toFixed(1)},${cursorY.toFixed(1)}) | Scale: ${scaleRateX.toFixed(1)}%x${scaleRateY.toFixed(1)}% | Screen: ${screenWidth}x${screenHeight} → Image: ${imgRect.width}x${imgRect.height}`);
+        }
+
+        // Create simple cursor with pre-calculated position
+        function createSimpleCursor(x, y) {
+            if (currentCursor) {
+                currentCursor.remove();
+                currentCursor = null;
+            }
+            
+            const cursor = document.createElement('div');
+            cursor.className = 'remote-cursor';
+            cursor.style.position = 'absolute';
+            cursor.style.width = '16px';
+            cursor.style.height = '16px';
+            cursor.style.border = '2px solid #ff0000';
+            cursor.style.borderRadius = '50%';
+            cursor.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
+            cursor.style.pointerEvents = 'none';
+            cursor.style.zIndex = '1000';
+            cursor.style.transition = 'all 0.1s ease';
+            cursor.style.display = 'block';
+            cursor.style.left = x + 'px';
+            cursor.style.top = y + 'px';
+            
+            screenViewer.appendChild(cursor);
+            currentCursor = cursor;
+            console.log('🖱️ SIMPLE CURSOR CREATED AT:', x, y);
         }
 
         // Hide cursor when disconnected

@@ -454,6 +454,28 @@ class SupporterApp {
         console.log(`📊 SCALE RATE: ${scaleRateX.toFixed(1)}% x ${scaleRateY.toFixed(1)}%`);
       }
       
+      // Calculate cursor position for screen data
+      let cursorData = null;
+      if (data.mouseX !== null && data.mouseY !== null && this.screenWidth && this.screenHeight) {
+        const windowWidth = this.mainWindow.getBounds().width;
+        const windowHeight = this.mainWindow.getBounds().height;
+        
+        const scaledX = (data.mouseX * windowWidth) / this.screenWidth;
+        const scaledY = (data.mouseY * windowHeight) / this.screenHeight;
+        
+        cursorData = {
+          mouseX: data.mouseX,
+          mouseY: data.mouseY,
+          scaledX: scaledX,
+          scaledY: scaledY,
+          screenWidth: this.screenWidth,
+          screenHeight: this.screenHeight,
+          windowWidth: windowWidth,
+          windowHeight: windowHeight,
+          cursorVisible: data.cursorVisible || false
+        };
+      }
+
       // Send screen data to renderer with delta compression support
       this.mainWindow.webContents.send('screen-data', {
         image: data.image || data, // Handle both old and new format
@@ -461,9 +483,7 @@ class SupporterApp {
         quality: data.quality || 'medium',
         isFullFrame: data.isFullFrame || true,
         regions: data.regions || null,
-        mouseX: data.mouseX || null,
-        mouseY: data.mouseY || null,
-        cursorVisible: data.cursorVisible || false,
+        cursor: cursorData,
         changedPixels: data.changedPixels || 0
       });
     });
@@ -483,14 +503,30 @@ class SupporterApp {
         console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
       }
       
-      // Send high-frequency mouse data to renderer
-      this.mainWindow.webContents.send('high-freq-mouse', {
-        mouseX: data.mouseX,
-        mouseY: data.mouseY,
-        cursorWidth: data.cursorWidth,
-        cursorHeight: data.cursorHeight,
-        timestamp: data.timestamp
-      });
+      // Calculate final cursor position for renderer
+      if (this.screenWidth && this.screenHeight) {
+        const windowWidth = this.mainWindow.getBounds().width;
+        const windowHeight = this.mainWindow.getBounds().height;
+        
+        // Calculate scaled position
+        const scaledX = (data.mouseX * windowWidth) / this.screenWidth;
+        const scaledY = (data.mouseY * windowHeight) / this.screenHeight;
+        
+        // Send calculated position to renderer
+        this.mainWindow.webContents.send('high-freq-mouse', {
+          mouseX: data.mouseX,
+          mouseY: data.mouseY,
+          scaledX: scaledX,
+          scaledY: scaledY,
+          screenWidth: this.screenWidth,
+          screenHeight: this.screenHeight,
+          windowWidth: windowWidth,
+          windowHeight: windowHeight,
+          cursorWidth: data.cursorWidth,
+          cursorHeight: data.cursorHeight,
+          timestamp: data.timestamp
+        });
+      }
     });
 
 
