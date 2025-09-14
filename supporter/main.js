@@ -97,6 +97,9 @@ class SupporterApp {
     // Add window event handlers for smart management
     this.setupWindowEventHandlers();
     
+    // Ensure flexible constraints are set initially
+    this.ensureFlexibleConstraints();
+    
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
     
@@ -156,6 +159,12 @@ class SupporterApp {
     }
   }
 
+  ensureFlexibleConstraints() {
+    // Ensure window has flexible constraints for manual resizing
+    this.mainWindow.setMinimumSize(400, 300);
+    this.mainWindow.setMaximumSize(this.firstScreenResolution.width, this.firstScreenResolution.height);
+  }
+
   professionalResize(width, height) {
     // Clear any pending resize operations
     if (this.resizeTimeout) {
@@ -166,20 +175,19 @@ class SupporterApp {
     this.isProgrammaticResize = true;
     this.allowManualResize = false; // Temporarily disable manual resize
 
-    // Update window constraints to fit first screen resolution
-    this.mainWindow.setMinimumSize(width, height);
-    this.mainWindow.setMaximumSize(width, height);
-
     // Set the new size
     this.mainWindow.setSize(width, height);
 
     // Update stored size
     this.initialWindowSize = { width, height };
 
-    // Reset flags after a short delay
+    // Reset flags and restore flexible constraints after a short delay
     setTimeout(() => {
       this.isProgrammaticResize = false;
       this.allowManualResize = true; // Re-enable manual resize
+      
+      // Restore flexible constraints to allow manual resizing
+      this.ensureFlexibleConstraints();
     }, 100);
   }
 
