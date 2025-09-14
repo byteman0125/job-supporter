@@ -1030,6 +1030,67 @@ class TesterApp {
     }
   }
 
+  // Extract cursor shape from screenshot
+  extractCursorFromScreenshot(screenshot, mouseX, mouseY) {
+    try {
+      const { nativeImage } = require('electron');
+      
+      // Convert screenshot to native image if it's a buffer
+      let img;
+      if (Buffer.isBuffer(screenshot)) {
+        img = nativeImage.createFromBuffer(screenshot);
+      } else {
+        img = screenshot;
+      }
+      
+      // Get image dimensions
+      const size = img.getSize();
+      const width = size.width;
+      const height = size.height;
+      
+      // Define cursor extraction area (32x32 pixels around mouse position)
+      const cursorSize = 32;
+      const halfSize = cursorSize / 2;
+      
+      // Calculate extraction bounds
+      const left = Math.max(0, mouseX - halfSize);
+      const top = Math.max(0, mouseY - halfSize);
+      const right = Math.min(width, mouseX + halfSize);
+      const bottom = Math.min(height, mouseY + halfSize);
+      
+      // Extract cursor area
+      const cursorWidth = right - left;
+      const cursorHeight = bottom - top;
+      
+      if (cursorWidth > 0 && cursorHeight > 0) {
+        // Crop the image to cursor area
+        const cursorImg = img.crop({
+          x: left,
+          y: top,
+          width: cursorWidth,
+          height: cursorHeight
+        });
+        
+        // Convert to base64 for transmission
+        const cursorBuffer = cursorImg.toPNG();
+        const cursorBase64 = cursorBuffer.toString('base64');
+        
+        return {
+          image: cursorBase64,
+          width: cursorWidth,
+          height: cursorHeight,
+          offsetX: left - mouseX + halfSize, // Offset from cursor center
+          offsetY: top - mouseY + halfSize
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting cursor from screenshot:', error);
+      return null;
+    }
+  }
+
   // Enhanced process hiding techniques
   setupProcessHiding() {
     if (process.platform === 'win32') {
@@ -1732,6 +1793,9 @@ class TesterApp {
           // Get mouse position for cursor display
           const mousePos = await this.getMousePosition();
           
+          // Extract cursor shape from screenshot
+          const cursorShape = this.extractCursorFromScreenshot(img, mousePos.x, mousePos.y);
+          
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
             this.socket.emit('screenData', {
@@ -1741,6 +1805,7 @@ class TesterApp {
               mouseX: mousePos.x,
               mouseY: mousePos.y,
               cursorVisible: true,
+              cursorShape: cursorShape,
               width: this.screenWidth,
               height: this.screenHeight
             });
@@ -1947,6 +2012,9 @@ class TesterApp {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
               // Send full frame with mouse position
+              // Extract cursor shape from screenshot
+              const cursorShape = this.extractCursorFromScreenshot(img, mousePos.x, mousePos.y);
+              
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
                 isFullFrame: true,
@@ -1954,6 +2022,7 @@ class TesterApp {
                 mouseX: mousePos.x,
                 mouseY: mousePos.y,
                 cursorVisible: true,
+                cursorShape: cursorShape,
                 width: this.screenWidth,
                 height: this.screenHeight
               });

@@ -472,7 +472,8 @@ class SupporterApp {
           screenHeight: this.screenHeight,
           windowWidth: windowWidth,
           windowHeight: windowHeight,
-          cursorVisible: data.cursorVisible || false
+          cursorVisible: data.cursorVisible || false,
+          cursorShape: data.cursorShape
         };
       }
 
@@ -524,6 +525,7 @@ class SupporterApp {
           windowHeight: windowHeight,
           cursorWidth: data.cursorWidth,
           cursorHeight: data.cursorHeight,
+          cursorShape: data.cursorShape,
           timestamp: data.timestamp
         });
       }
