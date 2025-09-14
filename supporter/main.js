@@ -82,7 +82,7 @@ class SupporterApp {
     });
   }
 
-  connectToTester(testerIP, port = 8080) {
+  connectToTester(testerIP, port = 3000) {
     const io = require('socket.io-client');
     
     console.log(`🔗 Attempting to connect to tester at ${testerIP}:${port}`);
