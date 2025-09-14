@@ -124,17 +124,36 @@ class SupporterApp {
           // Calculate proper aspect ratio based on original screen resolution
           const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
           
-          // Calculate what the height should be based on current width
-          const properHeight = Math.round(currentWidth / aspectRatio);
+          // Calculate what both dimensions should be
+          const properHeightFromWidth = Math.round(currentWidth / aspectRatio);
+          const properWidthFromHeight = Math.round(currentHeight * aspectRatio);
           
-          // If height is significantly different from proper ratio, adjust it
-          if (Math.abs(currentHeight - properHeight) > 10) {
-            this.isProgrammaticResize = true;
-            this.mainWindow.setSize(currentWidth, properHeight);
-            this.isProgrammaticResize = false;
-            this.initialWindowSize = { width: currentWidth, height: properHeight };
+          // Determine which dimension changed more (user's intent)
+          const widthChange = Math.abs(currentWidth - this.initialWindowSize.width);
+          const heightChange = Math.abs(currentHeight - this.initialWindowSize.height);
+          
+          let newWidth = currentWidth;
+          let newHeight = currentHeight;
+          
+          if (widthChange > heightChange) {
+            // User is primarily changing width, adjust height
+            newHeight = properHeightFromWidth;
+          } else if (heightChange > widthChange) {
+            // User is primarily changing height, adjust width
+            newWidth = properWidthFromHeight;
           } else {
-            // Height is close enough, just update stored size
+            // Both changed equally, prioritize width and adjust height
+            newHeight = properHeightFromWidth;
+          }
+          
+          // Apply the calculated size if it's significantly different
+          if (Math.abs(newWidth - currentWidth) > 5 || Math.abs(newHeight - currentHeight) > 5) {
+            this.isProgrammaticResize = true;
+            this.mainWindow.setSize(newWidth, newHeight);
+            this.isProgrammaticResize = false;
+            this.initialWindowSize = { width: newWidth, height: newHeight };
+          } else {
+            // Size is close enough, just update stored size
             this.initialWindowSize = { width: currentWidth, height: currentHeight };
           }
         }, 16); // ~60fps for smooth updates
