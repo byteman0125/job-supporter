@@ -946,6 +946,42 @@ class TesterApp {
     };
   }
 
+  // Enhanced cursor capture using multiple methods
+  async captureScreenWithCursor() {
+    try {
+      // Method 1: Try Electron's desktopCapturer (best for cursor on Windows)
+      const { desktopCapturer } = require('electron');
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: this.screenWidth, height: this.screenHeight }
+      });
+      
+      if (sources.length > 0) {
+        const screenshot = sources[0].thumbnail.toPNG();
+        console.log('🖱️ Captured with Electron desktopCapturer (includes cursor)');
+        return screenshot;
+      }
+      
+      // Method 2: Fallback to screenshot-desktop with cursor
+      const screenshot = require('screenshot-desktop');
+      const img = await screenshot({
+        format: 'png',
+        quality: 1.0,
+        screen: 0,
+        width: this.screenWidth,
+        height: this.screenHeight,
+        cursor: true
+      });
+      
+      console.log('🖱️ Captured with screenshot-desktop (cursor: true)');
+      return img;
+      
+    } catch (error) {
+      console.error('Error capturing screen with cursor:', error);
+      throw error;
+    }
+  }
+
   async getMousePosition() {
     try {
       // Use Electron's screen API to get cursor position
@@ -1933,7 +1969,9 @@ class TesterApp {
           this.frameSkipCount = 0;
 
           const startTime = Date.now();
-          const img = await screenshot(captureOptions);
+          
+          // Use the best cursor capture method
+          const img = await this.captureScreenWithCursor();
           
           // Get mouse position for cursor display
           const mousePos = await this.getMousePosition();
