@@ -62,10 +62,10 @@ class SupporterApp {
     this.mainWindow = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
-      minWidth: windowWidth, // Lock to calculated size
-      minHeight: windowHeight,
-      maxWidth: windowWidth, // Lock to calculated size
-      maxHeight: windowHeight,
+      minWidth: 400, // Allow smaller sizes
+      minHeight: 300,
+      maxWidth: screenWidth, // Allow up to full screen
+      maxHeight: screenHeight,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
@@ -77,7 +77,7 @@ class SupporterApp {
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
       fullscreenable: false,
-      resizable: false, // Prevent manual resizing to avoid flickering
+      resizable: true, // Allow manual resizing
       maximizable: false, // Prevent maximizing
       minimizable: true, // Allow minimizing
       closable: true // Allow closing
@@ -85,14 +85,16 @@ class SupporterApp {
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     
-    // Store the initial window size
+    // Store the initial window size and first screen resolution
     this.initialWindowSize = { width: windowWidth, height: windowHeight };
+    this.firstScreenResolution = { width: screenWidth, height: screenHeight };
     
-    // Professional window management
+    // Smart window management
     this.isProgrammaticResize = false;
     this.resizeTimeout = null;
+    this.allowManualResize = true; // Allow user to resize manually
     
-    // Add window event handlers for professional management
+    // Add window event handlers for smart management
     this.setupWindowEventHandlers();
     
     // Register global shortcut for connection modal
@@ -102,17 +104,18 @@ class SupporterApp {
   }
 
   setupWindowEventHandlers() {
-    // Prevent any unwanted size changes
+    // Allow manual resizing but prevent unwanted changes
     this.mainWindow.on('resize', () => {
-      if (!this.isProgrammaticResize) {
-        // User tried to resize - restore to locked size
-        this.restoreWindowSize();
+      if (!this.isProgrammaticResize && this.allowManualResize) {
+        // User is manually resizing - allow it and update stored size
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        this.initialWindowSize = { width: currentWidth, height: currentHeight };
       }
     });
 
-    // Prevent size changes when moving window
+    // Prevent size changes when moving window (but allow manual resize)
     this.mainWindow.on('move', () => {
-      if (!this.isProgrammaticResize) {
+      if (!this.isProgrammaticResize && !this.allowManualResize) {
         // Check if size changed during move and restore if needed
         this.checkAndRestoreSize();
       }
@@ -126,7 +129,9 @@ class SupporterApp {
 
     this.mainWindow.on('unmaximize', () => {
       // Ensure size is correct after unmaximize
-      this.restoreWindowSize();
+      if (!this.allowManualResize) {
+        this.restoreWindowSize();
+      }
     });
   }
 
@@ -159,8 +164,9 @@ class SupporterApp {
 
     // Set programmatic resize flag
     this.isProgrammaticResize = true;
+    this.allowManualResize = false; // Temporarily disable manual resize
 
-    // Update window constraints first
+    // Update window constraints to fit first screen resolution
     this.mainWindow.setMinimumSize(width, height);
     this.mainWindow.setMaximumSize(width, height);
 
@@ -170,9 +176,10 @@ class SupporterApp {
     // Update stored size
     this.initialWindowSize = { width, height };
 
-    // Reset programmatic resize flag after a short delay
+    // Reset flags after a short delay
     setTimeout(() => {
       this.isProgrammaticResize = false;
+      this.allowManualResize = true; // Re-enable manual resize
     }, 100);
   }
 
@@ -384,12 +391,10 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        // Get current screen dimensions
-        const { screen } = require('electron');
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        // Use the first screen resolution (remembered from startup)
+        const { width: screenWidth, height: screenHeight } = this.firstScreenResolution;
         
-        // Calculate optimal window size to fit the screen while maintaining aspect ratio
+        // Calculate optimal window size to fit the first screen while maintaining aspect ratio
         const aspectRatio = width / height;
         let windowWidth = Math.min(width, screenWidth - 100);
         let windowHeight = Math.round(windowWidth / aspectRatio);
@@ -409,12 +414,10 @@ class SupporterApp {
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
-        // Get current screen dimensions
-        const { screen } = require('electron');
-        const primaryDisplay = screen.getPrimaryDisplay();
-        const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+        // Use the first screen resolution (remembered from startup)
+        const { width: screenWidth, height: screenHeight } = this.firstScreenResolution;
         
-        // Calculate optimal window size to fit screen while maintaining aspect ratio
+        // Calculate optimal window size to fit first screen while maintaining aspect ratio
         const aspectRatio = 1200 / 800; // 1.5
         let windowWidth = Math.min(1200, screenWidth - 100);
         let windowHeight = Math.round(windowWidth / aspectRatio);
