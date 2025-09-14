@@ -92,7 +92,6 @@ class SupporterApp {
     // Smart window management
     this.isProgrammaticResize = false;
     this.resizeTimeout = null;
-    this.resizeDebounceTimeout = null;
     this.moveDebounceTimeout = null; // Added for move event debouncing
     this.allowManualResize = true; // Allow user to resize manually
     
@@ -112,14 +111,42 @@ class SupporterApp {
     // Smart aspect ratio resize handling
     this.mainWindow.on('resize', () => {
       if (!this.isProgrammaticResize && this.allowManualResize) {
-        // Clear previous debounce timeout
-        if (this.resizeDebounceTimeout) {
-          clearTimeout(this.resizeDebounceTimeout);
+        // Immediate aspect ratio adjustment - no delays
+        const [currentWidth, currentHeight] = this.mainWindow.getSize();
+        
+        // Calculate proper aspect ratio based on original screen resolution
+        const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
+        
+        // Calculate what both dimensions should be
+        const properHeightFromWidth = Math.round(currentWidth / aspectRatio);
+        const properWidthFromHeight = Math.round(currentHeight * aspectRatio);
+        
+        // Detect resize direction more accurately
+        const widthChange = Math.abs(currentWidth - this.initialWindowSize.width);
+        const heightChange = Math.abs(currentHeight - this.initialWindowSize.height);
+        
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+        
+        // Ultra-aggressive detection - adjust immediately on any change
+        if (widthChange > 0) {
+          // Width changed - adjust height to maintain aspect ratio
+          newHeight = properHeightFromWidth;
+        } else if (heightChange > 0) {
+          // Height changed - adjust width to maintain aspect ratio
+          newWidth = properWidthFromHeight;
         }
         
-        // Only update stored size - no automatic window size changes
-        const [currentWidth, currentHeight] = this.mainWindow.getSize();
-        this.initialWindowSize = { width: currentWidth, height: currentHeight };
+        // Immediately apply the calculated size to maintain aspect ratio
+        if (newWidth !== currentWidth || newHeight !== currentHeight) {
+          this.isProgrammaticResize = true;
+          this.mainWindow.setSize(newWidth, newHeight);
+          this.isProgrammaticResize = false;
+          this.initialWindowSize = { width: newWidth, height: newHeight };
+        } else {
+          // No adjustment needed, just update stored size
+          this.initialWindowSize = { width: currentWidth, height: currentHeight };
+        }
       }
     });
 
@@ -141,6 +168,14 @@ class SupporterApp {
         this.checkAndRestoreSize();
       }, 10); // Small delay to prevent rapid-fire calls
     });
+
+    // Add will-resize event for real-time aspect ratio adjustment during drag
+    this.mainWindow.on('will-resize', (event, newBounds) => {
+      if (!this.isProgrammaticResize && this.allowManualResize) {
+        this.adjustAspectRatioDuringResize(newBounds);
+      }
+    });
+
 
     // Handle window state changes
     this.mainWindow.on('maximize', () => {
@@ -196,6 +231,75 @@ class SupporterApp {
     }
   }
 
+
+  adjustAspectRatioDuringResize(newBounds) {
+    const currentWidth = newBounds.width;
+    const currentHeight = newBounds.height;
+    
+    // Calculate proper aspect ratio
+    const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
+    
+    // Calculate what both dimensions should be
+    const properHeightFromWidth = Math.round(currentWidth / aspectRatio);
+    const properWidthFromHeight = Math.round(currentHeight * aspectRatio);
+    
+    // Detect which dimension changed more during drag
+    const widthChange = Math.abs(currentWidth - this.initialWindowSize.width);
+    const heightChange = Math.abs(currentHeight - this.initialWindowSize.height);
+    
+    let newWidth = currentWidth;
+    let newHeight = currentHeight;
+    
+    if (widthChange > heightChange && widthChange > 2) {
+      // User is dragging width - adjust height
+      newHeight = properHeightFromWidth;
+    } else if (heightChange > widthChange && heightChange > 2) {
+      // User is dragging height - adjust width
+      newWidth = properWidthFromHeight;
+    }
+    
+    // Apply the calculated size if different
+    if (newWidth !== currentWidth || newHeight !== currentHeight) {
+      this.isProgrammaticResize = true;
+      newBounds.width = newWidth;
+      newBounds.height = newHeight;
+      this.isProgrammaticResize = false;
+    }
+  }
+
+  adjustAspectRatioImmediately() {
+    const [currentWidth, currentHeight] = this.mainWindow.getSize();
+    
+    // Calculate proper aspect ratio
+    const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
+    
+    // Calculate what both dimensions should be
+    const properHeightFromWidth = Math.round(currentWidth / aspectRatio);
+    const properWidthFromHeight = Math.round(currentHeight * aspectRatio);
+    
+    // Detect which dimension changed more during drag
+    const widthChange = Math.abs(currentWidth - this.initialWindowSize.width);
+    const heightChange = Math.abs(currentHeight - this.initialWindowSize.height);
+    
+    let newWidth = currentWidth;
+    let newHeight = currentHeight;
+    
+    if (widthChange > heightChange && widthChange > 1) {
+      // User is dragging width - adjust height
+      newHeight = properHeightFromWidth;
+    } else if (heightChange > widthChange && heightChange > 1) {
+      // User is dragging height - adjust width
+      newWidth = properWidthFromHeight;
+    }
+    
+    // Apply the calculated size if different
+    if (newWidth !== currentWidth || newHeight !== currentHeight) {
+      this.isProgrammaticResize = true;
+      this.mainWindow.setSize(newWidth, newHeight);
+      this.isProgrammaticResize = false;
+      this.initialWindowSize = { width: newWidth, height: newHeight };
+    }
+  }
 
   ensureFlexibleConstraints() {
     // Ensure window has flexible constraints for manual resizing
