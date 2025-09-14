@@ -401,6 +401,8 @@
                 originalScreenWidth = img.naturalWidth;
                 originalScreenHeight = img.naturalHeight;
                 
+                console.log(`📐 Screen dimensions stored: ${originalScreenWidth}x${originalScreenHeight}`);
+                
                 // Draw cursor if position is provided
                 if (cursorVisible && mouseX !== null && mouseY !== null) {
                     drawRemoteCursor(mouseX, mouseY, img.naturalWidth, img.naturalHeight);
@@ -688,13 +690,16 @@
                 const scaleX = imgRect.width / screenWidth;
                 const scaleY = imgRect.height / screenHeight;
                 
-                const cursorX = (mouseX * scaleX) + (imgRect.left - screenViewerRect.left);
-                const cursorY = (mouseY * scaleY) + (imgRect.top - screenViewerRect.top);
+                // Position cursor relative to the image within the screen viewer
+                const cursorX = mouseX * scaleX;
+                const cursorY = mouseY * scaleY;
                 
                 cursor.style.left = cursorX + 'px';
                 cursor.style.top = cursorY + 'px';
                 
-                console.log(`🖱️ Cursor positioned at: (${cursorX}, ${cursorY}) on screen viewer`);
+                console.log(`🖱️ Cursor positioned at: (${cursorX}, ${cursorY}) relative to image`);
+                console.log(`🖱️ Image rect: ${imgRect.width}x${imgRect.height}, Screen: ${screenWidth}x${screenHeight}`);
+                console.log(`🖱️ Scale: ${scaleX.toFixed(3)}x, ${scaleY.toFixed(3)}y`);
             }
             
             // Add cursor to screen viewer and store reference
@@ -709,17 +714,19 @@
             const screenImg = screenViewer.querySelector('.screen-image');
             if (screenImg) {
                 const imgRect = screenImg.getBoundingClientRect();
-                const screenViewerRect = screenViewer.getBoundingClientRect();
                 
                 // Calculate proportional position
                 const scaleX = imgRect.width / screenWidth;
                 const scaleY = imgRect.height / screenHeight;
                 
-                const cursorX = (mouseX * scaleX) + (imgRect.left - screenViewerRect.left);
-                const cursorY = (mouseY * scaleY) + (imgRect.top - screenViewerRect.top);
+                // Position cursor relative to the image within the screen viewer
+                const cursorX = mouseX * scaleX;
+                const cursorY = mouseY * scaleY;
                 
                 currentCursor.style.left = cursorX + 'px';
                 currentCursor.style.top = cursorY + 'px';
+                
+                console.log(`🖱️ Updated cursor to: (${cursorX.toFixed(1)}, ${cursorY.toFixed(1)})`);
             }
         }
 
