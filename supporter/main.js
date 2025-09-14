@@ -90,6 +90,27 @@ class SupporterApp {
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
     
+    // Store the initial window size
+    this.initialWindowSize = { width: windowWidth, height: windowHeight };
+    
+    // Prevent size changes when moving window
+    this.mainWindow.on('move', () => {
+      const [currentWidth, currentHeight] = this.mainWindow.getSize();
+      if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
+        // Force window back to initial size
+        this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+      }
+    });
+    
+    // Prevent any size changes
+    this.mainWindow.on('resize', () => {
+      const [currentWidth, currentHeight] = this.mainWindow.getSize();
+      if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
+        // Force window back to initial size
+        this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+      }
+    });
+    
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
     
@@ -326,6 +347,9 @@ class SupporterApp {
         // Set the window size to fit the screen properly
         this.mainWindow.setSize(windowWidth, windowHeight);
         
+        // Update the initial window size for future reference
+        this.initialWindowSize = { width: windowWidth, height: windowHeight };
+        
         // Don't center - let user position window wherever they want
       }
     });
@@ -350,6 +374,9 @@ class SupporterApp {
         
         // Reset to calculated optimal size
         this.mainWindow.setSize(windowWidth, windowHeight);
+        
+        // Update the initial window size for future reference
+        this.initialWindowSize = { width: windowWidth, height: windowHeight };
         
         // Don't center - maintain user's preferred position
       }
