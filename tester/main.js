@@ -43,7 +43,6 @@ class TesterApp {
     this.chatMessages = [];
     this.isAudioEnabled = false; // Audio disabled
     this.useElectronCapture = true; // Enable Electron capture for better cursor support
-    console.log('🔧 Using Electron capture for better cursor support');
     this.lastQualityAdjustment = 0; // Track last quality adjustment time
     // Mouse cursor captured directly in screen images
     
@@ -1000,7 +999,6 @@ class TesterApp {
   async addCursorOverlayToImage(imageBuffer, width, height) {
     try {
       const mousePos = await this.getMousePosition();
-      console.log(`🖱️ Adding cursor overlay at position: ${mousePos.x}, ${mousePos.y}`);
       
       // For now, just return the original image
       // TODO: Implement cursor overlay using canvas or image manipulation
@@ -1540,7 +1538,6 @@ class TesterApp {
         } catch (error) {
           console.error('Electron capture error:', error);
           // Fallback to screenshot-desktop
-          console.log('🔄 Falling back to screenshot-desktop method');
           this.useElectronCapture = false;
           this.setupScreenshotCapture();
         }
@@ -1612,8 +1609,6 @@ class TesterApp {
   }
 
   setupScreenshotCapture() {
-    console.log('📸 Using screenshot-desktop method with mouse cursor capture...');
-    console.log('⚠️ Note: screenshot-desktop cursor capture may not work on all systems');
     
     const quality = this.screenQuality || 'medium';
     let captureOptions, interval;
@@ -1626,7 +1621,6 @@ class TesterApp {
     // Store the initial screen resolution if not already stored
     if (!this.initialScreenResolution) {
       this.initialScreenResolution = { width: screenWidth, height: screenHeight };
-      console.log(`🔒 Locked screen resolution to: ${screenWidth}x${screenHeight}`);
     }
     
     // Use the locked resolution instead of hardcoded values
@@ -1706,7 +1700,6 @@ class TesterApp {
           const img = await screenshot(captureOptions);
           
           // Mouse cursor is captured directly in screen images (cursor: true)
-          console.log(`📸 Screenshot captured with cursor: true, size: ${img.length} bytes`);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
