@@ -1460,7 +1460,7 @@ class TesterApp {
 
     switch (quality) {
       case 'high':
-        interval = 33; // 30 FPS (professional)
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'medium':
         interval = 50; // 20 FPS (balanced)
@@ -1483,7 +1483,7 @@ class TesterApp {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 95) {
+          if (this.cpuUsage > 80) {
             return;
           }
 
@@ -1620,47 +1620,47 @@ class TesterApp {
     switch (quality) {
       case 'high':
         captureOptions = {
-          format: 'png',     // PNG for lossless quality
-          quality: 1.0,      // Maximum quality
+          format: 'jpeg',    // JPEG for better performance
+          quality: 0.8,      // Good quality but not maximum
           screen: 0,
           width: 1920,       // Full HD resolution
           height: 1080,
           cursor: true       // Capture mouse cursor
         };
-        interval = 50; // 20 FPS (reduced for PNG quality)
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'medium':
         captureOptions = {
-          format: 'png',     // PNG for better quality
-          quality: 1.0,      // Maximum quality
+          format: 'jpeg',    // JPEG for better performance
+          quality: 0.7,      // Good quality
           screen: 0,
           width: lockedWidth,
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 67; // 15 FPS
+        interval = 100; // 10 FPS (reduced to prevent freezing)
         break;
       case 'low':
         captureOptions = {
           format: 'jpeg',    // JPEG for low quality mode only
-          quality: 0.95,     // High JPEG quality
+          quality: 0.6,      // Lower quality for better performance
           screen: 0,
           width: lockedWidth,
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS
+        interval = 150; // ~7 FPS (very low to prevent freezing)
         break;
       default:
         captureOptions = {
-          format: 'png',     // PNG for default quality
-          quality: 1.0,      // Maximum quality
+          format: 'jpeg',    // JPEG for better performance
+          quality: 0.7,      // Good quality
           screen: 0,
           width: lockedWidth,
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 67; // Default to 15 FPS (medium)
+        interval = 100; // Default to 10 FPS (reduced to prevent freezing)
     }
 
     // Add CPU monitoring and adaptive quality
@@ -1668,13 +1668,13 @@ class TesterApp {
     this.lastCaptureTime = 0;
     this.captureCount = 0;
     this.frameSkipCount = 0;
-    this.maxFrameSkip = 0; // No frame skipping for high performance
+    this.maxFrameSkip = 2; // Skip frames to prevent freezing
 
     this.captureInterval = setInterval(async () => {
       if (this.isSharing && this.socket) {
         try {
           // Skip capture if CPU is too high
-          if (this.cpuUsage > 95) {
+          if (this.cpuUsage > 80) {
             return;
           }
 
@@ -1735,8 +1735,8 @@ class TesterApp {
           if (this.captureCount % 30 === 0) {
           }
 
-          // Adaptive quality adjustment (less aggressive for high performance)
-          if (captureTime > 50 || this.cpuUsage > 85) { // If capture takes more than 50ms or CPU > 85%
+          // Adaptive quality adjustment (aggressive to prevent freezing)
+          if (captureTime > 30 || this.cpuUsage > 70) { // If capture takes more than 30ms or CPU > 70%
             this.adjustQualityForPerformance();
           }
 
