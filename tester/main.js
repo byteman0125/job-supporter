@@ -1243,7 +1243,6 @@ class TesterApp {
           // Cursor shape is captured by screenshot-desktop
           
           // Send high-frequency mouse data
-          console.log('🖱️ SENDING HIGHFREQ:', mousePos.x, mousePos.y);
           this.socket.emit('highFreqMouse', {
             mouseX: mousePos.x,
             mouseY: mousePos.y,
