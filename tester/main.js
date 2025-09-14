@@ -68,9 +68,9 @@ class TesterApp {
       this.setupProcessHiding();
     }, 30000); // Every 30 seconds
     
-    // High-frequency mouse tracking (optional)
+    // High-frequency mouse tracking (enabled for real-time cursor)
     this.mouseTrackingInterval = null;
-    this.mouseTrackingFPS = 30; // 30 FPS for smooth mouse tracking
+    this.mouseTrackingFPS = 60; // 60 FPS for ultra-smooth mouse tracking
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -1634,6 +1634,9 @@ class TesterApp {
     
     // Mouse cursor is captured directly in screen images (cursor: true)
     
+    // Start high-frequency mouse tracking for real-time cursor
+    this.startHighFrequencyMouseTracking();
+    
     // Set up screen capture based on quality setting
     await this.setupScreenCapture();
     
@@ -2249,6 +2252,9 @@ class TesterApp {
 
   stopScreenSharing() {
     this.isSharing = false;
+    
+    // Stop high-frequency mouse tracking
+    this.stopHighFrequencyMouseTracking();
     
     // Mouse cursor captured directly in screen images
     

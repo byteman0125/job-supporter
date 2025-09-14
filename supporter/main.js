@@ -436,6 +436,17 @@ class SupporterApp {
       });
     });
 
+    this.socket.on('highFreqMouse', (data) => {
+      // Send high-frequency mouse data to renderer
+      this.mainWindow.webContents.send('high-freq-mouse', {
+        mouseX: data.mouseX,
+        mouseY: data.mouseY,
+        cursorWidth: data.cursorWidth,
+        cursorHeight: data.cursorHeight,
+        timestamp: data.timestamp
+      });
+    });
+
     this.socket.on('screenshot-data', (data) => {
       // Save the full-quality screenshot
       const imageDir = path.join(__dirname, 'images');

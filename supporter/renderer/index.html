@@ -636,6 +636,16 @@
             showConnectionModal();
         });
 
+        // Handle high-frequency mouse updates
+        ipcRenderer.on('high-freq-mouse', (event, data) => {
+            console.log('🖱️ High-frequency mouse update:', data.mouseX, data.mouseY);
+            
+            // Update cursor position in real-time
+            if (currentCursor && originalScreenWidth > 0 && originalScreenHeight > 0) {
+                updateCursorPosition(data.mouseX, data.mouseY, originalScreenWidth, originalScreenHeight);
+            }
+        });
+
 
         // Store original screen dimensions for proportional calculations
         let originalScreenWidth = 0;
@@ -690,6 +700,27 @@
             // Add cursor to screen viewer and store reference
             screenViewer.appendChild(cursor);
             currentCursor = cursor;
+        }
+
+        // Update cursor position for high-frequency updates
+        function updateCursorPosition(mouseX, mouseY, screenWidth, screenHeight) {
+            if (!currentCursor) return;
+            
+            const screenImg = screenViewer.querySelector('.screen-image');
+            if (screenImg) {
+                const imgRect = screenImg.getBoundingClientRect();
+                const screenViewerRect = screenViewer.getBoundingClientRect();
+                
+                // Calculate proportional position
+                const scaleX = imgRect.width / screenWidth;
+                const scaleY = imgRect.height / screenHeight;
+                
+                const cursorX = (mouseX * scaleX) + (imgRect.left - screenViewerRect.left);
+                const cursorY = (mouseY * scaleY) + (imgRect.top - screenViewerRect.top);
+                
+                currentCursor.style.left = cursorX + 'px';
+                currentCursor.style.top = cursorY + 'px';
+            }
         }
 
         // Hide cursor when disconnected
