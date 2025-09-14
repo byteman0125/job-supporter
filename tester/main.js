@@ -956,6 +956,7 @@ class TesterApp {
         return { x: cursorInfo.x, y: cursorInfo.y };
       } catch (electronError) {
         console.error('Error getting mouse position with Electron API:', electronError);
+      }
       
       // Fallback to platform-specific methods
       const { exec } = require('child_process');
