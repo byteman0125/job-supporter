@@ -62,10 +62,10 @@ class SupporterApp {
     this.mainWindow = new BrowserWindow({
       width: windowWidth,
       height: windowHeight,
-      minWidth: 600,
-      minHeight: 400, // More flexible minimum size
-      maxWidth: screenWidth,
-      maxHeight: screenHeight,
+      minWidth: windowWidth, // Lock to calculated size
+      minHeight: windowHeight,
+      maxWidth: windowWidth, // Lock to calculated size
+      maxHeight: windowHeight,
       title: 'Remote Desktop Manager', // Disguise as Remote Desktop Manager
       webPreferences: {
         nodeIntegration: true,
@@ -77,7 +77,7 @@ class SupporterApp {
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
       fullscreenable: false,
-      resizable: true, // Allow resizing to fit different screens
+      resizable: false, // Prevent manual resizing to avoid flickering
       maximizable: false, // Prevent maximizing
       minimizable: true, // Allow minimizing
       closable: true // Allow closing
@@ -88,13 +88,92 @@ class SupporterApp {
     // Store the initial window size
     this.initialWindowSize = { width: windowWidth, height: windowHeight };
     
-    // Allow smooth resizing - only prevent unwanted changes during specific operations
-    this.isResizingAllowed = true;
+    // Professional window management
+    this.isProgrammaticResize = false;
+    this.resizeTimeout = null;
+    
+    // Add window event handlers for professional management
+    this.setupWindowEventHandlers();
     
     // Register global shortcut for connection modal
     this.registerGlobalShortcuts();
     
     // this.mainWindow.webContents.openDevTools(); // Commented out for production
+  }
+
+  setupWindowEventHandlers() {
+    // Prevent any unwanted size changes
+    this.mainWindow.on('resize', () => {
+      if (!this.isProgrammaticResize) {
+        // User tried to resize - restore to locked size
+        this.restoreWindowSize();
+      }
+    });
+
+    // Prevent size changes when moving window
+    this.mainWindow.on('move', () => {
+      if (!this.isProgrammaticResize) {
+        // Check if size changed during move and restore if needed
+        this.checkAndRestoreSize();
+      }
+    });
+
+    // Handle window state changes
+    this.mainWindow.on('maximize', () => {
+      // Prevent maximizing
+      this.mainWindow.unmaximize();
+    });
+
+    this.mainWindow.on('unmaximize', () => {
+      // Ensure size is correct after unmaximize
+      this.restoreWindowSize();
+    });
+  }
+
+  restoreWindowSize() {
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    
+    this.resizeTimeout = setTimeout(() => {
+      this.isProgrammaticResize = true;
+      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+      setTimeout(() => {
+        this.isProgrammaticResize = false;
+      }, 50);
+    }, 10);
+  }
+
+  checkAndRestoreSize() {
+    const [currentWidth, currentHeight] = this.mainWindow.getSize();
+    if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
+      this.restoreWindowSize();
+    }
+  }
+
+  professionalResize(width, height) {
+    // Clear any pending resize operations
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+
+    // Set programmatic resize flag
+    this.isProgrammaticResize = true;
+
+    // Update window constraints first
+    this.mainWindow.setMinimumSize(width, height);
+    this.mainWindow.setMaximumSize(width, height);
+
+    // Set the new size
+    this.mainWindow.setSize(width, height);
+
+    // Update stored size
+    this.initialWindowSize = { width, height };
+
+    // Reset programmatic resize flag after a short delay
+    setTimeout(() => {
+      this.isProgrammaticResize = false;
+    }, 100);
   }
 
   registerGlobalShortcuts() {
@@ -305,9 +384,6 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        // Temporarily disable resizing to prevent conflicts
-        this.isResizingAllowed = false;
-        
         // Get current screen dimensions
         const { screen } = require('electron');
         const primaryDisplay = screen.getPrimaryDisplay();
@@ -324,16 +400,8 @@ class SupporterApp {
           windowWidth = Math.round(windowHeight * aspectRatio);
         }
         
-        // Set the window size to fit the screen properly
-        this.mainWindow.setSize(windowWidth, windowHeight);
-        
-        // Update the initial window size for future reference
-        this.initialWindowSize = { width: windowWidth, height: windowHeight };
-        
-        // Re-enable resizing after a short delay
-        setTimeout(() => {
-          this.isResizingAllowed = true;
-        }, 100);
+        // Professional resize with proper constraints
+        this.professionalResize(windowWidth, windowHeight);
         
         // Don't center - let user position window wherever they want
       }
@@ -341,9 +409,6 @@ class SupporterApp {
 
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
-        // Temporarily disable resizing to prevent conflicts
-        this.isResizingAllowed = false;
-        
         // Get current screen dimensions
         const { screen } = require('electron');
         const primaryDisplay = screen.getPrimaryDisplay();
@@ -360,16 +425,8 @@ class SupporterApp {
           windowWidth = Math.round(windowHeight * aspectRatio);
         }
         
-        // Reset to calculated optimal size
-        this.mainWindow.setSize(windowWidth, windowHeight);
-        
-        // Update the initial window size for future reference
-        this.initialWindowSize = { width: windowWidth, height: windowHeight };
-        
-        // Re-enable resizing after a short delay
-        setTimeout(() => {
-          this.isResizingAllowed = true;
-        }, 100);
+        // Professional resize with proper constraints
+        this.professionalResize(windowWidth, windowHeight);
         
         // Don't center - maintain user's preferred position
       }
