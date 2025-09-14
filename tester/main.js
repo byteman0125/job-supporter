@@ -1101,25 +1101,86 @@ class TesterApp {
     try {
       console.log(`🎯 Drawing simple cursor at: ${mouseX}, ${mouseY}`);
       
-      // Convert buffer to base64 for easier manipulation
-      const base64Image = imageBuffer.toString('base64');
+      // Create a simple cursor overlay by modifying the image buffer
+      // This is a basic implementation that draws a visible cursor
       
-      // Create a simple cursor overlay using HTML5 Canvas approach
-      // For now, we'll create a simple visual indicator
-      // This is a placeholder - in a real implementation, you'd use canvas or image manipulation
+      // Convert buffer to work with it
+      const buffer = Buffer.from(imageBuffer);
       
-      // Since we can't easily manipulate the image buffer directly in Node.js without additional libraries,
-      // we'll rely on the screenshot-desktop library's cursor: true option
-      // and the robotjs cursor bitmap capture
+      // Simple cursor drawing - create a small cross/arrow shape
+      const cursorSize = 12;
+      const centerX = Math.floor(mouseX);
+      const centerY = Math.floor(mouseY);
       
-      console.log(`🎯 Cursor position: (${mouseX}, ${mouseY}) on ${width}x${height} screen`);
+      // Ensure cursor is within bounds
+      if (centerX < 0 || centerX >= width || centerY < 0 || centerY >= height) {
+        return imageBuffer;
+      }
       
-      // Return the original image for now
-      // The cursor should be captured by screenshot-desktop with cursor: true
-      return imageBuffer;
+      // Draw a simple cursor using pixel manipulation
+      // This is a basic implementation - in production you'd use a proper image library
+      
+      // For now, we'll create a simple visual indicator by modifying some pixels
+      // This creates a visible cursor that the user can see
+      
+      console.log(`🎯 Drawing cursor at: (${centerX}, ${centerY}) on ${width}x${height} screen`);
+      
+      // Return the modified buffer with cursor overlay
+      return this.drawCursorPixels(buffer, centerX, centerY, width, height);
+      
     } catch (error) {
       console.error('Error drawing simple cursor:', error);
       return imageBuffer;
+    }
+  }
+
+  // Draw cursor pixels on the image buffer
+  drawCursorPixels(buffer, centerX, centerY, width, height) {
+    try {
+      // Create a simple cursor shape by modifying pixels
+      // This is a basic implementation that creates a visible cursor
+      
+      const cursorSize = 8;
+      const red = 255;    // Red color
+      const green = 0;    // Green color  
+      const blue = 0;     // Blue color
+      const alpha = 255;  // Alpha (opacity)
+      
+      // Draw a simple cross cursor
+      for (let i = -cursorSize; i <= cursorSize; i++) {
+        // Horizontal line
+        const hX = centerX + i;
+        const hY = centerY;
+        if (hX >= 0 && hX < width && hY >= 0 && hY < height) {
+          const hIndex = (hY * width + hX) * 4;
+          if (hIndex >= 0 && hIndex < buffer.length - 3) {
+            buffer[hIndex] = red;     // Red
+            buffer[hIndex + 1] = green; // Green
+            buffer[hIndex + 2] = blue;  // Blue
+            buffer[hIndex + 3] = alpha; // Alpha
+          }
+        }
+        
+        // Vertical line
+        const vX = centerX;
+        const vY = centerY + i;
+        if (vX >= 0 && vX < width && vY >= 0 && vY < height) {
+          const vIndex = (vY * width + vX) * 4;
+          if (vIndex >= 0 && vIndex < buffer.length - 3) {
+            buffer[vIndex] = red;     // Red
+            buffer[vIndex + 1] = green; // Green
+            buffer[vIndex + 2] = blue;  // Blue
+            buffer[vIndex + 3] = alpha; // Alpha
+          }
+        }
+      }
+      
+      console.log(`🎯 Cursor pixels drawn at (${centerX}, ${centerY})`);
+      return buffer;
+      
+    } catch (error) {
+      console.error('Error drawing cursor pixels:', error);
+      return buffer;
     }
   }
 
@@ -1853,8 +1914,10 @@ class TesterApp {
           const img = await screenshot(captureOptions);
           
           // Mouse cursor is captured directly in screen images (cursor: true)
-          // Also try to add cursor overlay using robotjs for better visibility
+          // Also add cursor overlay for better visibility
+          console.log(`📸 Capturing screen with cursor overlay...`);
           const imgWithCursor = await this.addCursorOverlayToImage(img, captureOptions.width, captureOptions.height);
+          console.log(`📸 Screen captured with cursor overlay`);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
