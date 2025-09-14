@@ -4,7 +4,7 @@ const fs = require('fs');
 
 class FFmpegWindows {
     constructor() {
-        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg-minimal', 'bin', 'ffmpeg.exe');
+        this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
         this.isCapturing = false;
         this.ffmpegProcess = null;
         this.useSystemFFmpeg = false;

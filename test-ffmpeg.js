@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Test FFmpeg executable
-const ffmpegPath = path.join(__dirname, 'tester', 'assets', 'ffmpeg-minimal', 'bin', 'ffmpeg.exe');
+const ffmpegPath = path.join(__dirname, 'tester', 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
 
 console.log('🔍 Testing FFmpeg at:', ffmpegPath);
 
