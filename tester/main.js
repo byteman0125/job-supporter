@@ -1849,6 +1849,10 @@ class TesterApp {
       this.initialScreenResolution = { width: screenWidth, height: screenHeight };
     }
     
+    // Store screen dimensions as instance properties for socket emissions
+    this.screenWidth = screenWidth;
+    this.screenHeight = screenHeight;
+    
     // Use the locked resolution instead of hardcoded values
     const lockedWidth = this.initialScreenResolution.width;
     const lockedHeight = this.initialScreenResolution.height;
