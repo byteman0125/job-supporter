@@ -42,7 +42,15 @@ echo Found FFmpeg directory: %FFMPEG_DIR%
 
 REM Copy ALL files from bin directory - simple and reliable
 echo Copying ALL files from bin directory...
+echo Source: %FFMPEG_DIR%\bin
+echo Destination: tester\assets\ffmpeg\bin
+echo.
+echo Files in source directory:
+dir "%FFMPEG_DIR%\bin" /b
+echo.
 robocopy "%FFMPEG_DIR%\bin" "tester\assets\ffmpeg\bin" *.* /NFL /NDL /NJH /NJS /nc /ns /np
+echo.
+echo Robocopy exit code: %ERRORLEVEL%
 
 REM Count and list copied files
 echo.
