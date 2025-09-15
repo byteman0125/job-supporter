@@ -7,9 +7,9 @@ class TesterCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.screenWidth = 1280;  // Optimized resolution for speed
-    this.screenHeight = 720;  // 720p - good balance of quality and performance
-    this.framerate = 15;      // 15 FPS for smoother experiencesor
+    this.screenWidth = 960;   // Reduced resolution for maximum speed
+    this.screenHeight = 540;  // 540p - optimized for relay latency
+    this.framerate = 20;      // Higher FPS for smoother experience
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -287,7 +287,7 @@ class TesterCLI {
         return;
       }
 
-      // Optimized MJPEG encoding for speed with good quality and native cursor
+      // Ultra-low latency MJPEG encoding optimized for relay services
       const ffmpegArgs = [
         '-f', 'gdigrab',
         '-draw_mouse', '1',       // Enable native mouse cursor capture
@@ -295,10 +295,14 @@ class TesterCLI {
         '-i', 'desktop',
         '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=fast_bilinear`, // Fast scaling
         '-f', 'mjpeg',
-        '-q:v', '3',              // Good quality (3 = ~85% quality, much faster)
+        '-q:v', '5',              // Slightly lower quality for much better speed
         '-preset', 'ultrafast',   // Fastest encoding preset
         '-tune', 'zerolatency',   // Optimized for real-time streaming
         '-threads', '0',          // Use all CPU cores
+        '-fflags', 'nobuffer',    // Disable buffering for minimum latency
+        '-flags', 'low_delay',    // Low delay mode
+        '-probesize', '32',       // Minimal probe size
+        '-analyzeduration', '0',  // No analysis delay
         '-loglevel', 'quiet',
         'pipe:1'
       ];
@@ -399,8 +403,8 @@ class TesterCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to 15 FPS for smoother experience
-    if (now - this.lastFrameTime < 67) {  // 1000ms / 15fps = ~67ms
+    // Throttle frame rate to 20 FPS for smoother relay experience
+    if (now - this.lastFrameTime < 50) {  // 1000ms / 20fps = 50ms
       return;
     }
     
@@ -494,11 +498,15 @@ class TesterCLI {
       // Generate or load persistent tester ID
       this.testerId = this.getOrCreateTesterId();
       
-      // Connect to Railway relay service
+      // Connect to Railway relay service with optimized settings
       this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
-        transports: ['websocket', 'polling'],
-        timeout: 20000,
-        forceNew: true
+        transports: ['websocket'],  // WebSocket only for best performance
+        timeout: 10000,             // Faster timeout
+        forceNew: true,
+        upgrade: true,              // Allow transport upgrades
+        rememberUpgrade: true,      // Remember successful upgrades
+        compress: false,            // Disable compression for speed
+        perMessageDeflate: false    // Disable per-message compression
       });
       
       this.socket.on('connect', () => {
