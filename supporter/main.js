@@ -427,6 +427,19 @@ class SupporterApp {
       this.mainWindow.webContents.send('connection-status', { connected: false });
     });
 
+    // Handle H.264 video data (new format)
+    this.socket.on('videoData', (data) => {
+      // Forward H.264 video data to renderer
+      this.mainWindow.webContents.send('video-data', {
+        data: data.data,
+        format: data.format,
+        width: data.width,
+        height: data.height,
+        timestamp: data.timestamp,
+        bitrate: data.bitrate
+      });
+    });
+
     this.socket.on('screenData', (data) => {
       // Store last screen data for screenshot capture
       this.lastScreenData = data;

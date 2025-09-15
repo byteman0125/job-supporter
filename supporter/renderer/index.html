@@ -596,6 +596,21 @@
 
         // Mouse cursor is captured directly in screen images (cursor: true)
 
+        // Handle H.264 video data (new high-quality format)
+        ipcRenderer.on('video-data', (event, data) => {
+            console.log('🎬 Received H.264 video data:', {
+                format: data.format,
+                dataLength: data.data ? data.data.length : 0,
+                width: data.width,
+                height: data.height,
+                bitrate: data.bitrate
+            });
+            
+            if (data.format === 'h264' && data.data) {
+                displayH264Video(data.data, data.width, data.height);
+            }
+        });
+
         ipcRenderer.on('screen-data', (event, data) => {
             console.log('📡 Received screen data:', {
                 hasImage: !!data.image,
