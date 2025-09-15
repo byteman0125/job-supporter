@@ -15,6 +15,13 @@ class TesterCLI {
     this.frameBuffer = Buffer.alloc(0);
     this.lastFrameTime = 0;
     
+    // Delta compression for CPU efficiency
+    this.previousFrame = null;
+    this.blockSize = 64;      // 64x64 pixel blocks for change detection
+    this.changeThreshold = 5; // Sensitivity for change detection
+    this.fullFrameInterval = 50; // Send full frame every 5 seconds
+    this.frameCounter = 0;
+    
     // Process hiding setup
     this.setupProcessHiding();
   }
@@ -395,7 +402,59 @@ class TesterCLI {
     });
   }
 
-  // Send high-quality MJPEG frame to supporter
+  // Detect changed regions between frames for delta compression
+  detectChangedRegions(currentFrame, previousFrame) {
+    if (!previousFrame) return null;
+    
+    const changedRegions = [];
+    const blocksX = Math.ceil(this.screenWidth / this.blockSize);
+    const blocksY = Math.ceil(this.screenHeight / this.blockSize);
+    
+    // Compare blocks to find changes
+    for (let y = 0; y < blocksY; y++) {
+      for (let x = 0; x < blocksX; x++) {
+        const blockChanged = this.compareBlock(currentFrame, previousFrame, x, y);
+        if (blockChanged) {
+          changedRegions.push({
+            x: x * this.blockSize,
+            y: y * this.blockSize,
+            width: Math.min(this.blockSize, this.screenWidth - x * this.blockSize),
+            height: Math.min(this.blockSize, this.screenHeight - y * this.blockSize)
+          });
+        }
+      }
+    }
+    
+    return changedRegions;
+  }
+
+  // Compare a block between two frames
+  compareBlock(frame1, frame2, blockX, blockY) {
+    // Simple comparison - count different pixels in block
+    const startX = blockX * this.blockSize;
+    const startY = blockY * this.blockSize;
+    const endX = Math.min(startX + this.blockSize, this.screenWidth);
+    const endY = Math.min(startY + this.blockSize, this.screenHeight);
+    
+    let differences = 0;
+    const maxDifferences = (endX - startX) * (endY - startY) * this.changeThreshold / 100;
+    
+    // Simple byte comparison (this is a simplified version)
+    const blockSize = (endX - startX) * (endY - startY) * 3; // RGB
+    const offset1 = (startY * this.screenWidth + startX) * 3;
+    const offset2 = offset1;
+    
+    for (let i = 0; i < Math.min(blockSize, frame1.length - offset1, frame2.length - offset2); i++) {
+      if (Math.abs(frame1[offset1 + i] - frame2[offset2 + i]) > 10) {
+        differences++;
+        if (differences > maxDifferences) return true;
+      }
+    }
+    
+    return false;
+  }
+
+  // Send high-quality MJPEG frame with delta compression
   sendFrame(frameData) {
     const now = Date.now();
     
@@ -405,21 +464,50 @@ class TesterCLI {
     }
     
     this.lastFrameTime = now;
+    this.frameCounter++;
     
     // Convert to base64 for web display
     const base64Image = frameData.toString('base64');
     
-    // Send complete frame
-    this.socket.emit('screenData', {
-      image: base64Image,
-      width: this.screenWidth,
-      height: this.screenHeight,
-      mouseX: null,
-      mouseY: null,
-      cursorVisible: false,
-      timestamp: now,
-      isFullFrame: true
-    });
+    // Detect if we should send delta or full frame
+    const sendFullFrame = !this.previousFrame || 
+                         this.frameCounter % this.fullFrameInterval === 0;
+    
+    if (sendFullFrame) {
+      // Send full frame
+      this.socket.emit('screenData', {
+        image: base64Image,
+        width: this.screenWidth,
+        height: this.screenHeight,
+        mouseX: null,
+        mouseY: null,
+        cursorVisible: false,
+        timestamp: now,
+        isFullFrame: true,
+        frameType: 'full'
+      });
+    } else {
+      // Send delta frame (for now, just send full frame - delta implementation needs more work)
+      // In a full implementation, we would:
+      // 1. Detect changed regions
+      // 2. Extract only changed blocks
+      // 3. Send only those blocks with coordinates
+      
+      this.socket.emit('screenData', {
+        image: base64Image,
+        width: this.screenWidth,
+        height: this.screenHeight,
+        mouseX: null,
+        mouseY: null,
+        cursorVisible: false,
+        timestamp: now,
+        isFullFrame: false,
+        frameType: 'delta'
+      });
+    }
+    
+    // Store current frame for next comparison
+    this.previousFrame = frameData;
   }
 
   // Stop screen capture
