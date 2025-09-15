@@ -12,7 +12,7 @@ if not "%OS%"=="Windows_NT" (
 )
 
 echo Creating FFmpeg directory structure...
-if not exist "tester\assets\ffmpeg\bin" mkdir "tester\assets\ffmpeg\bin"
+if not exist "assets\ffmpeg\bin" mkdir "assets\ffmpeg\bin"
 
 
 REM Download FFmpeg from official source
@@ -27,16 +27,16 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-powershell -Command "if (Test-Path 'tester\assets\ffmpeg') { Remove-Item 'tester\assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; Move-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
+powershell -Command "if (Test-Path 'assets\ffmpeg') { Remove-Item 'assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'assets' -Force; $folders = Get-ChildItem 'assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; Move-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
 
 echo.
 rmdir /s /q "ffmpeg-temp"
 del "ffmpeg-temp.zip"
 
 echo.
-if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
+if exist "assets\ffmpeg\bin\ffmpeg.exe" (
     echo ✅ FFmpeg executable found
-    "tester\assets\ffmpeg\bin\ffmpeg.exe" -version >nul 2>&1
+    "assets\ffmpeg\bin\ffmpeg.exe" -version >nul 2>&1
     if %errorlevel% equ 0 (
 
     ) else (
@@ -53,8 +53,8 @@ echo ========================================
 echo Setup Complete!
 echo ========================================
 echo.
-echo Final files in tester\assets\ffmpeg\bin\:
-dir "tester\assets\ffmpeg\bin\" /b
+echo Final files in assets\ffmpeg\bin\:
+dir "assets\ffmpeg\bin\" /b
 
 echo.
 echo You can now run:
