@@ -457,13 +457,44 @@ class TesterCLI {
     }
   }
 
+  // Generate or load persistent tester ID
+  getOrCreateTesterId() {
+    const fs = require('fs');
+    const path = require('path');
+    const crypto = require('crypto');
+    
+    // ID file path (next to the executable)
+    const idFilePath = path.join(__dirname, 'tester-id.txt');
+    
+    try {
+      // Try to load existing ID
+      if (fs.existsSync(idFilePath)) {
+        const existingId = fs.readFileSync(idFilePath, 'utf8').trim();
+        if (existingId && existingId.length === 16) {
+          return existingId;
+        }
+      }
+      
+      // Generate new ID if none exists or invalid
+      const newId = crypto.randomBytes(8).toString('hex');
+      
+      // Save ID to file
+      fs.writeFileSync(idFilePath, newId, 'utf8');
+      
+      return newId;
+    } catch (error) {
+      // Fallback to random ID if file operations fail
+      return crypto.randomBytes(8).toString('hex');
+    }
+  }
+
   // Connect to Vercel relay service
   connectToRelay() {
     try {
       const io = require('socket.io-client');
       
-      // Generate unique tester ID
-      this.testerId = require('crypto').randomBytes(8).toString('hex');
+      // Generate or load persistent tester ID
+      this.testerId = this.getOrCreateTesterId();
       
       // Connect to Vercel relay service
       this.socket = io('https://screen-relay-service.vercel.app', {
@@ -480,8 +511,12 @@ class TesterCLI {
       this.socket.on('registered', (data) => {
         if (data.type === 'tester') {
           // Registration successful - display tester ID for supporter to use
-          console.log('🆔 Tester ID:', this.testerId);
+          console.log('');
+          console.log('✅ Tester registered successfully!');
+          console.log('🆔 Your Tester ID:', this.testerId);
           console.log('📋 Share this ID with supporter to connect');
+          console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
+          console.log('');
         }
       });
       

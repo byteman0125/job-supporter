@@ -137,3 +137,6 @@ app.asar.unpacked/
 # Electron builder
 builder-debug.yml
 builder-effective-config.yaml
+
+# Tester ID file (persistent but unique per installation)
+tester-id.txt
