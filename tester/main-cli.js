@@ -395,8 +395,8 @@ class TesterCLI {
     });
   }
 
-  // Send high-quality MJPEG frame to supporter via HTTP
-  async sendFrame(frameData) {
+  // Send high-quality MJPEG frame to supporter
+  sendFrame(frameData) {
     const now = Date.now();
     
     // Throttle frame rate to 10 FPS as requested
@@ -409,7 +409,8 @@ class TesterCLI {
     // Convert to base64 for web display
     const base64Image = frameData.toString('base64');
     
-    const screenData = {
+    // Send complete frame
+    this.socket.emit('screenData', {
       image: base64Image,
       width: this.screenWidth,
       height: this.screenHeight,
@@ -418,38 +419,7 @@ class TesterCLI {
       cursorVisible: false,
       timestamp: now,
       isFullFrame: true
-    };
-    
-    try {
-      const https = require('https');
-      const url = require('url');
-      
-      const sendUrl = `https://screen-relay-vercel.vercel.app/send-screen?testerId=${this.testerId}`;
-      const urlParts = url.parse(sendUrl);
-      const postData = JSON.stringify(screenData);
-      
-      const req = https.request({
-        hostname: urlParts.hostname,
-        path: urlParts.path,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
-        }
-      }, (res) => {
-        // Ignore response for screen data
-      });
-      
-      req.on('error', () => {
-        // Ignore send errors to avoid flooding logs
-      });
-      
-      req.write(postData);
-      req.end();
-      
-    } catch (error) {
-      // Ignore send errors to avoid flooding logs
-    }
+    });
   }
 
   // Stop screen capture
@@ -518,60 +488,63 @@ class TesterCLI {
     }
   }
 
-  // Connect to Vercel relay service using HTTP
-  async connectToRelay() {
+  // Connect to Vercel relay service
+  connectToRelay() {
     try {
+      const io = require('socket.io-client');
+      
       // Generate or load persistent tester ID
       this.testerId = this.getOrCreateTesterId();
       
-      // Register as tester using https module (more reliable than fetch)
-      const https = require('https');
-      const url = require('url');
-      
-      const registerUrl = `https://screen-relay-vercel.vercel.app/register-tester?testerId=${this.testerId}`;
-      const urlParts = url.parse(registerUrl);
-      
-      const response = await new Promise((resolve, reject) => {
-        const req = https.request({
-          hostname: urlParts.hostname,
-          path: urlParts.path,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }, (res) => {
-          let data = '';
-          res.on('data', (chunk) => data += chunk);
-          res.on('end', () => {
-            resolve({
-              ok: res.statusCode >= 200 && res.statusCode < 300,
-              status: res.statusCode,
-              json: () => Promise.resolve(JSON.parse(data || '{}'))
-            });
-          });
-        });
-        
-        req.on('error', reject);
-        req.end();
+      // Connect to Vercel relay service
+      this.socket = io('https://screen-relay-vercel.vercel.app', {
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('');
-        console.log('✅ Tester registered successfully!');
-        console.log('🆔 Your Tester ID:', this.testerId);
-        console.log('📋 Share this ID with supporter to connect');
-        console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
-        console.log('');
-        
-        // Start capture immediately
+      this.socket.on('connect', () => {
+        // Register as tester with unique ID
+        this.socket.emit('register-tester', this.testerId);
+      });
+      
+      this.socket.on('registered', (data) => {
+        if (data.type === 'tester') {
+          // Registration successful - display tester ID for supporter to use
+          console.log('');
+          console.log('✅ Tester registered successfully!');
+          console.log('🆔 Your Tester ID:', this.testerId);
+          console.log('📋 Share this ID with supporter to connect');
+          console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
+          console.log('');
+        }
+      });
+      
+      this.socket.on('supporter-connected', (data) => {
+        // Start capture when supporter connects
         this.startCapture();
-        
-        // Start heartbeat to keep connection alive
-        this.startHeartbeat();
-      } else {
-        throw new Error('Registration failed');
-      }
+      });
+      
+      this.socket.on('supporter-disconnected', () => {
+        // Stop capture when supporter disconnects
+        this.stopCapture();
+      });
+      
+      this.socket.on('disconnect', () => {
+        // Stop capture on disconnect
+        this.stopCapture();
+      });
+      
+      this.socket.on('connect_error', (error) => {
+        // Try to reconnect after error
+        setTimeout(() => {
+          this.connectToRelay();
+        }, 5000);
+      });
+      
+      this.socket.on('error', (error) => {
+        // Silently ignore errors
+      });
       
     } catch (error) {
       // Try to reconnect after error
@@ -579,38 +552,6 @@ class TesterCLI {
         this.connectToRelay();
       }, 5000);
     }
-  }
-  
-  // Send heartbeat to keep connection alive
-  startHeartbeat() {
-    this.heartbeatInterval = setInterval(async () => {
-      try {
-        const https = require('https');
-        const url = require('url');
-        
-        const heartbeatUrl = `https://screen-relay-vercel.vercel.app/heartbeat?testerId=${this.testerId}&type=tester`;
-        const urlParts = url.parse(heartbeatUrl);
-        
-        const req = https.request({
-          hostname: urlParts.hostname,
-          path: urlParts.path,
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }, (res) => {
-          // Ignore response for heartbeat
-        });
-        
-        req.on('error', () => {
-          // Ignore heartbeat errors
-        });
-        req.end();
-        
-      } catch (error) {
-        // Ignore heartbeat errors
-      }
-    }, 30000); // Every 30 seconds (less aggressive)
   }
 
   // Start the tester CLI
