@@ -7,10 +7,14 @@ class TesterCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.screenWidth = 1920;
-    this.screenHeight = 1080;
-    this.framerate = 15;
-    this.quality = 5;
+    this.screenWidth = 1280;  // Reduced for better performance
+    this.screenHeight = 720;
+    this.framerate = 10;      // Reduced for smoother streaming
+    this.quality = 8;         // Higher number = lower quality, better performance
+    
+    // Frame buffering for complete MJPEG frames
+    this.frameBuffer = Buffer.alloc(0);
+    this.lastFrameTime = 0;
     
     // Process hiding setup
     this.setupProcessHiding();
@@ -302,22 +306,10 @@ class TesterCLI {
       this.captureProcess = spawn(this.ffmpegPath, ffmpegArgs);
       this.isCapturing = true;
 
-      // Handle FFmpeg output
+      // Handle FFmpeg output - buffer complete MJPEG frames
       this.captureProcess.stdout.on('data', (chunk) => {
         if (this.socket && this.socket.connected) {
-          // Convert binary data to base64 for web display
-          const base64Image = chunk.toString('base64');
-          
-          // Send screen data in the format supporter app expects
-          this.socket.emit('screenData', {
-            image: base64Image,
-            width: this.screenWidth,
-            height: this.screenHeight,
-            mouseX: null, // No mouse tracking in CLI version
-            mouseY: null,
-            cursorVisible: false,
-            timestamp: Date.now()
-          });
+          this.processVideoChunk(chunk);
         }
       });
 
@@ -349,6 +341,68 @@ class TesterCLI {
     }
   }
 
+  // Process video chunks and buffer complete MJPEG frames
+  processVideoChunk(chunk) {
+    // Append chunk to buffer
+    this.frameBuffer = Buffer.concat([this.frameBuffer, chunk]);
+    
+    // Look for MJPEG frame boundaries (FFD8 = start, FFD9 = end)
+    let startIndex = 0;
+    let endIndex = -1;
+    
+    while (startIndex < this.frameBuffer.length) {
+      // Find JPEG start marker (0xFFD8)
+      const jpegStart = this.frameBuffer.indexOf(Buffer.from([0xFF, 0xD8]), startIndex);
+      if (jpegStart === -1) break;
+      
+      // Find JPEG end marker (0xFFD9) after the start
+      const jpegEnd = this.frameBuffer.indexOf(Buffer.from([0xFF, 0xD9]), jpegStart + 2);
+      if (jpegEnd === -1) break;
+      
+      // Extract complete JPEG frame (including end marker)
+      const frameData = this.frameBuffer.slice(jpegStart, jpegEnd + 2);
+      
+      // Send complete frame
+      this.sendFrame(frameData);
+      
+      // Update indices
+      startIndex = jpegEnd + 2;
+      endIndex = jpegEnd + 2;
+    }
+    
+    // Keep remaining incomplete data in buffer
+    if (endIndex > 0) {
+      this.frameBuffer = this.frameBuffer.slice(endIndex);
+    }
+  }
+
+  // Send complete frame to supporter
+  sendFrame(frameData) {
+    const now = Date.now();
+    
+    // Throttle frame rate to prevent overwhelming
+    if (now - this.lastFrameTime < 100) { // Max 10 FPS
+      return;
+    }
+    
+    this.lastFrameTime = now;
+    
+    // Convert to base64 for web display
+    const base64Image = frameData.toString('base64');
+    
+    // Send complete frame
+    this.socket.emit('screenData', {
+      image: base64Image,
+      width: this.screenWidth,
+      height: this.screenHeight,
+      mouseX: null,
+      mouseY: null,
+      cursorVisible: false,
+      timestamp: now,
+      isFullFrame: true
+    });
+  }
+
   // Stop screen capture
   stopCapture() {
     if (this.captureProcess) {
@@ -356,6 +410,9 @@ class TesterCLI {
       this.captureProcess = null;
       this.isCapturing = false;
     }
+    
+    // Clear frame buffer
+    this.frameBuffer = Buffer.alloc(0);
   }
 
   // Setup FFmpeg automatically
