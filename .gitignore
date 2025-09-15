@@ -10,6 +10,7 @@ build/
 out/
 
 # Electron build artifacts
+
 *.dmg
 *.deb
 *.rpm

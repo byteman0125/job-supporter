@@ -29,15 +29,11 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-echo Extracting FFmpeg directly to assets directory...
-powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force"
+echo Extracting FFmpeg directly to 'ffmpeg' folder...
+powershell -Command "if (Test-Path 'tester\assets\ffmpeg') { Remove-Item 'tester\assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; Move-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
 
 echo.
-echo Moving extracted folder to 'ffmpeg'...
-powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = Join-Path 'tester\assets' 'ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; if (Test-Path $newPath) { Remove-Item $newPath -Recurse -Force }; Move-Item $oldPath $newPath -Force; Write-Host 'Folder moved successfully!' } else { Write-Host 'No ffmpeg folder found to move' }"
-
-echo.
-echo FFmpeg extracted and renamed successfully!
+echo FFmpeg extracted and organized successfully!
 echo.
 echo Files in tester\assets\ffmpeg\:
 dir "tester\assets\ffmpeg\" /b
