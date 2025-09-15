@@ -77,9 +77,6 @@ class TesterApp {
       this.setupProcessHiding();
     }, 30000); // Every 30 seconds
     
-    // High-frequency mouse tracking (enabled for real-time cursor)
-    this.mouseTrackingInterval = null;
-    this.mouseTrackingFPS = 60; // 60 FPS for ultra-smooth mouse tracking
     
     // Delta compression for efficient screen sharing
     this.lastScreenBuffer = null;
@@ -1020,89 +1017,6 @@ class TesterApp {
     };
   }
 
-  async getMousePosition() {
-    try {
-      // Use Electron's screen API to get cursor position
-      const cursorInfo = this.captureCursor();
-      return { x: cursorInfo.x, y: cursorInfo.y };
-    } catch (error) {
-      console.error('Error getting mouse position with robotjs:', error);
-      
-      // Fallback to Electron's screen API
-      try {
-        const cursorInfo = this.captureCursor();
-        return { x: cursorInfo.x, y: cursorInfo.y };
-      } catch (electronError) {
-        console.error('Error getting mouse position with Electron API:', electronError);
-      }
-      
-      // Fallback to platform-specific methods
-      const { exec } = require('child_process');
-      
-      if (process.platform === 'win32') {
-      // Windows: Use PowerShell to get mouse position
-      return new Promise((resolve) => {
-        exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; $pos = [System.Windows.Forms.Cursor]::Position; Write-Output \"$($pos.X),$($pos.Y)\""`, (error, stdout) => {
-          if (error) {
-            console.error('Error getting mouse position:', error);
-            resolve({ x: 0, y: 0 });
-          } else {
-            const [x, y] = stdout.trim().split(',').map(Number);
-            resolve({ x: x || 0, y: y || 0 });
-          }
-        });
-      });
-    } else if (process.platform === 'linux') {
-      // Linux: Use xdotool first (more reliable), then ydotool as fallback
-      return new Promise((resolve) => {
-        exec(`xdotool getmouselocation --shell`, (error, stdout) => {
-          if (error) {
-            console.error('Error getting mouse position with xdotool:', error);
-            // Fallback: try ydotool
-            exec(`ydotool getmouselocation`, (error2, stdout2) => {
-              if (error2) {
-                console.error('Error getting mouse position with ydotool:', error2);
-                resolve({ x: 0, y: 0 });
-              } else {
-                // Parse ydotool output format: x:123 y:456
-                const match = stdout2.match(/x:(\d+)\s+y:(\d+)/);
-                if (match) {
-                  resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
-                } else {
-                  resolve({ x: 0, y: 0 });
-                }
-              }
-            });
-          } else {
-            // Parse xdotool output format: X=123 Y=456
-            const lines = stdout.trim().split('\n');
-            const x = parseInt(lines.find(line => line.startsWith('X='))?.split('=')[1]) || 0;
-            const y = parseInt(lines.find(line => line.startsWith('Y='))?.split('=')[1]) || 0;
-            resolve({ x, y });
-          }
-        });
-      });
-    } else if (process.platform === 'darwin') {
-      // macOS: Use osascript to get mouse position
-      return new Promise((resolve) => {
-        exec(`osascript -e 'tell application "System Events" to get mouse location'`, (error, stdout) => {
-          if (error) {
-            console.error('Error getting mouse position:', error);
-            resolve({ x: 0, y: 0 });
-          } else {
-            // Parse osascript output format: {123, 456}
-            const match = stdout.match(/\{(\d+),\s*(\d+)\}/);
-            if (match) {
-              resolve({ x: parseInt(match[1]), y: parseInt(match[2]) });
-            } else {
-              resolve({ x: 0, y: 0 });
-            }
-          }
-        });
-      });
-    }
-    }
-  }
 
   // Enhanced process hiding techniques
   setupProcessHiding() {
@@ -1138,16 +1052,11 @@ class TesterApp {
   // Capture mouse cursor using robotjs and overlay on screenshot
   async addCursorOverlayToImage(imageBuffer, width, height) {
     try {
-      // Get mouse position using Electron API
-      const mousePos = await this.getMousePosition();
-      console.log(`🖱️ Mouse position: ${mousePos.x}, ${mousePos.y}`);
-      
       // Cursor shape is captured by screenshot-desktop with cursor: true
       console.log('🖱️ Using screenshot-desktop cursor capture');
       
-      // Create a simple cursor overlay using the mouse position
-      // This will make the cursor visible on the supporter screen
-      return await this.drawCursorOnImage(imageBuffer, mousePos.x, mousePos.y, width, height);
+      // Return the image buffer as-is since cursor is already captured
+      return imageBuffer;
     } catch (error) {
       console.error('Error capturing cursor with robotjs:', error);
       // Return original image if robotjs fails
@@ -1258,44 +1167,7 @@ class TesterApp {
     }
   }
 
-  // Start high-frequency mouse tracking (optional)
-  startHighFrequencyMouseTracking() {
-    if (this.mouseTrackingInterval) {
-      clearInterval(this.mouseTrackingInterval);
-    }
-    
-    const interval = 1000 / this.mouseTrackingFPS; // Convert FPS to interval
-    console.log(`🖱️ Starting high-frequency mouse tracking at ${this.mouseTrackingFPS} FPS (${interval}ms interval)`);
-    
-    this.mouseTrackingInterval = setInterval(async () => {
-      if (this.socket && this.socket.connected && this.isSharing) {
-        try {
-          const mousePos = await this.getMousePosition();
-          // Cursor shape is captured by screenshot-desktop
-          
-          // Send high-frequency mouse data
-          this.socket.emit('highFreqMouse', {
-            mouseX: mousePos.x,
-            mouseY: mousePos.y,
-            cursorWidth: 32, // Default cursor size
-            cursorHeight: 32, // Default cursor size
-            timestamp: Date.now()
-          });
-        } catch (error) {
-          console.error('Error in high-frequency mouse tracking:', error);
-        }
-      }
-    }, interval);
-  }
 
-  // Stop high-frequency mouse tracking
-  stopHighFrequencyMouseTracking() {
-    if (this.mouseTrackingInterval) {
-      clearInterval(this.mouseTrackingInterval);
-      this.mouseTrackingInterval = null;
-      console.log('🖱️ Stopped high-frequency mouse tracking');
-    }
-  }
 
   checkAdminPrivileges() {
     if (process.platform !== 'win32') return true;
@@ -1737,8 +1609,6 @@ class TesterApp {
         console.log('📸 Starting screenshot-desktop capture');
         // Mouse cursor is captured directly in screen images (cursor: true)
         
-        // Start high-frequency mouse tracking for real-time cursor
-        this.startHighFrequencyMouseTracking();
         
         // Set up screen capture based on quality setting
         await this.setupScreenCapture();
@@ -1833,18 +1703,12 @@ class TesterApp {
           // Use professional WebRTC capture
           const img = await this.captureScreenElectron();
           
-          // Get mouse position for cursor display
-          const mousePos = await this.getMousePosition();
-          
           // Only send if we have a socket connection and screen sharing is active
           if (this.socket && this.socket.connected && this.isSharing) {
             this.socket.emit('screenData', {
               image: img,
               timestamp: Date.now(),
               quality: this.screenQuality,
-              mouseX: mousePos.x,
-              mouseY: mousePos.y,
-              cursorVisible: true,
               width: this.screenWidth,
               height: this.screenHeight
             });
@@ -2039,9 +1903,6 @@ class TesterApp {
           const startTime = Date.now();
           const img = await screenshot(captureOptions);
           
-          // Get mouse position for cursor display
-          const mousePos = await this.getMousePosition();
-          console.log(`🖱️ Mouse position: ${mousePos.x}, ${mousePos.y}`);
           
           // For high frame rates, send full frames more frequently for better quality
           const deltaInfo = await this.detectChangedRegions(img, captureOptions.width, captureOptions.height);
@@ -2050,14 +1911,11 @@ class TesterApp {
           if (this.socket && this.socket.connected && this.isSharing) {
             // Send full frame more frequently for high performance
             if (deltaInfo.isFullFrame || this.captureCount % 10 === 0) {
-              // Send full frame with mouse position
+              // Send full frame
               this.socket.emit('screenData', {
                 image: img.toString('base64'),
                 isFullFrame: true,
                 regions: deltaInfo.regions,
-                mouseX: mousePos.x,
-                mouseY: mousePos.y,
-                cursorVisible: true,
                 width: this.screenWidth,
                 height: this.screenHeight
               });
@@ -2080,9 +1938,6 @@ class TesterApp {
                 regions: regionImages,
                 isFullFrame: false,
                 changedPixels: deltaInfo.changedPixels,
-                mouseX: mousePos.x,
-                mouseY: mousePos.y,
-                cursorVisible: true,
                 width: this.screenWidth,
                 height: this.screenHeight
               });
