@@ -1,12 +1,10 @@
 const { spawn } = require('child_process');
 const path = require('path');
-const WebSocket = require('ws');
-const FFmpegWindows = require('./ffmpeg-windows');
 
 class TesterCLI {
   constructor() {
     this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
-    this.ws = null;
+    this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
     this.screenWidth = 1920;
