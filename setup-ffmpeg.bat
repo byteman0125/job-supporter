@@ -30,10 +30,17 @@ if not exist "ffmpeg-temp.zip" (
 
 echo.
 echo Extracting FFmpeg directly to assets directory...
-powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets\ffmpeg' -Force"
+powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force"
 
 echo.
-echo FFmpeg extracted successfully!
+echo Renaming extracted folder to 'ffmpeg'...
+for /d %%i in (tester\assets\ffmpeg-*) do (
+    echo Found folder: %%i
+    ren "%%i" "ffmpeg"
+)
+
+echo.
+echo FFmpeg extracted and renamed successfully!
 echo.
 echo Files in tester\assets\ffmpeg\:
 dir "tester\assets\ffmpeg\" /b
