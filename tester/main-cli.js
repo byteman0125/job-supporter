@@ -395,8 +395,8 @@ class TesterCLI {
     });
   }
 
-  // Send high-quality MJPEG frame to supporter
-  sendFrame(frameData) {
+  // Send high-quality MJPEG frame to supporter via HTTP
+  async sendFrame(frameData) {
     const now = Date.now();
     
     // Throttle frame rate to 10 FPS as requested
@@ -409,8 +409,7 @@ class TesterCLI {
     // Convert to base64 for web display
     const base64Image = frameData.toString('base64');
     
-    // Send complete frame
-    this.socket.emit('screenData', {
+    const screenData = {
       image: base64Image,
       width: this.screenWidth,
       height: this.screenHeight,
@@ -419,7 +418,19 @@ class TesterCLI {
       cursorVisible: false,
       timestamp: now,
       isFullFrame: true
-    });
+    };
+    
+    try {
+      await fetch(`https://screen-relay-vercel.vercel.app/send-screen?testerId=${this.testerId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(screenData)
+      });
+    } catch (error) {
+      // Ignore send errors to avoid flooding logs
+    }
   }
 
   // Stop screen capture
@@ -488,63 +499,37 @@ class TesterCLI {
     }
   }
 
-  // Connect to Vercel relay service
-  connectToRelay() {
+  // Connect to Vercel relay service using HTTP
+  async connectToRelay() {
     try {
-      const io = require('socket.io-client');
-      
       // Generate or load persistent tester ID
       this.testerId = this.getOrCreateTesterId();
       
-      // Connect to Vercel relay service
-      this.socket = io('https://screen-relay-vercel.vercel.app', {
-        transports: ['websocket', 'polling'],
-        timeout: 20000,
-        forceNew: true
-      });
-      
-      this.socket.on('connect', () => {
-        // Register as tester with unique ID
-        this.socket.emit('register-tester', this.testerId);
-      });
-      
-      this.socket.on('registered', (data) => {
-        if (data.type === 'tester') {
-          // Registration successful - display tester ID for supporter to use
-          console.log('');
-          console.log('✅ Tester registered successfully!');
-          console.log('🆔 Your Tester ID:', this.testerId);
-          console.log('📋 Share this ID with supporter to connect');
-          console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
-          console.log('');
+      // Register as tester
+      const response = await fetch('https://screen-relay-vercel.vercel.app/register-tester?testerId=' + this.testerId, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
       });
       
-      this.socket.on('supporter-connected', (data) => {
-        // Start capture when supporter connects
+      if (response.ok) {
+        const data = await response.json();
+        console.log('');
+        console.log('✅ Tester registered successfully!');
+        console.log('🆔 Your Tester ID:', this.testerId);
+        console.log('📋 Share this ID with supporter to connect');
+        console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
+        console.log('');
+        
+        // Start capture immediately
         this.startCapture();
-      });
-      
-      this.socket.on('supporter-disconnected', () => {
-        // Stop capture when supporter disconnects
-        this.stopCapture();
-      });
-      
-      this.socket.on('disconnect', () => {
-        // Stop capture on disconnect
-        this.stopCapture();
-      });
-      
-      this.socket.on('connect_error', (error) => {
-        // Try to reconnect after error
-        setTimeout(() => {
-          this.connectToRelay();
-        }, 5000);
-      });
-      
-      this.socket.on('error', (error) => {
-        // Silently ignore errors
-      });
+        
+        // Start heartbeat to keep connection alive
+        this.startHeartbeat();
+      } else {
+        throw new Error('Registration failed');
+      }
       
     } catch (error) {
       // Try to reconnect after error
@@ -552,6 +537,19 @@ class TesterCLI {
         this.connectToRelay();
       }, 5000);
     }
+  }
+  
+  // Send heartbeat to keep connection alive
+  startHeartbeat() {
+    this.heartbeatInterval = setInterval(async () => {
+      try {
+        await fetch(`https://screen-relay-vercel.vercel.app/heartbeat?testerId=${this.testerId}&type=tester`, {
+          method: 'POST'
+        });
+      } catch (error) {
+        // Ignore heartbeat errors
+      }
+    }, 15000); // Every 15 seconds
   }
 
   // Start the tester CLI
