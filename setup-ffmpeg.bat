@@ -40,21 +40,9 @@ for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
 
 echo Found FFmpeg directory: %FFMPEG_DIR%
 
-REM Copy all files from bin directory using simple batch commands
-echo Copying all files from bin directory...
-
-REM Copy ffmpeg.exe
-echo Copying ffmpeg.exe...
-copy "%FFMPEG_DIR%\bin\ffmpeg.exe" "tester\assets\ffmpeg\bin\" >nul 2>&1
-if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
-    echo ✅ Copied: ffmpeg.exe
-) else (
-    echo ❌ Failed to copy ffmpeg.exe
-)
-
-REM Copy all DLL files using robocopy (most reliable)
-echo Copying all DLL files...
-robocopy "%FFMPEG_DIR%\bin" "tester\assets\ffmpeg\bin" *.dll /NFL /NDL /NJH /NJS /nc /ns /np
+REM Copy ALL files from bin directory - simple and reliable
+echo Copying ALL files from bin directory...
+robocopy "%FFMPEG_DIR%\bin" "tester\assets\ffmpeg\bin" *.* /NFL /NDL /NJH /NJS /nc /ns /np
 
 REM Count and list copied files
 echo.
