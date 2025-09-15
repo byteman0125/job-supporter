@@ -33,8 +33,8 @@ echo Extracting FFmpeg directly to assets directory...
 powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force"
 
 echo.
-echo Renaming extracted folder to 'ffmpeg'...
-powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = Join-Path 'tester\assets' 'ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Renaming to: ffmpeg'; Rename-Item $oldPath $newPath -Force; Write-Host 'Folder renamed successfully!' } else { Write-Host 'No ffmpeg folder found to rename' }"
+echo Moving extracted folder to 'ffmpeg'...
+powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = Join-Path 'tester\assets' 'ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; if (Test-Path $newPath) { Remove-Item $newPath -Recurse -Force }; Move-Item $oldPath $newPath -Force; Write-Host 'Folder moved successfully!' } else { Write-Host 'No ffmpeg folder found to move' }"
 
 echo.
 echo FFmpeg extracted and renamed successfully!
