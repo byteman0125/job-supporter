@@ -376,7 +376,7 @@ class SupporterApp {
     }
     
     // Connect to Vercel relay service
-    this.socket = io('https://screen-relay-service.vercel.app', {
+    this.socket = io('https://screen-relay-vercel.vercel.app', {
       timeout: 20000,
       forceNew: true,
       transports: ['websocket', 'polling']

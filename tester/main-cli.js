@@ -497,7 +497,7 @@ class TesterCLI {
       this.testerId = this.getOrCreateTesterId();
       
       // Connect to Vercel relay service
-      this.socket = io('https://screen-relay-service.vercel.app', {
+      this.socket = io('https://screen-relay-vercel.vercel.app', {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         forceNew: true
