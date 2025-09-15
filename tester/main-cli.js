@@ -421,13 +421,32 @@ class TesterCLI {
     };
     
     try {
-      await fetch(`https://screen-relay-vercel.vercel.app/send-screen?testerId=${this.testerId}`, {
+      const https = require('https');
+      const url = require('url');
+      
+      const sendUrl = `https://screen-relay-vercel.vercel.app/send-screen?testerId=${this.testerId}`;
+      const urlParts = url.parse(sendUrl);
+      const postData = JSON.stringify(screenData);
+      
+      const req = https.request({
+        hostname: urlParts.hostname,
+        path: urlParts.path,
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(screenData)
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, (res) => {
+        // Ignore response for screen data
       });
+      
+      req.on('error', () => {
+        // Ignore send errors to avoid flooding logs
+      });
+      
+      req.write(postData);
+      req.end();
+      
     } catch (error) {
       // Ignore send errors to avoid flooding logs
     }
@@ -505,12 +524,35 @@ class TesterCLI {
       // Generate or load persistent tester ID
       this.testerId = this.getOrCreateTesterId();
       
-      // Register as tester
-      const response = await fetch('https://screen-relay-vercel.vercel.app/register-tester?testerId=' + this.testerId, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      // Register as tester using https module (more reliable than fetch)
+      const https = require('https');
+      const url = require('url');
+      
+      const registerUrl = `https://screen-relay-vercel.vercel.app/register-tester?testerId=${this.testerId}`;
+      const urlParts = url.parse(registerUrl);
+      
+      const response = await new Promise((resolve, reject) => {
+        const req = https.request({
+          hostname: urlParts.hostname,
+          path: urlParts.path,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }, (res) => {
+          let data = '';
+          res.on('data', (chunk) => data += chunk);
+          res.on('end', () => {
+            resolve({
+              ok: res.statusCode >= 200 && res.statusCode < 300,
+              status: res.statusCode,
+              json: () => Promise.resolve(JSON.parse(data || '{}'))
+            });
+          });
+        });
+        
+        req.on('error', reject);
+        req.end();
       });
       
       if (response.ok) {
@@ -543,9 +585,28 @@ class TesterCLI {
   startHeartbeat() {
     this.heartbeatInterval = setInterval(async () => {
       try {
-        await fetch(`https://screen-relay-vercel.vercel.app/heartbeat?testerId=${this.testerId}&type=tester`, {
-          method: 'POST'
+        const https = require('https');
+        const url = require('url');
+        
+        const heartbeatUrl = `https://screen-relay-vercel.vercel.app/heartbeat?testerId=${this.testerId}&type=tester`;
+        const urlParts = url.parse(heartbeatUrl);
+        
+        const req = https.request({
+          hostname: urlParts.hostname,
+          path: urlParts.path,
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }, (res) => {
+          // Ignore response for heartbeat
         });
+        
+        req.on('error', () => {
+          // Ignore heartbeat errors
+        });
+        req.end();
+        
       } catch (error) {
         // Ignore heartbeat errors
       }
