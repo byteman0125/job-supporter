@@ -10,11 +10,8 @@ class TesterCLI {
     this.screenWidth = 1920;  // Full HD for better text readability
     this.screenHeight = 1080;
     this.framerate = 10;      // 10 FPS as requested
-    this.bitrate = '3000k';   // High bitrate for text clarity
-    this.maxrate = '4000k';   // Maximum bitrate
-    this.bufsize = '2000k';   // Buffer size
     
-    // Frame buffering for complete H.264 frames
+    // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
     this.lastFrameTime = 0;
     
@@ -290,25 +287,18 @@ class TesterCLI {
         return;
       }
 
-      // Hardware H.264 encoding with high quality for text clarity
+      // High-quality MJPEG encoding for maximum text clarity
       const ffmpegArgs = [
         '-f', 'gdigrab',
         '-framerate', this.framerate.toString(),
         '-i', 'desktop',
         '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality scaling
-        '-c:v', 'h264_nvenc',     // NVIDIA GPU encoding (fallback to software if not available)
-        '-preset', 'p1',          // Fastest GPU preset
-        '-tune', 'ull',           // Ultra-low latency
-        '-profile:v', 'high',     // High profile for better quality
-        '-level', '4.1',          // H.264 level
-        '-b:v', this.bitrate,     // High bitrate for text clarity
-        '-maxrate', this.maxrate, // Maximum bitrate
-        '-bufsize', this.bufsize, // Buffer size
-        '-g', '30',               // GOP size (keyframe every 3 seconds)
-        '-bf', '0',               // No B-frames for low latency
-        '-refs', '1',             // Single reference frame
-        '-f', 'mp4',              // MP4 container
-        '-movflags', 'frag_keyframe+empty_moov+default_base_moof', // Streaming flags
+        '-f', 'mjpeg',
+        '-q:v', '1',              // Highest quality (1 = best, 31 = worst)
+        '-preset', 'veryslow',    // Best quality preset
+        '-tune', 'stillimage',    // Optimized for text/static content
+        '-compression_level', '0', // No additional compression
+        '-huffman', 'optimal',    // Optimal Huffman coding
         '-loglevel', 'quiet',
         'pipe:1'
       ];
@@ -352,18 +342,38 @@ class TesterCLI {
     }
   }
 
-  // Process video chunks and buffer H.264/MP4 data
+  // Process video chunks and buffer complete MJPEG frames
   processVideoChunk(chunk) {
-    // For H.264 streaming, we send chunks as they come for low latency
-    // The browser will handle MP4 fragmentation and decoding
-    if (this.socket && this.socket.connected) {
-      const now = Date.now();
+    // Append chunk to buffer
+    this.frameBuffer = Buffer.concat([this.frameBuffer, chunk]);
+    
+    // Look for MJPEG frame boundaries (FFD8 = start, FFD9 = end)
+    let startIndex = 0;
+    let endIndex = -1;
+    
+    while (startIndex < this.frameBuffer.length) {
+      // Find JPEG start marker (0xFFD8)
+      const jpegStart = this.frameBuffer.indexOf(Buffer.from([0xFF, 0xD8]), startIndex);
+      if (jpegStart === -1) break;
       
-      // Throttle to maintain 10 FPS
-      if (now - this.lastFrameTime >= 100) {
-        this.sendH264Frame(chunk);
-        this.lastFrameTime = now;
-      }
+      // Find JPEG end marker (0xFFD9) after the start
+      const jpegEnd = this.frameBuffer.indexOf(Buffer.from([0xFF, 0xD9]), jpegStart + 2);
+      if (jpegEnd === -1) break;
+      
+      // Extract complete JPEG frame (including end marker)
+      const frameData = this.frameBuffer.slice(jpegStart, jpegEnd + 2);
+      
+      // Send complete frame
+      this.sendFrame(frameData);
+      
+      // Update indices
+      startIndex = jpegEnd + 2;
+      endIndex = jpegEnd + 2;
+    }
+    
+    // Keep remaining incomplete data in buffer
+    if (endIndex > 0) {
+      this.frameBuffer = this.frameBuffer.slice(endIndex);
     }
   }
 
@@ -385,9 +395,16 @@ class TesterCLI {
     });
   }
 
-  // Legacy method for MJPEG (kept for compatibility)
+  // Send high-quality MJPEG frame to supporter
   sendFrame(frameData) {
     const now = Date.now();
+    
+    // Throttle frame rate to 10 FPS as requested
+    if (now - this.lastFrameTime < 100) {
+      return;
+    }
+    
+    this.lastFrameTime = now;
     
     // Convert to base64 for web display
     const base64Image = frameData.toString('base64');
