@@ -52,9 +52,9 @@ if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
     echo ❌ Failed to copy ffmpeg.exe
 )
 
-REM Copy all DLL files using PowerShell (more reliable for wildcards)
+REM Copy all DLL files using robocopy (most reliable)
 echo Copying all DLL files...
-powershell -Command "Copy-Item '%FFMPEG_DIR%\bin\*.dll' 'tester\assets\ffmpeg\bin\' -Force"
+robocopy "%FFMPEG_DIR%\bin" "tester\assets\ffmpeg\bin" *.dll /NFL /NDL /NJH /NJS /nc /ns /np
 
 REM Count and list copied files
 echo.
