@@ -112,8 +112,7 @@ tester/
 ├── assets/
 │   └── ffmpeg/          # FFmpeg binaries
 ├── ffmpeg-windows.js    # FFmpeg wrapper
-├── ffmpeg-capture.js    # Generic FFmpeg capture
-└── native-capture.js    # Native capture fallback
+└── ffmpeg-capture.js    # Generic FFmpeg capture
 ```
 
 ## Comparison: Electron vs CLI

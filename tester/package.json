@@ -22,8 +22,7 @@
     "assets": [
       "assets/**/*",
       "ffmpeg-windows.js",
-      "ffmpeg-capture.js",
-      "native-capture.js"
+      "ffmpeg-capture.js"
     ],
     "targets": [
       "node18-win-x64"
