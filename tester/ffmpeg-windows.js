@@ -104,7 +104,7 @@ class FFmpegWindows {
         const psCommand = `
             $env:PATH += ";${binDir}"
             $env:PATH += ";${path.join(binDir, '..', 'lib')}"
-            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height} -f image2pipe -vcodec png -pix_fmt rgb24 -y pipe:1
+            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height}:flags=fast_bilinear -f image2pipe -vcodec mjpeg -q:v 3 -y pipe:1
         `;
 
         this.ffmpegProcess = spawn('powershell', ['-Command', psCommand], {
