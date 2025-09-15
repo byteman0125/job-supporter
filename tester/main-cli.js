@@ -9,8 +9,8 @@ class TesterCLI {
     this.isCapturing = false;
     this.screenWidth = 1920;  // Full HD for better text readability
     this.screenHeight = 1080;
-    this.framerate = 8;       // Slightly lower FPS for higher quality
-    this.quality = 3;         // Much higher quality for text clarity
+    this.framerate = 10;      // 10 FPS as requested
+    this.quality = 4;         // ~85% quality (4 out of 10 scale)
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -381,8 +381,8 @@ class TesterCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate for high quality streaming
-    if (now - this.lastFrameTime < 125) { // Max 8 FPS for high quality
+    // Throttle frame rate to 10 FPS as requested
+    if (now - this.lastFrameTime < 100) { // Exactly 10 FPS (100ms interval)
       return;
     }
     
