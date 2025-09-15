@@ -29,8 +29,8 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-echo Extracting FFmpeg directly to 'ffmpeg' folder...
-powershell -Command "if (Test-Path 'tester\assets\ffmpeg') { Remove-Item 'tester\assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; Move-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
+echo Extracting FFmpeg to temporary location...
+powershell -Command "if (Test-Path 'ffmpeg-temp') { Remove-Item 'ffmpeg-temp' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ffmpeg-temp' -Force; $folders = Get-ChildItem 'ffmpeg-temp' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $sourcePath = $folders[0].FullName; $targetPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Copying contents to: ffmpeg'; if (Test-Path $targetPath) { Remove-Item $targetPath -Recurse -Force }; Copy-Item $sourcePath $targetPath -Recurse -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
 
 echo.
 echo FFmpeg extracted and organized successfully!
@@ -43,8 +43,8 @@ dir "tester\assets\ffmpeg\bin\" /b
 
 echo.
 echo Cleaning up temporary files...
-rmdir /s /q "ffmpeg-temp"
-del "ffmpeg-temp.zip"
+if exist "ffmpeg-temp" rmdir /s /q "ffmpeg-temp"
+if exist "ffmpeg-temp.zip" del "ffmpeg-temp.zip"
 
 echo.
 echo Testing FFmpeg installation...
