@@ -92,9 +92,9 @@ class FFmpegWindows {
         }
 
         const {
-            width = 1920,
-            height = 1080,
-            fps = 30
+            width = 1280,
+            height = 720,
+            fps = 15
         } = options;
 
         console.log('🎥 Starting FFmpeg capture via PowerShell...');
@@ -104,7 +104,7 @@ class FFmpegWindows {
         const psCommand = `
             $env:PATH += ";${binDir}"
             $env:PATH += ";${path.join(binDir, '..', 'lib')}"
-            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height}:flags=lanczos -f image2pipe -vcodec png -pix_fmt rgb24 -compression_level 0 -vsync 0 -y pipe:1
+            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height}:flags=fast_bilinear -f image2pipe -vcodec mjpeg -q:v 5 -preset ultrafast -tune zerolatency -y pipe:1
         `;
 
         this.ffmpegProcess = spawn('powershell', ['-Command', psCommand], {
@@ -115,36 +115,36 @@ class FFmpegWindows {
             }
         });
 
-        // Buffer for PNG data
-        this.pngBuffer = Buffer.alloc(0);
-        this.pngStartMarker = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]); // PNG signature
-        this.pngEndMarker = Buffer.from([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82]); // IEND chunk
+        // Buffer for MJPEG data (much simpler than PNG)
+        this.mjpegBuffer = Buffer.alloc(0);
+        this.mjpegStartMarker = Buffer.from([0xFF, 0xD8]); // JPEG start
+        this.mjpegEndMarker = Buffer.from([0xFF, 0xD9]);   // JPEG end
 
         this.ffmpegProcess.stdout.on('data', (data) => {
-            this.pngBuffer = Buffer.concat([this.pngBuffer, data]);
+            this.mjpegBuffer = Buffer.concat([this.mjpegBuffer, data]);
             
-            // Look for complete PNG frames
+            // Look for complete JPEG frames
             let startIndex = 0;
             while (true) {
-                const pngStart = this.pngBuffer.indexOf(this.pngStartMarker, startIndex);
-                if (pngStart === -1) break;
+                const jpegStart = this.mjpegBuffer.indexOf(this.mjpegStartMarker, startIndex);
+                if (jpegStart === -1) break;
                 
-                const pngEnd = this.pngBuffer.indexOf(this.pngEndMarker, pngStart);
-                if (pngEnd === -1) break; // Incomplete PNG, wait for more data
+                const jpegEnd = this.mjpegBuffer.indexOf(this.mjpegEndMarker, jpegStart);
+                if (jpegEnd === -1) break; // Incomplete JPEG, wait for more data
                 
-                // Extract complete PNG
-                const pngData = this.pngBuffer.slice(pngStart, pngEnd + this.pngEndMarker.length);
+                // Extract complete JPEG
+                const jpegData = this.mjpegBuffer.slice(jpegStart, jpegEnd + this.mjpegEndMarker.length);
                 
                 if (this.onFrame) {
-                    this.onFrame(pngData);
+                    this.onFrame(jpegData);
                 }
                 
-                startIndex = pngEnd + this.pngEndMarker.length;
+                startIndex = jpegEnd + this.mjpegEndMarker.length;
             }
             
-            // Keep only the last incomplete PNG data
+            // Keep only the last incomplete JPEG data
             if (startIndex > 0) {
-                this.pngBuffer = this.pngBuffer.slice(startIndex);
+                this.mjpegBuffer = this.mjpegBuffer.slice(startIndex);
             }
         });
 
