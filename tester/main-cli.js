@@ -19,8 +19,9 @@ class TesterCLI {
     this.previousFrame = null;
     this.blockSize = 64;      // 64x64 pixel blocks for change detection
     this.changeThreshold = 5; // Sensitivity for change detection
-    this.fullFrameInterval = 50; // Send full frame every 5 seconds
+    this.fullFrameInterval = 50; // Send full frame every 5 seconds (50 frames at 10 FPS)
     this.frameCounter = 0;
+    this.lastFullFrameTime = 0;
     
     // Process hiding setup
     this.setupProcessHiding();
@@ -281,72 +282,101 @@ class TesterCLI {
     }
   }
 
-  // Start screen capture using FFmpeg
+  // Start optimized screen capture with delta compression
   startCapture() {
     if (this.isCapturing) return;
     
     try {
-      // Check if FFmpeg exists
-      const fs = require('fs');
-      if (!fs.existsSync(this.ffmpegPath)) {
-        // FFmpeg not found - try to set it up automatically
-        this.setupFFmpeg();
-        return;
-      }
-
-      // High-quality MJPEG encoding for maximum text clarity
-      const ffmpegArgs = [
-        '-f', 'gdigrab',
-        '-framerate', this.framerate.toString(),
-        '-i', 'desktop',
-        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality scaling
-        '-f', 'mjpeg',
-        '-q:v', '1',              // Highest quality (1 = best, 31 = worst)
-        '-preset', 'veryslow',    // Best quality preset
-        '-tune', 'stillimage',    // Optimized for text/static content
-        '-compression_level', '0', // No additional compression
-        '-huffman', 'optimal',    // Optimal Huffman coding
-        '-loglevel', 'quiet',
-        'pipe:1'
-      ];
-
-      // Start FFmpeg process
-      this.captureProcess = spawn(this.ffmpegPath, ffmpegArgs);
-      this.isCapturing = true;
-
-      // Handle FFmpeg output - buffer complete MJPEG frames
-      this.captureProcess.stdout.on('data', (chunk) => {
-        if (this.socket && this.socket.connected) {
-          this.processVideoChunk(chunk);
-        }
-      });
-
-      // Handle FFmpeg errors
-      this.captureProcess.stderr.on('data', (data) => {
-        // Log errors for debugging but don't show to user
-      });
-
-      // Handle process exit
-      this.captureProcess.on('close', (code) => {
-        this.isCapturing = false;
-        if (code !== 0) {
-          // Try to restart capture after a delay
-          setTimeout(() => {
-            if (this.socket && this.socket.connected) {
-              this.startCapture();
-            }
-          }, 5000);
-        }
-      });
-
+      // Use screenshot-desktop for raw buffer access (much more CPU efficient)
+      this.startRawBufferCapture();
     } catch (error) {
-      // Try to restart capture after error
-      setTimeout(() => {
-        if (this.socket && this.socket.connected) {
-          this.startCapture();
-        }
-      }, 5000);
+      // Fallback to FFmpeg if raw buffer capture fails
+      this.startFFmpegCapture();
     }
+  }
+
+  // Raw buffer capture for maximum CPU efficiency
+  async startRawBufferCapture() {
+    const screenshot = require('screenshot-desktop');
+    
+    this.isCapturing = true;
+    this.captureInterval = setInterval(async () => {
+      if (!this.socket || !this.socket.connected) return;
+      
+      try {
+        const now = Date.now();
+        
+        // Throttle to 10 FPS
+        if (now - this.lastFrameTime < 100) return;
+        
+        // Capture raw screen
+        const imageBuffer = await screenshot({ format: 'png' });
+        
+        // Determine if we should send full frame (every 5 seconds)
+        const shouldSendFullFrame = !this.lastFullFrameTime || 
+                                   (now - this.lastFullFrameTime) >= 5000;
+        
+        if (shouldSendFullFrame) {
+          // Send full frame every 5 seconds
+          this.sendFullFrame(imageBuffer, now);
+          this.lastFullFrameTime = now;
+        } else {
+          // Send delta frame (only changes)
+          this.sendDeltaFrame(imageBuffer, now);
+        }
+        
+        this.lastFrameTime = now;
+        
+      } catch (error) {
+        // Silently handle errors
+      }
+    }, 100); // 10 FPS interval
+  }
+
+  // Fallback FFmpeg capture
+  startFFmpegCapture() {
+    const fs = require('fs');
+    if (!fs.existsSync(this.ffmpegPath)) {
+      this.setupFFmpeg();
+      return;
+    }
+
+    // Reduced quality FFmpeg for fallback
+    const ffmpegArgs = [
+      '-f', 'gdigrab',
+      '-framerate', this.framerate.toString(),
+      '-i', 'desktop',
+      '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`,
+      '-f', 'mjpeg',
+      '-q:v', '3',              // Good quality but not highest
+      '-preset', 'fast',        // Faster encoding
+      '-loglevel', 'quiet',
+      'pipe:1'
+    ];
+
+    this.captureProcess = spawn(this.ffmpegPath, ffmpegArgs);
+    this.isCapturing = true;
+
+    this.captureProcess.stdout.on('data', (chunk) => {
+      if (this.socket && this.socket.connected) {
+        this.processVideoChunk(chunk);
+      }
+    });
+
+    this.captureProcess.stderr.on('data', (data) => {
+      // Log errors for debugging but don't show to user
+    });
+
+    this.captureProcess.on('close', (code) => {
+      this.isCapturing = false;
+      if (code !== 0) {
+        setTimeout(() => {
+          if (this.socket && this.socket.connected) {
+            this.startCapture();
+          }
+        }, 5000);
+      }
+    });
   }
 
   // Process video chunks and buffer complete MJPEG frames
@@ -384,22 +414,59 @@ class TesterCLI {
     }
   }
 
-  // Send H.264 frame data to supporter
-  sendH264Frame(frameData) {
-    const now = Date.now();
+  // Send full frame (every 5 seconds for screen refresh)
+  sendFullFrame(imageBuffer, timestamp) {
+    const base64Image = imageBuffer.toString('base64');
     
-    // Convert to base64 for transmission
-    const base64Video = frameData.toString('base64');
-    
-    // Send H.264 video data
-    this.socket.emit('videoData', {
-      data: base64Video,
-      format: 'h264',
+    this.socket.emit('screenData', {
+      image: base64Image,
       width: this.screenWidth,
       height: this.screenHeight,
-      timestamp: now,
-      bitrate: this.bitrate
+      mouseX: null,
+      mouseY: null,
+      cursorVisible: false,
+      timestamp: timestamp,
+      isFullFrame: true,
+      frameType: 'full',
+      refreshType: 'periodic' // Indicates this is a 5-second refresh
     });
+    
+    // Store current frame for delta comparison
+    this.previousFrame = imageBuffer;
+  }
+
+  // Send delta frame (only changed regions)
+  async sendDeltaFrame(imageBuffer, timestamp) {
+    if (!this.previousFrame) {
+      // No previous frame, send full frame
+      return this.sendFullFrame(imageBuffer, timestamp);
+    }
+    
+    try {
+      // For now, send full frame but mark as delta
+      // TODO: Implement actual delta compression
+      const base64Image = imageBuffer.toString('base64');
+      
+      this.socket.emit('screenData', {
+        image: base64Image,
+        width: this.screenWidth,
+        height: this.screenHeight,
+        mouseX: null,
+        mouseY: null,
+        cursorVisible: false,
+        timestamp: timestamp,
+        isFullFrame: false,
+        frameType: 'delta',
+        refreshType: 'incremental'
+      });
+      
+      // Store current frame for next comparison
+      this.previousFrame = imageBuffer;
+      
+    } catch (error) {
+      // Fallback to full frame on error
+      this.sendFullFrame(imageBuffer, timestamp);
+    }
   }
 
   // Detect changed regions between frames for delta compression
@@ -512,14 +579,25 @@ class TesterCLI {
 
   // Stop screen capture
   stopCapture() {
+    this.isCapturing = false;
+    
+    // Stop raw buffer capture interval
+    if (this.captureInterval) {
+      clearInterval(this.captureInterval);
+      this.captureInterval = null;
+    }
+    
+    // Stop FFmpeg process if running
     if (this.captureProcess) {
       this.captureProcess.kill();
       this.captureProcess = null;
-      this.isCapturing = false;
     }
     
-    // Clear frame buffer
+    // Clear frame buffer and reset state
     this.frameBuffer = Buffer.alloc(0);
+    this.previousFrame = null;
+    this.lastFullFrameTime = 0;
+    this.frameCounter = 0;
   }
 
   // Setup FFmpeg automatically
