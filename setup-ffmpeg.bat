@@ -29,17 +29,14 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-echo Extracting FFmpeg and preserving original folder name...
-powershell -Command "if (Test-Path 'tester\assets\ffmpeg') { Remove-Item 'tester\assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Renaming to: ffmpeg'; Rename-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and renamed successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
+echo Extracting FFmpeg with original folder name...
+powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { Write-Host 'FFmpeg extracted successfully to:' $folders[0].Name; Write-Host 'The tester app will automatically find this folder!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
 
 echo.
-echo FFmpeg extracted and renamed successfully!
+echo FFmpeg extracted successfully!
 echo.
-echo Files in tester\assets\ffmpeg\:
-dir "tester\assets\ffmpeg\" /b
-echo.
-echo Files in tester\assets\ffmpeg\bin\:
-dir "tester\assets\ffmpeg\bin\" /b
+echo Files in the extracted FFmpeg folder:
+powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $folderName = $folders[0].Name; Write-Host 'Folder:' $folderName; Get-ChildItem \"tester\assets\$folderName\" | ForEach-Object { Write-Host $_.Name }; Write-Host ''; Write-Host 'Files in bin directory:'; Get-ChildItem \"tester\assets\$folderName\bin\" | ForEach-Object { Write-Host $_.Name } }"
 
 echo.
 echo Cleaning up temporary files...
@@ -47,27 +44,15 @@ if exist "ffmpeg-temp.zip" del "ffmpeg-temp.zip"
 
 echo.
 echo Testing FFmpeg installation...
-if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
-    echo ✅ FFmpeg executable found
-    "tester\assets\ffmpeg\bin\ffmpeg.exe" -version >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo ✅ FFmpeg is working correctly
-    ) else (
-        echo ⚠️ FFmpeg found but may have dependency issues
-        echo You may need to install Visual C++ Redistributable
-    )
-) else (
-    echo ❌ FFmpeg executable not found
-    echo Setup may have failed
-)
+powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $folderName = $folders[0].Name; $ffmpegPath = \"tester\assets\$folderName\bin\ffmpeg.exe\"; if (Test-Path $ffmpegPath) { Write-Host '✅ FFmpeg executable found'; $result = & $ffmpegPath -version 2>&1; if ($LASTEXITCODE -eq 0) { Write-Host '✅ FFmpeg is working correctly' } else { Write-Host '⚠️ FFmpeg found but may have dependency issues'; Write-Host 'You may need to install Visual C++ Redistributable' } } else { Write-Host '❌ FFmpeg executable not found'; Write-Host 'Setup may have failed' } } else { Write-Host '❌ No FFmpeg folder found' }"
 
 echo.
 echo ========================================
 echo Setup Complete!
 echo ========================================
 echo.
-echo Final files in tester\assets\ffmpeg\bin\:
-dir "tester\assets\ffmpeg\bin\" /b
+echo Final files in the FFmpeg bin directory:
+powershell -Command "$folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $folderName = $folders[0].Name; Get-ChildItem \"tester\assets\$folderName\bin\" | ForEach-Object { Write-Host $_.Name } }"
 
 echo.
 echo You can now run:
