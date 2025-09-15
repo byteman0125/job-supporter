@@ -445,7 +445,6 @@ class SupporterApp {
         const currentX = (data.mouseX * windowWidth) / this.screenWidth;
         const currentY = (data.mouseY * windowHeight) / this.screenHeight;
         
-        console.log(`🖱️ Origin: Pos(${data.mouseX},${data.mouseY}) Size(${this.screenWidth}x${this.screenHeight}) → Current: Pos(${currentX.toFixed(1)},${currentY.toFixed(1)}) Size(${windowWidth}x${windowHeight})`);
         console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
         
         // Calculate and show scale rate
@@ -499,7 +498,6 @@ class SupporterApp {
         const currentY = (data.mouseY * windowHeight) / this.screenHeight;
         
         // Single log with all required info
-        console.log(`🖱️ Origin: Pos(${data.mouseX},${data.mouseY}) Size(${this.screenWidth}x${this.screenHeight}) → Current: Pos(${currentX.toFixed(1)},${currentY.toFixed(1)}) Size(${windowWidth}x${windowHeight})`);
         console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
       }
       
