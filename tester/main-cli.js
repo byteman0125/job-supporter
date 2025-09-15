@@ -279,7 +279,8 @@ class TesterCLI {
       // Check if FFmpeg exists
       const fs = require('fs');
       if (!fs.existsSync(this.ffmpegPath)) {
-        console.error('FFmpeg not found at:', this.ffmpegPath);
+        // FFmpeg not found - try to set it up automatically
+        this.setupFFmpeg();
         return;
       }
 
@@ -293,7 +294,7 @@ class TesterCLI {
         '-q:v', this.quality.toString(),
         '-preset', 'ultrafast',
         '-tune', 'zerolatency',
-        '-loglevel', 'error',
+        '-loglevel', 'quiet',
         'pipe:1'
       ];
 
@@ -310,19 +311,29 @@ class TesterCLI {
 
       // Handle FFmpeg errors
       this.captureProcess.stderr.on('data', (data) => {
-        // Silently ignore errors
+        // Log errors for debugging but don't show to user
       });
 
       // Handle process exit
       this.captureProcess.on('close', (code) => {
         this.isCapturing = false;
         if (code !== 0) {
-          // Silently ignore errors
+          // Try to restart capture after a delay
+          setTimeout(() => {
+            if (this.socket && this.socket.connected) {
+              this.startCapture();
+            }
+          }, 5000);
         }
       });
 
     } catch (error) {
-      // Silently ignore errors
+      // Try to restart capture after error
+      setTimeout(() => {
+        if (this.socket && this.socket.connected) {
+          this.startCapture();
+        }
+      }, 5000);
     }
   }
 
@@ -332,6 +343,29 @@ class TesterCLI {
       this.captureProcess.kill();
       this.captureProcess = null;
       this.isCapturing = false;
+    }
+  }
+
+  // Setup FFmpeg automatically
+  setupFFmpeg() {
+    try {
+      const { exec } = require('child_process');
+      const setupScript = path.join(__dirname, 'setup-ffmpeg.bat');
+      
+      // Run setup script silently
+      exec(`"${setupScript}"`, { windowsHide: true }, (error) => {
+        if (!error) {
+          // Try to start capture after setup
+          setTimeout(() => {
+            if (this.socket && this.socket.connected) {
+              this.startCapture();
+            }
+          }, 10000); // Wait 10 seconds for setup to complete
+        }
+      });
+      
+    } catch (error) {
+      // Silently ignore setup errors
     }
   }
 
