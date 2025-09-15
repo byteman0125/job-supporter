@@ -305,7 +305,19 @@ class TesterCLI {
       // Handle FFmpeg output
       this.captureProcess.stdout.on('data', (chunk) => {
         if (this.socket && this.socket.connected) {
-          this.socket.emit('screenData', chunk);
+          // Convert binary data to base64 for web display
+          const base64Image = chunk.toString('base64');
+          
+          // Send screen data in the format supporter app expects
+          this.socket.emit('screenData', {
+            image: base64Image,
+            width: this.screenWidth,
+            height: this.screenHeight,
+            mouseX: null, // No mouse tracking in CLI version
+            mouseY: null,
+            cursorVisible: false,
+            timestamp: Date.now()
+          });
         }
       });
 
