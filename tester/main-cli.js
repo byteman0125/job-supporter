@@ -7,9 +7,9 @@ class TesterCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.screenWidth = 1920;  // Full HD for better text readability
-    this.screenHeight = 1080;
-    this.framerate = 10;      // 10 FPS as requested
+    this.screenWidth = 1280;  // Optimized resolution for speed
+    this.screenHeight = 720;  // 720p - good balance of quality and performance
+    this.framerate = 15;      // 15 FPS for smoother experience
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -287,18 +287,17 @@ class TesterCLI {
         return;
       }
 
-      // High-quality MJPEG encoding for maximum text clarity
+      // Optimized MJPEG encoding for speed with good quality
       const ffmpegArgs = [
         '-f', 'gdigrab',
         '-framerate', this.framerate.toString(),
         '-i', 'desktop',
-        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality scaling
+        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=fast_bilinear`, // Fast scaling
         '-f', 'mjpeg',
-        '-q:v', '1',              // Highest quality (1 = best, 31 = worst)
-        '-preset', 'veryslow',    // Best quality preset
-        '-tune', 'stillimage',    // Optimized for text/static content
-        '-compression_level', '0', // No additional compression
-        '-huffman', 'optimal',    // Optimal Huffman coding
+        '-q:v', '3',              // Good quality (3 = ~85% quality, much faster)
+        '-preset', 'ultrafast',   // Fastest encoding preset
+        '-tune', 'zerolatency',   // Optimized for real-time streaming
+        '-threads', '0',          // Use all CPU cores
         '-loglevel', 'quiet',
         'pipe:1'
       ];
@@ -399,8 +398,8 @@ class TesterCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to 10 FPS as requested
-    if (now - this.lastFrameTime < 100) {
+    // Throttle frame rate to 15 FPS for smoother experience
+    if (now - this.lastFrameTime < 67) {  // 1000ms / 15fps = ~67ms
       return;
     }
     
