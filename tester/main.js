@@ -1842,18 +1842,18 @@ class TesterApp {
           height: screenHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS (reduced to prevent freezing)
+        interval = 66; // 10 FPS (reduced to prevent freezing)
         break;
       case 'medium':
         captureOptions = {
           format: 'jpeg',    // JPEG for better performance
-          quality: 0.7,      // Good quality
+          quality: 0.75,      // Good quality
           screen: 0,
           width: lockedWidth,
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // 10 FPS (reduced to prevent freezing)
+        interval = 83; // 10 FPS (reduced to prevent freezing)
         break;
       case 'low':
         captureOptions = {
@@ -1864,18 +1864,18 @@ class TesterApp {
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 150; // ~7 FPS (very low to prevent freezing)
+        interval = 120; // ~7 FPS (very low to prevent freezing)
         break;
       default:
         captureOptions = {
           format: 'jpeg',    // JPEG for better performance
-          quality: 0.7,      // Good quality
+          quality: 0.75,      // Good quality
           screen: 0,
           width: lockedWidth,
           height: lockedHeight,
           cursor: true       // Capture mouse cursor
         };
-        interval = 100; // Default to 10 FPS (reduced to prevent freezing)
+        interval = 66; // Default to 10 FPS (reduced to prevent freezing)
     }
 
     // Add capture performance monitoring (not system CPU)

@@ -654,13 +654,8 @@ class SupporterApp {
 
     ipcMain.on('resize-window-to-screen', (event, { width, height }) => {
       if (this.mainWindow) {
-        // Instantly calculate optimal size using remembered resolution
-        const optimalSize = this.calculateOptimalSize(width, height);
-        
-        // Instantly resize with calculated size
-        this.professionalResize(optimalSize.width, optimalSize.height);
-        
-        // Don't center - let user position window wherever they want
+        // Disabled automatic window resizing - let image scale within existing window
+        console.log('📺 Window resize request ignored - image will scale to fit existing window');
       }
     });
 

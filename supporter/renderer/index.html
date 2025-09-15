@@ -132,6 +132,7 @@
             background: #000;
             position: relative;
             overflow: hidden;
+            width: 100vw;
             height: 100vh; /* Full height without title bar */
             margin: 0;
             padding: 0;
@@ -139,8 +140,10 @@
         }
 
         .screen-image {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
             border-radius: 4px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
@@ -411,34 +414,16 @@
                     console.log('🖱️ NOT DRAWING CURSOR - no cursor data');
                 }
                 
-                // Only resize window on first connection, not on every screen data update
+                // Don't resize window automatically - let image scale within existing window
                 if (!window.hasReceivedScreenData) {
                     window.hasReceivedScreenData = true;
-                    
-                    // Use current window height or default to 600px if first connection
-                    const currentHeight = window.innerHeight > 100 ? window.innerHeight : 600;
-                    const proportionalWidth = Math.round((originalScreenWidth * currentHeight) / originalScreenHeight);
-                    
-                    console.log('🖼️ First screen data - Resizing supporter window to:', proportionalWidth, 'x', currentHeight);
-                    console.log('📊 Original ratio:', originalScreenWidth, 'x', originalScreenHeight, '→ Scaled to:', proportionalWidth, 'x', currentHeight);
-                    
-                    // Initialize previous dimensions for resize detection
-                    previousWidth = proportionalWidth;
-                    previousHeight = currentHeight;
-                    
-                    // Send resize request to main process only on first connection
-                    ipcRenderer.send('resize-window-to-screen', {
-                        width: proportionalWidth,
-                        height: currentHeight
-                    });
+                    console.log('🖼️ First screen data received - image will scale to fit window');
+                    console.log('📊 Original screen:', originalScreenWidth, 'x', originalScreenHeight, '→ Will scale to fit window');
                 } else {
                     console.log('📺 Screen data update - maintaining current window size');
-                    // Just update the image without resizing the window
                 }
                 
-                // Set image to fill the entire container
-                img.style.width = '100%';
-                img.style.height = '100%';
+                // Image will scale naturally with CSS object-fit: contain
             };
             
             img.onerror = (error) => {

@@ -12,7 +12,6 @@ class FFmpegCapture {
     // Start FFmpeg screen capture with mouse cursor
     startCapture(options = {}) {
         if (this.isCapturing) {
-            console.log('FFmpeg capture already running');
             return;
         }
 
@@ -39,8 +38,7 @@ class FFmpegCapture {
             outputPath                         // Output destination
         ];
 
-        console.log('Starting FFmpeg capture with args:', args);
-
+        
         // Set up environment with DLL path
         const binDir = path.dirname(this.ffmpegPath);
         const env = {
@@ -62,21 +60,13 @@ class FFmpegCapture {
 
         this.ffmpegProcess.stderr.on('data', (data) => {
             const errorMsg = data.toString();
-            console.log('FFmpeg stderr:', errorMsg);
             if (errorMsg.includes('gdigrab') || errorMsg.includes('desktop')) {
-                console.log('⚠️ FFmpeg gdigrab error - trying alternative method');
             }
         });
 
         this.ffmpegProcess.on('close', (code) => {
-            console.log('FFmpeg process exited with code:', code);
             if (code !== 0) {
                 console.log('❌ FFmpeg failed with exit code:', code);
-                console.log('💡 This usually means:');
-                console.log('   1. Missing Visual C++ Redistributable');
-                console.log('   2. Wrong architecture (32-bit vs 64-bit)');
-                console.log('   3. Corrupted FFmpeg executable');
-                console.log('   4. Permission issues');
             }
             this.isCapturing = false;
             this.ffmpegProcess = null;
@@ -84,13 +74,11 @@ class FFmpegCapture {
 
         this.ffmpegProcess.on('error', (error) => {
             console.error('FFmpeg process error:', error);
-            console.log('💡 Try downloading FFmpeg from: https://www.gyan.dev/ffmpeg/builds/');
             this.isCapturing = false;
             this.ffmpegProcess = null;
         });
 
         this.isCapturing = true;
-        console.log('FFmpeg capture started');
     }
 
     // Stop FFmpeg capture
@@ -98,7 +86,6 @@ class FFmpegCapture {
         if (this.ffmpegProcess && this.isCapturing) {
             this.ffmpegProcess.kill('SIGTERM');
             this.isCapturing = false;
-            console.log('FFmpeg capture stopped');
         }
     }
 
@@ -110,28 +97,23 @@ class FFmpegCapture {
     // Check if FFmpeg is available
     checkFFmpeg() {
         return new Promise((resolve) => {
-            console.log('🔍 Checking FFmpeg at:', this.ffmpegPath);
             
             // First check if file exists
             if (!fs.existsSync(this.ffmpegPath)) {
-                console.log('🔍 FFmpeg file not found at:', this.ffmpegPath);
                 resolve(false);
                 return;
             }
             
-            console.log('🔍 FFmpeg file exists, testing execution...');
             
             const checkProcess = spawn(this.ffmpegPath, ['-version'], {
                 stdio: ['ignore', 'pipe', 'pipe']
             });
 
             checkProcess.on('close', (code) => {
-                console.log('🔍 FFmpeg check result - Exit code:', code);
                 resolve(code === 0);
             });
 
             checkProcess.on('error', (error) => {
-                console.log('🔍 FFmpeg check error:', error.message);
                 resolve(false);
             });
             
@@ -139,7 +121,6 @@ class FFmpegCapture {
             setTimeout(() => {
                 if (checkProcess && !checkProcess.killed) {
                     checkProcess.kill();
-                    console.log('🔍 FFmpeg check timeout');
                     resolve(false);
                 }
             }, 5000);
