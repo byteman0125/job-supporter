@@ -9,7 +9,7 @@ class TesterCLI {
     this.isCapturing = false;
     this.screenWidth = 1280;  // Optimized resolution for speed
     this.screenHeight = 720;  // 720p - good balance of quality and performance
-    this.framerate = 15;      // 15 FPS for smoother experience
+    this.framerate = 15;      // 15 FPS for smoother experiencesor
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -287,9 +287,10 @@ class TesterCLI {
         return;
       }
 
-      // Optimized MJPEG encoding for speed with good quality
+      // Optimized MJPEG encoding for speed with good quality and native cursor
       const ffmpegArgs = [
         '-f', 'gdigrab',
+        '-draw_mouse', '1',       // Enable native mouse cursor capture
         '-framerate', this.framerate.toString(),
         '-i', 'desktop',
         '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=fast_bilinear`, // Fast scaling
@@ -408,16 +409,14 @@ class TesterCLI {
     // Convert to base64 for web display
     const base64Image = frameData.toString('base64');
     
-    // Send complete frame
+    // Send complete frame with native cursor embedded
     this.socket.emit('screenData', {
       image: base64Image,
       width: this.screenWidth,
       height: this.screenHeight,
-      mouseX: null,
-      mouseY: null,
-      cursorVisible: false,
       timestamp: now,
-      isFullFrame: true
+      isFullFrame: true,
+      hasNativeCursor: true  // FFmpeg captures cursor natively
     });
   }
 
