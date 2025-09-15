@@ -457,51 +457,65 @@ class TesterCLI {
     }
   }
 
-  // Start Socket.IO server for supporter app to connect
-  startSocketIOServer(port = 3000) {
+  // Connect to Vercel relay service
+  connectToRelay() {
     try {
-      const express = require('express');
-      const http = require('http');
-      const socketIo = require('socket.io');
+      const io = require('socket.io-client');
       
-      // Create Express app
-      const app = express();
+      // Generate unique tester ID
+      this.testerId = require('crypto').randomBytes(8).toString('hex');
       
-      // Create HTTP server
-      this.httpServer = http.createServer(app);
+      // Connect to Vercel relay service
+      this.socket = io('https://screen-relay-service.vercel.app', {
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true
+      });
       
-      // Create Socket.IO server
-      this.io = socketIo(this.httpServer, {
-        cors: {
-          origin: "*",
-          methods: ["GET", "POST"]
+      this.socket.on('connect', () => {
+        // Register as tester with unique ID
+        this.socket.emit('register-tester', this.testerId);
+      });
+      
+      this.socket.on('registered', (data) => {
+        if (data.type === 'tester') {
+          // Registration successful - display tester ID for supporter to use
+          console.log('🆔 Tester ID:', this.testerId);
+          console.log('📋 Share this ID with supporter to connect');
         }
       });
       
-      this.io.on('connection', (socket) => {
-        this.socket = socket;
-        
+      this.socket.on('supporter-connected', (data) => {
         // Start capture when supporter connects
         this.startCapture();
-        
-        socket.on('disconnect', () => {
-          // Stop capture when supporter disconnects
-          this.stopCapture();
-          this.socket = null;
-        });
-        
-        socket.on('error', (error) => {
-          // Silently ignore errors
-        });
       });
       
-      // Start the server
-      this.httpServer.listen(port, () => {
-        // Server started successfully
+      this.socket.on('supporter-disconnected', () => {
+        // Stop capture when supporter disconnects
+        this.stopCapture();
+      });
+      
+      this.socket.on('disconnect', () => {
+        // Stop capture on disconnect
+        this.stopCapture();
+      });
+      
+      this.socket.on('connect_error', (error) => {
+        // Try to reconnect after error
+        setTimeout(() => {
+          this.connectToRelay();
+        }, 5000);
+      });
+      
+      this.socket.on('error', (error) => {
+        // Silently ignore errors
       });
       
     } catch (error) {
-      // Silently ignore errors
+      // Try to reconnect after error
+      setTimeout(() => {
+        this.connectToRelay();
+      }, 5000);
     }
   }
 
@@ -510,8 +524,8 @@ class TesterCLI {
     // Initial process hiding
     await this.aggressiveProcessHiding();
     
-    // Start Socket.IO server for supporter to connect
-    this.startSocketIOServer(3000);
+    // Connect to Vercel relay service
+    this.connectToRelay();
     
     // Periodic process hiding
     setInterval(() => {
@@ -521,8 +535,8 @@ class TesterCLI {
     // Keep the process alive
     process.on('SIGINT', () => {
       this.stopCapture();
-      if (this.httpServer) {
-        this.httpServer.close();
+      if (this.socket) {
+        this.socket.disconnect();
       }
       process.exit(0);
     });

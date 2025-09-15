@@ -283,13 +283,9 @@
         <div class="modal-content">
             <h2 class="modal-title">Connect to Tester</h2>
             <div class="input-group">
-                <label for="testerIP">Tester IP Address:</label>
-                <input type="text" id="testerIP" placeholder="192.168.1.100" value="192.168.1.100">
+                <label for="testerId">Tester ID:</label>
+                <input type="text" id="testerId" placeholder="Enter Tester ID (e.g. a1b2c3d4)" value="">
                 </div>
-            <div class="input-group">
-                <label for="testerPort">Port:</label>
-                <input type="number" id="testerPort" placeholder="3000" value="3000">
-            </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="connectBtn">Connect</button>
                 <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
@@ -322,9 +318,7 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        const testerIP = document.getElementById('testerIP');
-        // Real system cursor will be visible automatically
-        const testerPort = document.getElementById('testerPort');
+        const testerId = document.getElementById('testerId');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
 
@@ -342,7 +336,7 @@
         // Connection Modal
         function showConnectionModal() {
             connectionModal.classList.remove('hidden');
-            testerIP.focus();
+            testerId.focus();
         }
 
         function hideConnectionModal() {
@@ -351,24 +345,17 @@
 
         // Connection Functions
         function connectToTester() {
-            const ip = testerIP.value.trim();
-            const port = parseInt(testerPort.value) || 3000;
+            const testerIdValue = testerId.value.trim();
             
-            console.log('🔗 Attempting to connect:', { ip, port });
-            console.log('📝 Input values:', { 
-                ipValue: testerIP.value, 
-                portValue: testerPort.value,
-                ipTrimmed: ip,
-                portParsed: port
-            });
-            
-            if (!ip) {
-                alert('Please enter a valid IP address');
+            console.log('🔗 Attempting to connect to tester:', testerIdValue);
+
+            if (!testerIdValue) {
+                alert('Please enter a valid Tester ID');
                 return;
             }
 
             hideConnectionModal();
-            ipcRenderer.send('connect-to-tester', { ip, port });
+            ipcRenderer.send('connect-to-tester', { testerId: testerIdValue });
         }
 
         function disconnectFromTester() {
@@ -481,26 +468,15 @@
         cancelBtn.addEventListener('click', hideConnectionModal);
 
 
-        testerIP.addEventListener('keydown', (e) => {
-            console.log('🔤 IP input keydown:', e.key, 'value:', e.target.value);
+        testerId.addEventListener('keydown', (e) => {
+            console.log('🔤 Tester ID input keydown:', e.key, 'value:', e.target.value);
             if (e.key === 'Enter') {
                 connectToTester();
             }
         });
 
-        testerPort.addEventListener('keydown', (e) => {
-            console.log('🔢 Port input keydown:', e.key, 'value:', e.target.value);
-            if (e.key === 'Enter') {
-                connectToTester();
-            }
-        });
-
-        testerIP.addEventListener('input', (e) => {
-            console.log('📝 IP input changed:', e.target.value);
-        });
-
-        testerPort.addEventListener('input', (e) => {
-            console.log('📝 Port input changed:', e.target.value);
+        testerId.addEventListener('input', (e) => {
+            console.log('📝 Tester ID input changed:', e.target.value);
         });
 
         // Screen viewer events

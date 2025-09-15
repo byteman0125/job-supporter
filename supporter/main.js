@@ -366,9 +366,8 @@ class SupporterApp {
     });
   }
 
-  connectToTester(testerIP, port = 3000) {
+  connectToTester(testerId, port = 3000) {
     const io = require('socket.io-client');
-    
     
     // Disconnect existing connection if any
     if (this.socket) {
@@ -376,22 +375,45 @@ class SupporterApp {
       this.socket = null;
     }
     
-    this.socket = io(`http://${testerIP}:${port}`, {
+    // Connect to Vercel relay service
+    this.socket = io('https://screen-relay-service.vercel.app', {
       timeout: 20000,
       forceNew: true,
-      transports: ['polling']
+      transports: ['websocket', 'polling']
     });
     
     this.socket.on('connect', () => {
-      console.log('✅ Connected to tester:', testerIP);
+      console.log('✅ Connected to relay service');
       console.log('Socket ID:', this.socket.id);
-      console.log('🖱️ CURSOR: Ready to receive mouse position data');
-      this.isConnected = true;
-      this.mainWindow.webContents.send('connection-status', { connected: true, testerIP });
       
-      // Automatically start screen sharing when connected
+      // Register as supporter for specific tester
+      this.socket.emit('register-supporter', testerId);
+    });
+    
+    this.socket.on('registered', (data) => {
+      if (data.type === 'supporter') {
+        console.log('📋 Registered as supporter for tester:', data.testerId);
+        console.log('⏳ Waiting for tester to connect...');
+      }
+    });
+    
+    this.socket.on('tester-connected', (data) => {
+      console.log('✅ Tester connected:', data.testerId);
+      console.log('🖱️ CURSOR: Ready to receive mouse position data');
+      
+      this.isConnected = true;
+      this.mainWindow.webContents.send('connection-status', { connected: true, testerId });
+      
       console.log('🖥️ Starting screen sharing...');
       this.socket.emit('start-screen-sharing');
+    });
+    
+    this.socket.on('waiting-for-tester', (data) => {
+      console.log('⏳ Waiting for tester:', data.testerId);
+      this.mainWindow.webContents.send('connection-status', { 
+        connected: false, 
+        message: `Waiting for tester ${data.testerId} to come online...` 
+      });
     });
 
     this.socket.on('connecting', () => {
@@ -644,8 +666,8 @@ class SupporterApp {
 
   // IPC handlers
   setupIpcHandlers() {
-    ipcMain.on('connect-to-tester', (event, { ip, port }) => {
-      this.connectToTester(ip, port);
+    ipcMain.on('connect-to-tester', (event, { testerId }) => {
+      this.connectToTester(testerId);
     });
 
     ipcMain.on('disconnect-from-tester', () => {
