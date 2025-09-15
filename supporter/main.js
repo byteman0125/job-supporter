@@ -375,15 +375,15 @@ class SupporterApp {
       this.socket = null;
     }
     
-    // Connect to Vercel relay service
-    this.socket = io('https://screen-relay-vercel.vercel.app', {
+    // Connect to Railway relay service
+    this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
       timeout: 20000,
       forceNew: true,
       transports: ['websocket', 'polling']
     });
     
     this.socket.on('connect', () => {
-      console.log('✅ Connected to relay service');
+      console.log('✅ Connected to Railway relay service');
       console.log('Socket ID:', this.socket.id);
       
       // Register as supporter for specific tester
