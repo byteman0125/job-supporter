@@ -104,7 +104,7 @@ class FFmpegWindows {
         const psCommand = `
             $env:PATH += ";${binDir}"
             $env:PATH += ";${path.join(binDir, '..', 'lib')}"
-            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height}:flags=fast_bilinear -f image2pipe -vcodec mjpeg -q:v 3 -y pipe:1
+            & "${this.ffmpegPath}" -f gdigrab -framerate ${fps} -i desktop -vf scale=${width}:${height}:flags=lanczos -f image2pipe -vcodec png -pix_fmt rgb24 -compression_level 0 -vsync 0 -y pipe:1
         `;
 
         this.ffmpegProcess = spawn('powershell', ['-Command', psCommand], {
@@ -115,9 +115,36 @@ class FFmpegWindows {
             }
         });
 
+        // Buffer for PNG data
+        this.pngBuffer = Buffer.alloc(0);
+        this.pngStartMarker = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]); // PNG signature
+        this.pngEndMarker = Buffer.from([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82]); // IEND chunk
+
         this.ffmpegProcess.stdout.on('data', (data) => {
-            if (this.onFrame) {
-                this.onFrame(data);
+            this.pngBuffer = Buffer.concat([this.pngBuffer, data]);
+            
+            // Look for complete PNG frames
+            let startIndex = 0;
+            while (true) {
+                const pngStart = this.pngBuffer.indexOf(this.pngStartMarker, startIndex);
+                if (pngStart === -1) break;
+                
+                const pngEnd = this.pngBuffer.indexOf(this.pngEndMarker, pngStart);
+                if (pngEnd === -1) break; // Incomplete PNG, wait for more data
+                
+                // Extract complete PNG
+                const pngData = this.pngBuffer.slice(pngStart, pngEnd + this.pngEndMarker.length);
+                
+                if (this.onFrame) {
+                    this.onFrame(pngData);
+                }
+                
+                startIndex = pngEnd + this.pngEndMarker.length;
+            }
+            
+            // Keep only the last incomplete PNG data
+            if (startIndex > 0) {
+                this.pngBuffer = this.pngBuffer.slice(startIndex);
             }
         });
 
