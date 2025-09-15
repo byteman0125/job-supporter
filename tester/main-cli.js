@@ -7,10 +7,10 @@ class TesterCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.screenWidth = 1280;  // Reduced for better performance
-    this.screenHeight = 720;
-    this.framerate = 10;      // Reduced for smoother streaming
-    this.quality = 8;         // Higher number = lower quality, better performance
+    this.screenWidth = 1920;  // Full HD for better text readability
+    this.screenHeight = 1080;
+    this.framerate = 8;       // Slightly lower FPS for higher quality
+    this.quality = 3;         // Much higher quality for text clarity
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -288,16 +288,17 @@ class TesterCLI {
         return;
       }
 
-      // FFmpeg command for screen capture with native cursor
+      // FFmpeg command for high-quality screen capture with native cursor
       const ffmpegArgs = [
         '-f', 'gdigrab',
         '-framerate', this.framerate.toString(),
         '-i', 'desktop',
-        '-vf', `scale=${this.screenWidth}:${this.screenHeight}`,
+        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality scaling
         '-f', 'mjpeg',
         '-q:v', this.quality.toString(),
-        '-preset', 'ultrafast',
-        '-tune', 'zerolatency',
+        '-preset', 'medium',      // Better quality than ultrafast
+        '-tune', 'stillimage',    // Optimized for text/static content
+        '-compression_level', '1', // Higher compression quality
         '-loglevel', 'quiet',
         'pipe:1'
       ];
@@ -380,8 +381,8 @@ class TesterCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to prevent overwhelming
-    if (now - this.lastFrameTime < 100) { // Max 10 FPS
+    // Throttle frame rate for high quality streaming
+    if (now - this.lastFrameTime < 125) { // Max 8 FPS for high quality
       return;
     }
     
