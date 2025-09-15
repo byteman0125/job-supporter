@@ -610,7 +610,7 @@ class TesterCLI {
       } catch (error) {
         // Ignore heartbeat errors
       }
-    }, 15000); // Every 15 seconds
+    }, 30000); // Every 30 seconds (less aggressive)
   }
 
   // Start the tester CLI

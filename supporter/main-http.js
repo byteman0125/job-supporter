@@ -167,7 +167,7 @@ class SupporterApp {
       } catch (error) {
         // Ignore heartbeat errors
       }
-    }, 30000); // Every 30 seconds
+    }, 15000); // Every 15 seconds
   }
 
   disconnectFromTester() {
