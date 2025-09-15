@@ -14,13 +14,11 @@ if not "%OS%"=="Windows_NT" (
 echo Creating FFmpeg directory structure...
 if not exist "tester\assets\ffmpeg\bin" mkdir "tester\assets\ffmpeg\bin"
 
-echo.
-echo Downloading FFmpeg...
-echo This may take a few minutes depending on your internet connection...
 
 REM Download FFmpeg from official source
 powershell -Command "& {[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile 'ffmpeg-temp.zip'}"
 
+echo.
 if not exist "ffmpeg-temp.zip" (
     echo Error: Failed to download FFmpeg
     echo Please check your internet connection and try again
@@ -29,30 +27,18 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-echo Extracting FFmpeg directly to 'ffmpeg' folder...
 powershell -Command "if (Test-Path 'tester\assets\ffmpeg') { Remove-Item 'tester\assets\ffmpeg' -Recurse -Force }; Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets' -Force; $folders = Get-ChildItem 'tester\assets' -Directory | Where-Object { $_.Name -like 'ffmpeg-*' }; if ($folders) { $oldPath = $folders[0].FullName; $newPath = 'tester\assets\ffmpeg'; Write-Host 'Found folder:' $folders[0].Name; Write-Host 'Moving contents to: ffmpeg'; Move-Item $oldPath $newPath -Force; Write-Host 'FFmpeg extracted and organized successfully!' } else { Write-Host 'No ffmpeg folder found after extraction' }"
 
 echo.
-echo FFmpeg extracted and organized successfully!
-echo.
-echo Files in tester\assets\ffmpeg\:
-dir "tester\assets\ffmpeg\" /b
-echo.
-echo Files in tester\assets\ffmpeg\bin\:
-dir "tester\assets\ffmpeg\bin\" /b
-
-echo.
-echo Cleaning up temporary files...
 rmdir /s /q "ffmpeg-temp"
 del "ffmpeg-temp.zip"
 
 echo.
-echo Testing FFmpeg installation...
 if exist "tester\assets\ffmpeg\bin\ffmpeg.exe" (
     echo ✅ FFmpeg executable found
     "tester\assets\ffmpeg\bin\ffmpeg.exe" -version >nul 2>&1
     if %errorlevel% equ 0 (
-        echo ✅ FFmpeg is working correctly
+
     ) else (
         echo ⚠️ FFmpeg found but may have dependency issues
         echo You may need to install Visual C++ Redistributable
