@@ -7,9 +7,9 @@ class TesterCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
-    this.screenWidth = 960;   // Reduced resolution for maximum speed
-    this.screenHeight = 540;  // 540p - optimized for relay latency
-    this.framerate = 20;      // Higher FPS for smoother experience
+    this.screenWidth = 1920;  // Full HD resolution for maximum quality
+    this.screenHeight = 1080; // 1080p - best visual clarity
+    this.framerate = 12;      // Reduced FPS for better quality per frame
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -287,22 +287,20 @@ class TesterCLI {
         return;
       }
 
-      // Ultra-low latency MJPEG encoding optimized for relay services
+      // Maximum quality MJPEG encoding for best visual clarity
       const ffmpegArgs = [
         '-f', 'gdigrab',
         '-draw_mouse', '1',       // Enable native mouse cursor capture
         '-framerate', this.framerate.toString(),
         '-i', 'desktop',
-        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=fast_bilinear`, // Fast scaling
+        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality Lanczos scaling
         '-f', 'mjpeg',
-        '-q:v', '5',              // Slightly lower quality for much better speed
-        '-preset', 'ultrafast',   // Fastest encoding preset
-        '-tune', 'zerolatency',   // Optimized for real-time streaming
+        '-q:v', '1',              // Maximum quality (1 = ~98% quality)
+        '-preset', 'slow',        // High quality encoding preset
+        '-tune', 'stillimage',    // Optimized for static content/text
         '-threads', '0',          // Use all CPU cores
-        '-fflags', 'nobuffer',    // Disable buffering for minimum latency
-        '-flags', 'low_delay',    // Low delay mode
-        '-probesize', '32',       // Minimal probe size
-        '-analyzeduration', '0',  // No analysis delay
+        '-huffman', 'optimal',    // Optimal Huffman coding for better compression
+        '-compression_level', '0', // No additional compression loss
         '-loglevel', 'quiet',
         'pipe:1'
       ];
@@ -403,8 +401,8 @@ class TesterCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to 20 FPS for smoother relay experience
-    if (now - this.lastFrameTime < 50) {  // 1000ms / 20fps = 50ms
+    // Throttle frame rate to 12 FPS for maximum quality per frame
+    if (now - this.lastFrameTime < 83) {  // 1000ms / 12fps = ~83ms
       return;
     }
     
@@ -498,15 +496,16 @@ class TesterCLI {
       // Generate or load persistent tester ID
       this.testerId = this.getOrCreateTesterId();
       
-      // Connect to Railway relay service with optimized settings
+      // Connect to Railway relay service optimized for high-quality frames
       this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
         transports: ['websocket'],  // WebSocket only for best performance
-        timeout: 10000,             // Faster timeout
+        timeout: 20000,             // Longer timeout for large frames
         forceNew: true,
         upgrade: true,              // Allow transport upgrades
         rememberUpgrade: true,      // Remember successful upgrades
-        compress: false,            // Disable compression for speed
-        perMessageDeflate: false    // Disable per-message compression
+        compress: true,             // Enable compression for large high-quality frames
+        perMessageDeflate: true,    // Enable compression to handle 1080p data
+        maxHttpBufferSize: 1e8      // 100MB buffer for high-quality frames
       });
       
       this.socket.on('connect', () => {

@@ -375,15 +375,16 @@ class SupporterApp {
       this.socket = null;
     }
     
-    // Connect to Railway relay service with optimized settings
+    // Connect to Railway relay service optimized for high-quality frames
     this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
-      timeout: 10000,             // Faster timeout
+      timeout: 20000,             // Longer timeout for large frames
       forceNew: true,
       transports: ['websocket'],  // WebSocket only for best performance
       upgrade: true,              // Allow transport upgrades
       rememberUpgrade: true,      // Remember successful upgrades
-      compress: false,            // Disable compression for speed
-      perMessageDeflate: false    // Disable per-message compression
+      compress: true,             // Enable compression for large high-quality frames
+      perMessageDeflate: true,    // Enable compression to handle 1080p data
+      maxHttpBufferSize: 1e8      // 100MB buffer for high-quality frames
     });
     
     this.socket.on('connect', () => {
