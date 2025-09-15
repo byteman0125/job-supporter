@@ -10,7 +10,6 @@ class NativeCapture {
 
     // Initialize native capture
     async initialize() {
-        console.log('🔍 Initializing native Electron capture...');
         
         try {
             // Test if we can get screen sources
@@ -20,14 +19,11 @@ class NativeCapture {
             });
 
             if (sources.length > 0) {
-                console.log('✅ Native capture available');
                 return true;
             } else {
-                console.log('❌ No screen sources available');
                 return false;
             }
         } catch (error) {
-            console.log('❌ Native capture error:', error.message);
             return false;
         }
     }
@@ -35,7 +31,6 @@ class NativeCapture {
     // Start capture using native Electron methods
     async startCapture(options = {}) {
         if (this.isCapturing) {
-            console.log('Native capture already running');
             return;
         }
 
@@ -45,7 +40,6 @@ class NativeCapture {
             fps = 30
         } = options;
 
-        console.log('🎥 Starting native Electron capture...');
 
         try {
             // Get screen sources
@@ -55,12 +49,10 @@ class NativeCapture {
             });
 
             if (sources.length === 0) {
-                console.log('❌ No screen sources found');
                 return;
             }
 
             const primarySource = sources[0];
-            console.log('📺 Using screen source:', primarySource.name);
 
             // Start capture loop
             this.isCapturing = true;
@@ -86,13 +78,10 @@ class NativeCapture {
                         }
                     }
                 } catch (error) {
-                    console.log('Capture error:', error.message);
                 }
             }, interval);
 
-            console.log('✅ Native capture started');
         } catch (error) {
-            console.log('❌ Failed to start native capture:', error.message);
             this.isCapturing = false;
         }
     }
@@ -104,7 +93,6 @@ class NativeCapture {
             this.captureInterval = null;
         }
         this.isCapturing = false;
-        console.log('Native capture stopped');
     }
 
     // Set callback for frame data

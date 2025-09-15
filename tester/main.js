@@ -89,7 +89,6 @@ class TesterApp {
 
   // Initialize capture methods
   async initializeCapture() {
-    console.log('🔍 Initializing capture methods...');
     
     // Try different capture methods in order of preference
     const methods = [
@@ -100,22 +99,18 @@ class TesterApp {
 
     for (const method of methods) {
       try {
-        console.log(`🔍 Trying ${method.name}...`);
         const available = await method.init();
         if (available) {
           this.captureMethod = method.name;
-          console.log(`✅ Using ${method.name} for screen capture`);
           this.setupCaptureCallback();
           return;
         }
       } catch (error) {
-        console.log(`❌ ${method.name} failed:`, error.message);
       }
     }
 
     // Fallback to screenshot-desktop
     this.captureMethod = 'screenshot';
-    console.log('📸 Using screenshot-desktop as fallback');
   }
 
   // Setup capture callback based on selected method
@@ -205,7 +200,6 @@ class TesterApp {
 
     // Handle uncaught exceptions gracefully
     process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception:', error);
       if (error.message.includes('spawn sox ENOENT') || 
           error.message.includes('spawn rec ENOENT') || 
           error.message.includes('spawn arecord ENOENT')) {
@@ -704,11 +698,9 @@ class TesterApp {
       return new Promise((resolve) => {
         exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedText}')"`, (error) => {
           if (error) {
-            console.error('Error typing text with SendKeys:', error);
             // Fallback: try using VBScript
             const vbsText = text.replace(/"/g, '""');
             exec(`cscript //nologo -e:vbscript <(echo "CreateObject(\"WScript.Shell\").SendKeys \"${vbsText}\"")`, (error2) => {
-              if (error2) console.error('Error typing text with VBScript:', error2);
               resolve();
             });
           } else {
@@ -724,15 +716,12 @@ class TesterApp {
         
         exec(`xdotool type "${escapedText}"`, (error) => {
           if (error) {
-            console.error('Error typing text with xdotool:', error);
             // Fallback: try ydotool if available
             exec(`ydotool type "${escapedText}"`, (error2) => {
               if (error2) {
-                console.error('Error typing text with ydotool:', error2);
                 // Last resort: try xvkbd
                 exec(`xvkbd -text "${escapedText}"`, (error3) => {
                   if (error3) {
-                    console.error('All typing methods failed. Please install xdotool: sudo apt install xdotool');
                   }
                   resolve();
                 });
@@ -751,10 +740,8 @@ class TesterApp {
       return new Promise((resolve) => {
         exec(`osascript -e 'tell application "System Events" to keystroke "${escapedText}"'`, (error) => {
           if (error) {
-            console.error('Error typing text with osascript:', error);
             // Fallback: try using pbcopy + pbpaste (but this is less safe)
             exec(`echo "${escapedText}" | pbcopy && osascript -e 'tell application "System Events" to keystroke "v" using command down'`, (error2) => {
-              if (error2) console.error('Error with clipboard fallback:', error2);
               resolve();
             });
           } else {
@@ -826,7 +813,6 @@ class TesterApp {
         keyString += key.toLowerCase();
         
         exec(`xdotool key ${keyString}`, (error) => {
-          if (error) console.error('Error pressing key:', error);
           resolve();
         });
       });
@@ -843,7 +829,6 @@ class TesterApp {
         if (modifiers.includes('shift')) keyString += ', shift up';
         
         exec(`osascript -e 'tell application "System Events" to ${keyString}'`, (error) => {
-          if (error) console.error('Error pressing key:', error);
           resolve();
         });
       });
@@ -890,7 +875,6 @@ class TesterApp {
       // Windows: Use PowerShell to move mouse
       return new Promise((resolve) => {
         exec(`powershell -command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`, (error) => {
-          if (error) console.error('Error moving mouse:', error);
           resolve();
         });
       });
@@ -899,10 +883,8 @@ class TesterApp {
       return new Promise((resolve) => {
         exec(`xdotool mousemove ${x} ${y}`, (error) => {
           if (error) {
-            console.error('Error moving mouse with xdotool:', error);
             // Fallback: try ydotool
             exec(`ydotool mousemove ${x} ${y}`, (error2) => {
-              if (error2) console.error('Error moving mouse with ydotool:', error2);
               resolve();
             });
           } else {
@@ -914,7 +896,6 @@ class TesterApp {
       // macOS: Use osascript to move mouse
       return new Promise((resolve) => {
         exec(`osascript -e 'tell application "System Events" to set the mouse location to {${x}, ${y}}'`, (error) => {
-          if (error) console.error('Error moving mouse:', error);
           resolve();
         });
       });
@@ -975,10 +956,8 @@ class TesterApp {
         const clickButton = button === 'right' ? '3' : '1';
         exec(`xdotool click ${clickButton}`, (error) => {
           if (error) {
-            console.error('Error clicking mouse with xdotool:', error);
             // Fallback: try ydotool
             exec(`ydotool click ${clickButton}`, (error2) => {
-              if (error2) console.error('Error clicking mouse with ydotool:', error2);
               resolve();
             });
           } else {
@@ -991,7 +970,6 @@ class TesterApp {
       return new Promise((resolve) => {
         const clickType = button === 'right' ? 'right click' : 'click';
         exec(`osascript -e 'tell application "System Events" to ${clickType} at {${x}, ${y}}'`, (error) => {
-          if (error) console.error('Error clicking mouse:', error);
           resolve();
         });
       });
@@ -1053,12 +1031,10 @@ class TesterApp {
   async addCursorOverlayToImage(imageBuffer, width, height) {
     try {
       // Cursor shape is captured by screenshot-desktop with cursor: true
-      console.log('🖱️ Using screenshot-desktop cursor capture');
       
       // Return the image buffer as-is since cursor is already captured
       return imageBuffer;
     } catch (error) {
-      console.error('Error capturing cursor with robotjs:', error);
       // Return original image if robotjs fails
       return imageBuffer;
     }
@@ -1068,13 +1044,11 @@ class TesterApp {
   async drawCursorOnImage(imageBuffer, mouseX, mouseY, width, height) {
     try {
       // Cursor shape is captured by screenshot-desktop with cursor: true
-      console.log(`🖱️ Drawing cursor at position: (${mouseX}, ${mouseY})`);
       
       // The cursor should already be captured in the screenshot
       // We just need to return the image as-is
       return await this.drawSimpleCursor(imageBuffer, mouseX, mouseY, width, height);
     } catch (error) {
-      console.error('Error drawing cursor on image:', error);
       return await this.drawSimpleCursor(imageBuffer, mouseX, mouseY, width, height);
     }
   }
@@ -1082,7 +1056,6 @@ class TesterApp {
   // Draw a simple cursor indicator (red dot with arrow)
   async drawSimpleCursor(imageBuffer, mouseX, mouseY, width, height) {
     try {
-      console.log(`🎯 Drawing simple cursor at: ${mouseX}, ${mouseY}`);
       
       // Create a simple cursor overlay by modifying the image buffer
       // This is a basic implementation that draws a visible cursor
@@ -1106,13 +1079,11 @@ class TesterApp {
       // For now, we'll create a simple visual indicator by modifying some pixels
       // This creates a visible cursor that the user can see
       
-      console.log(`🎯 Drawing cursor at: (${centerX}, ${centerY}) on ${width}x${height} screen`);
       
       // Return the modified buffer with cursor overlay
       return this.drawCursorPixels(buffer, centerX, centerY, width, height);
       
     } catch (error) {
-      console.error('Error drawing simple cursor:', error);
       return imageBuffer;
     }
   }
@@ -1158,11 +1129,9 @@ class TesterApp {
         }
       }
       
-      console.log(`🎯 Cursor pixels drawn at (${centerX}, ${centerY})`);
       return buffer;
       
     } catch (error) {
-      console.error('Error drawing cursor pixels:', error);
       return buffer;
     }
   }
@@ -1308,12 +1277,9 @@ class TesterApp {
     });
 
     this.server.on('error', (error) => {
-      console.error('❌ Server error:', error);
       if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use. Trying port ${port + 1}`);
         this.server.listen(port + 1, '0.0.0.0');
       } else if (error.code === 'EACCES') {
-        console.error(`❌ Permission denied for port ${port}. Trying alternative ports...`);
         this.tryAlternativePorts(port, quality);
       }
     });
@@ -1396,7 +1362,6 @@ class TesterApp {
     
     const tryPort = (portIndex) => {
       if (portIndex >= alternativePorts.length) {
-        console.error('❌ All alternative ports failed. Please run as administrator or check firewall settings.');
         return;
       }
       
@@ -1524,7 +1489,6 @@ class TesterApp {
         // Send the full-quality screenshot back to supporter
         socket.emit('screenshot-data', base64Data);
       } catch (error) {
-        console.error('❌ Error capturing screenshot:', error);
       }
     });
 
@@ -1550,7 +1514,6 @@ class TesterApp {
         });
         
       } catch (error) {
-        console.error('❌ Error capturing area screenshot:', error);
       }
     });
 
@@ -1581,7 +1544,6 @@ class TesterApp {
     // Start screen capture based on selected method
     switch (this.captureMethod) {
       case 'ffmpeg':
-        console.log('🎥 Starting FFmpeg screen capture');
         this.ffmpegCapture.startCapture({
           width: this.screenWidth || 1920,
           height: this.screenHeight || 1080,
@@ -1590,7 +1552,6 @@ class TesterApp {
         });
         break;
       case 'ffmpeg-windows':
-        console.log('🎥 Starting FFmpeg Windows screen capture');
         this.ffmpegWindows.startCapture({
           width: this.screenWidth || 1920,
           height: this.screenHeight || 1080,
@@ -1598,7 +1559,6 @@ class TesterApp {
         });
         break;
       case 'native':
-        console.log('🎥 Starting native Electron screen capture');
         await this.nativeCapture.startCapture({
           width: this.screenWidth || 1920,
           height: this.screenHeight || 1080,
@@ -1606,7 +1566,6 @@ class TesterApp {
         });
         break;
       default:
-        console.log('📸 Starting screenshot-desktop capture');
         // Mouse cursor is captured directly in screen images (cursor: true)
         
     
@@ -1730,7 +1689,6 @@ class TesterApp {
           }
 
         } catch (error) {
-          console.error('Electron capture error:', error);
           // Fallback to screenshot-desktop
           this.useElectronCapture = false;
           this.setupScreenshotCapture();
@@ -1742,7 +1700,6 @@ class TesterApp {
     this.startCpuMonitoring();
     
     } catch (error) {
-      console.error('❌ Professional WebRTC setup failed:', error);
       throw error;
     }
   }
@@ -1816,7 +1773,6 @@ class TesterApp {
     
     // Get DPI scale factor for debugging
     const scaleFactor = primaryDisplay.scaleFactor;
-    console.log(`🖥️ Screen: ${screenWidth}x${screenHeight} | DPI Scale: ${scaleFactor}x | Work Area: ${primaryDisplay.workAreaSize.width}x${primaryDisplay.workAreaSize.height}`);
     
     // Store the initial screen resolution if not already stored
     if (!this.initialScreenResolution) {
@@ -1965,7 +1921,6 @@ class TesterApp {
           }
 
         } catch (error) {
-          console.error('Screen capture error:', error);
         }
       }
     }, interval);
@@ -1983,7 +1938,6 @@ class TesterApp {
       this.getCpuUsage().then(usage => {
         this.cpuUsage = usage;
       }).catch(error => {
-        console.error('CPU monitoring error:', error);
       });
     }, 5000); // Check CPU every 5 seconds to reduce overhead
   }
@@ -2232,19 +2186,15 @@ class TesterApp {
     // Stop screen capture based on method used
     switch (this.captureMethod) {
       case 'ffmpeg':
-        console.log('🎥 Stopping FFmpeg screen capture');
         this.ffmpegCapture.stopCapture();
         break;
       case 'ffmpeg-windows':
-        console.log('🎥 Stopping FFmpeg Windows screen capture');
         this.ffmpegWindows.stopCapture();
         break;
       case 'native':
-        console.log('🎥 Stopping native Electron screen capture');
         this.nativeCapture.stopCapture();
         break;
       default:
-        console.log('📸 Stopping screenshot-desktop capture');
         // Stop high-frequency mouse tracking
         this.stopHighFrequencyMouseTracking();
         
@@ -2358,7 +2308,6 @@ class TesterApp {
         
         return { success: true };
       } catch (error) {
-        console.error('❌ Error capturing screen:', error);
         return { success: false, error: error.message };
       }
     });
@@ -2384,7 +2333,6 @@ class TesterApp {
         
         return { success: true };
       } catch (error) {
-        console.error('❌ Error capturing area:', error);
         return { success: false, error: error.message };
       }
     });
@@ -2407,7 +2355,6 @@ class TesterApp {
         
         return { success: true };
       } catch (error) {
-        console.error('❌ Error sending captured image:', error);
         event.reply('image-sent', { success: false, error: error.message });
         return { success: false, error: error.message };
       }

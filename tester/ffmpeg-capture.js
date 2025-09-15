@@ -66,14 +66,12 @@ class FFmpegCapture {
 
         this.ffmpegProcess.on('close', (code) => {
             if (code !== 0) {
-                console.log('❌ FFmpeg failed with exit code:', code);
             }
             this.isCapturing = false;
             this.ffmpegProcess = null;
         });
 
         this.ffmpegProcess.on('error', (error) => {
-            console.error('FFmpeg process error:', error);
             this.isCapturing = false;
             this.ffmpegProcess = null;
         });
