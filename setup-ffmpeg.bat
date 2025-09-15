@@ -29,32 +29,16 @@ if not exist "ffmpeg-temp.zip" (
 )
 
 echo.
-echo Extracting FFmpeg...
-powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'ffmpeg-temp' -Force"
+echo Extracting FFmpeg directly to assets directory...
+powershell -Command "Expand-Archive -Path 'ffmpeg-temp.zip' -DestinationPath 'tester\assets\ffmpeg' -Force"
 
 echo.
-echo Copying essential files for screen capture...
-
-REM Find the extracted directory
-for /d %%i in (ffmpeg-temp\*) do set "FFMPEG_DIR=%%i"
-
-echo Found FFmpeg directory: %FFMPEG_DIR%
-
-REM Copy ALL files from bin directory - simple and reliable
-echo Copying ALL files from bin directory...
-echo Source: %FFMPEG_DIR%\bin
-echo Destination: tester\assets\ffmpeg\bin
+echo FFmpeg extracted successfully!
 echo.
-echo Files in source directory:
-dir "%FFMPEG_DIR%\bin" /b
+echo Files in tester\assets\ffmpeg\:
+dir "tester\assets\ffmpeg\" /b
 echo.
-robocopy "%FFMPEG_DIR%\bin" "tester\assets\ffmpeg\bin" *.* /NFL /NDL /NJH /NJS /nc /ns /np
-echo.
-echo Robocopy exit code: %ERRORLEVEL%
-
-REM Count and list copied files
-echo.
-echo Copy Summary - Files in tester\assets\ffmpeg\bin\:
+echo Files in tester\assets\ffmpeg\bin\:
 dir "tester\assets\ffmpeg\bin\" /b
 
 echo.
