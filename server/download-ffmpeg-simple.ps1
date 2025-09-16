@@ -86,6 +86,6 @@ if ($downloaded) {
     Write-Host "Manual installation required:"
     Write-Host "1. Download FFmpeg from: https://www.gyan.dev/ffmpeg/builds/"
     Write-Host "2. Extract the archive"
-    Write-Host "3. Copy ffmpeg.exe to: $ffmpegDir\ffmpeg.exe"
+    Write-Host "3. Copy ffmpeg.exe to: $ffmpegDir\\ffmpeg.exe"
     exit 1
 }

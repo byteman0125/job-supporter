@@ -67,15 +67,20 @@ echo. >> temp_download_ffmpeg.ps1
 echo     Write-Host "📦 Extracting FFmpeg..." >> temp_download_ffmpeg.ps1
 echo     Expand-Archive -Path $output -DestinationPath "temp_ffmpeg" -Force >> temp_download_ffmpeg.ps1
 echo. >> temp_download_ffmpeg.ps1
-echo     Write-Host "🔍 Finding FFmpeg executable..." >> temp_download_ffmpeg.ps1
-echo     $ffmpegFiles = Get-ChildItem -Path "temp_ffmpeg" -Recurse -Name "ffmpeg.exe" >> temp_download_ffmpeg.ps1
-echo     if ($ffmpegFiles.Count -gt 0) { >> temp_download_ffmpeg.ps1
-echo         $ffmpegPath = $ffmpegFiles[0] >> temp_download_ffmpeg.ps1
-echo         $sourcePath = Join-Path "temp_ffmpeg" $ffmpegPath >> temp_download_ffmpeg.ps1
-echo         Copy-Item $sourcePath "assets\ffmpeg\win\ffmpeg.exe" -Force >> temp_download_ffmpeg.ps1
-echo         Write-Host "✅ FFmpeg installed to assets/ffmpeg/win/ffmpeg.exe" >> temp_download_ffmpeg.ps1
+echo     Write-Host "Finding FFmpeg executable..." >> temp_download_ffmpeg.ps1
+echo     if (Test-Path "temp_ffmpeg") { >> temp_download_ffmpeg.ps1
+echo         $ffmpegFiles = Get-ChildItem -Path "temp_ffmpeg" -Recurse -Name "ffmpeg.exe" >> temp_download_ffmpeg.ps1
+echo         if ($ffmpegFiles.Count -gt 0) { >> temp_download_ffmpeg.ps1
+echo             $ffmpegPath = $ffmpegFiles[0] >> temp_download_ffmpeg.ps1
+echo             $sourcePath = Join-Path "temp_ffmpeg" $ffmpegPath >> temp_download_ffmpeg.ps1
+echo             if (!(Test-Path "assets\ffmpeg\win")) { New-Item -ItemType Directory -Path "assets\ffmpeg\win" -Force } >> temp_download_ffmpeg.ps1
+echo             Copy-Item $sourcePath "assets\ffmpeg\win\ffmpeg.exe" -Force >> temp_download_ffmpeg.ps1
+echo             Write-Host "FFmpeg installed to assets/ffmpeg/win/ffmpeg.exe" >> temp_download_ffmpeg.ps1
+echo         } else { >> temp_download_ffmpeg.ps1
+echo             throw "FFmpeg executable not found in downloaded archive" >> temp_download_ffmpeg.ps1
+echo         } >> temp_download_ffmpeg.ps1
 echo     } else { >> temp_download_ffmpeg.ps1
-echo         throw "FFmpeg executable not found in downloaded archive" >> temp_download_ffmpeg.ps1
+echo         throw "Extraction directory temp_ffmpeg not found" >> temp_download_ffmpeg.ps1
 echo     } >> temp_download_ffmpeg.ps1
 echo. >> temp_download_ffmpeg.ps1
 echo     Write-Host "🧹 Cleaning up temporary files..." >> temp_download_ffmpeg.ps1
@@ -147,31 +152,53 @@ if not exist "assets\ffmpeg\win\ffmpeg.exe" (
     
     if exist "ffmpeg-win.zip" (
         echo Extracting with PowerShell...
-        powershell -Command "Expand-Archive -Path 'ffmpeg-win.zip' -DestinationPath 'temp_ffmpeg' -Force"
+        
+        :: Clean up any existing temp directory first
+        if exist "temp_ffmpeg" rmdir /s /q "temp_ffmpeg" >nul 2>&1
+        
+        :: Extract the zip file
+        powershell -Command "if (Test-Path 'ffmpeg-win.zip') { Expand-Archive -Path 'ffmpeg-win.zip' -DestinationPath 'temp_ffmpeg' -Force; Write-Host 'Extraction completed' } else { Write-Host 'Zip file not found' }"
+        
+        :: Wait a moment for extraction to complete
+        timeout /t 2 >nul
         
         echo Finding FFmpeg executable...
-        for /r "temp_ffmpeg" %%i in (ffmpeg.exe) do (
-            echo Found FFmpeg at: %%i
-            copy "%%i" "assets\ffmpeg\win\ffmpeg.exe" >nul
-            goto :cleanup_curl
+        if exist "temp_ffmpeg" (
+            for /r "temp_ffmpeg" %%i in (ffmpeg.exe) do (
+                echo Found FFmpeg at: %%i
+                if not exist "assets\ffmpeg\win" mkdir "assets\ffmpeg\win"
+                copy "%%i" "assets\ffmpeg\win\ffmpeg.exe" >nul
+                if exist "assets\ffmpeg\win\ffmpeg.exe" (
+                    echo ✅ FFmpeg successfully installed!
+                    goto :cleanup_curl
+                )
+            )
+        ) else (
+            echo ❌ Extraction failed - temp_ffmpeg directory not created
         )
         
         :cleanup_curl
         echo Cleaning up...
         del "ffmpeg-win.zip" >nul 2>&1
         rmdir /s /q "temp_ffmpeg" >nul 2>&1
+    ) else (
+        echo ❌ Download failed - ffmpeg-win.zip not found
     )
 )
 
+:: Check if curl method succeeded
+if exist "assets\ffmpeg\win\ffmpeg.exe" (
+    echo ✅ FFmpeg installation completed successfully via curl!
+    goto :test_ffmpeg
+)
+
 :: Final fallback - use the simple PowerShell downloader
-if not exist "assets\ffmpeg\win\ffmpeg.exe" (
-    echo ⚠️  All curl methods failed, trying simple PowerShell downloader...
-    
-    if exist "download-ffmpeg-simple.ps1" (
-        powershell -ExecutionPolicy Bypass -File download-ffmpeg-simple.ps1
-    ) else (
-        echo ❌ download-ffmpeg-simple.ps1 not found
-    )
+echo ⚠️  Curl methods failed, trying simple PowerShell downloader...
+
+if exist "download-ffmpeg-simple.ps1" (
+    powershell -ExecutionPolicy Bypass -File download-ffmpeg-simple.ps1
+) else (
+    echo ❌ download-ffmpeg-simple.ps1 not found
 )
 
 if not exist "assets\ffmpeg\win\ffmpeg.exe" (
