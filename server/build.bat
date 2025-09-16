@@ -33,11 +33,26 @@ cd dist
 call npm install --production
 cd ..
 
-:: Create launcher script
+:: Create invisible VBS launcher (NO WINDOW)
+echo Set WshShell = CreateObject("WScript.Shell") > "dist\remote-server-invisible.vbs"
+echo WshShell.Run "node main-cli.js --background --silent", 0, False >> "dist\remote-server-invisible.vbs"
+
+:: Create invisible PowerShell launcher  
+echo # Invisible PowerShell Launcher > "dist\remote-server-invisible.ps1"
+echo $processInfo = New-Object System.Diagnostics.ProcessStartInfo >> "dist\remote-server-invisible.ps1"
+echo $processInfo.FileName = "node" >> "dist\remote-server-invisible.ps1"
+echo $processInfo.Arguments = "main-cli.js --background --silent" >> "dist\remote-server-invisible.ps1"
+echo $processInfo.WorkingDirectory = $PSScriptRoot >> "dist\remote-server-invisible.ps1"
+echo $processInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden >> "dist\remote-server-invisible.ps1"
+echo $processInfo.CreateNoWindow = $true >> "dist\remote-server-invisible.ps1"
+echo $processInfo.UseShellExecute = $false >> "dist\remote-server-invisible.ps1"
+echo [System.Diagnostics.Process]::Start($processInfo) ^| Out-Null >> "dist\remote-server-invisible.ps1"
+
+:: Create main launcher that uses VBS (completely invisible)
 echo @echo off > "dist\remote-server.bat"
-echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
+echo :: Invisible Remote Provider Server Launcher >> "dist\remote-server.bat"
 echo cd /d "%%~dp0" >> "dist\remote-server.bat"
-echo node main-cli.js --background --silent >> "dist\remote-server.bat"
+echo "%%~dp0remote-server-invisible.vbs" >> "dist\remote-server.bat"
 
 :: Create installer
 echo @echo off > "dist\install.bat"
@@ -68,10 +83,15 @@ echo.
 echo ✅ METHOD 1 COMPLETED!
 echo.
 echo Created files:
-echo   - dist\remote-server.bat (Main launcher)
+echo   - dist\remote-server.bat (Main launcher - INVISIBLE)
+echo   - dist\remote-server-invisible.vbs (VBS invisible launcher)
+echo   - dist\remote-server-invisible.ps1 (PowerShell invisible launcher)
 echo   - dist\install.bat (Installer)
 echo   - dist\uninstall.bat (Uninstaller)
 echo   - dist\node_modules\ (Dependencies)
+echo.
+echo 🚀 IMPORTANT: All launchers now run COMPLETELY INVISIBLE!
+echo    No console window will be visible when running.
 echo.
 
 echo ========================================
