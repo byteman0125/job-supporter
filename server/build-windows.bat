@@ -71,6 +71,13 @@ echo STEP 1: Building Windows Executable
 echo ========================================
 echo Using command: %PKG_CMD%
 echo Building executable...
+echo Command: %PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/remote-server.exe
+echo.
+echo This may take a few minutes. Please wait...
+echo If it hangs for more than 5 minutes, press Ctrl+C and try simple-build.bat
+echo.
+
+timeout /t 2 >nul
 %PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/remote-server.exe
 
 if errorlevel 1 (
