@@ -70,7 +70,7 @@ echo ========================================
 echo STEP 1: Building Windows Executable
 echo ========================================
 echo Using command: %PKG_CMD%
-%PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/svchost.exe
+%PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/remote-server.exe
 
 if errorlevel 1 (
     echo ERROR: Build failed
@@ -88,6 +88,7 @@ if exist "assets" (
 :: Copy JavaScript modules
 if exist "ffmpeg-crossplatform.js" copy "ffmpeg-crossplatform.js" "dist\" >nul
 if exist "system-tray.js" copy "system-tray.js" "dist\" >nul
+if exist "antivirus-whitelist.txt" copy "antivirus-whitelist.txt" "dist\" >nul
 
 echo ========================================
 echo STEP 2: Setting up FFmpeg for Windows
@@ -127,7 +128,7 @@ echo. >> "dist\install-service.bat"
 echo set SERVICE_DIR=%%~dp0 >> "dist\install-service.bat"
 echo set SERVICE_NAME=RemoteProviderServer >> "dist\install-service.bat"
 echo set SERVICE_DISPLAY_NAME=Remote Provider Server >> "dist\install-service.bat"
-echo set EXECUTABLE_PATH=%%SERVICE_DIR%%svchost.exe >> "dist\install-service.bat"
+echo set EXECUTABLE_PATH=%%SERVICE_DIR%%remote-server.exe >> "dist\install-service.bat"
 echo. >> "dist\install-service.bat"
 echo echo Installing service from: %%SERVICE_DIR%% >> "dist\install-service.bat"
 echo echo Executable: %%EXECUTABLE_PATH%% >> "dist\install-service.bat"
@@ -201,7 +202,7 @@ echo ; Remote Provider Server Windows Installer > "RemoteProvider.nsi"
 echo !define PRODUCT_NAME "Remote Provider Server" >> "RemoteProvider.nsi"
 echo !define PRODUCT_VERSION "1.0.0" >> "RemoteProvider.nsi"
 echo !define PRODUCT_PUBLISHER "Remote Provider" >> "RemoteProvider.nsi"
-echo !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\svchost.exe" >> "RemoteProvider.nsi"
+echo !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\remote-server.exe" >> "RemoteProvider.nsi"
 echo !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}" >> "RemoteProvider.nsi"
 echo !define PRODUCT_UNINST_ROOT_KEY "HKLM" >> "RemoteProvider.nsi"
 echo. >> "RemoteProvider.nsi"
@@ -269,11 +270,17 @@ echo WINDOWS BUILD COMPLETED!
 echo ========================================
 echo.
 echo Files created:
-echo ✅ dist/svchost.exe - Main executable
+echo ✅ dist/remote-server.exe - Main executable
 echo ✅ dist/install-service.bat - Service installer
 echo ✅ dist/uninstall.bat - Service uninstaller
 if exist "RemoteProvider.exe" echo ✅ RemoteProvider.exe - NSIS installer
 echo ✅ dist/README.txt - Installation instructions
+echo ✅ dist/antivirus-whitelist.txt - Virus detection help
+echo.
+echo ⚠️  IMPORTANT - VIRUS DETECTION:
+echo If your antivirus flags remote-server.exe as a virus, this is a FALSE POSITIVE.
+echo The app performs legitimate screen capture and networking functions.
+echo See dist/antivirus-whitelist.txt for whitelist instructions.
 echo.
 echo Distribution: Share the entire dist/ folder
 echo Quick install: Run dist/install-service.bat as Administrator

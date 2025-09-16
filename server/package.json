@@ -9,8 +9,8 @@
   "scripts": {
     "start": "node main-cli.js",
     "dev": "node main-cli.js",
-    "build": "pkg main-cli.js --targets node18-win-x64 --output svchost.exe",
-    "build:win": "pkg main-cli.js --targets node18-win-x64 --output svchost.exe"
+    "build": "pkg main-cli.js --targets node18-win-x64 --output remote-server.exe",
+    "build:win": "pkg main-cli.js --targets node18-win-x64 --output remote-server.exe"
   },
   "dependencies": {
     "socket.io-client": "^4.8.1"
@@ -29,6 +29,9 @@
       "node18-macos-x64",
       "node18-linux-x64"
     ],
-    "outputPath": "dist"
+    "outputPath": "dist",
+    "options": [
+      "--resource", "app.rc"
+    ]
   }
 }

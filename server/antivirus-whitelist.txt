@@ -1,0 +1,37 @@
+ANTIVIRUS WHITELIST INSTRUCTIONS
+================================
+
+If your antivirus software flags remote-server.exe as a virus, this is a FALSE POSITIVE.
+
+The application is flagged because:
+1. It performs screen capture (legitimate remote desktop functionality)
+2. It creates network connections (legitimate server functionality)
+3. It's a compiled Node.js application (some AVs flag these)
+
+TO WHITELIST THE APPLICATION:
+
+Windows Defender:
+1. Open Windows Security
+2. Go to Virus & threat protection
+3. Click "Manage settings" under Virus & threat protection settings
+4. Scroll down to Exclusions and click "Add or remove exclusions"
+5. Click "Add an exclusion" > "File"
+6. Navigate to and select "remote-server.exe"
+
+Other Antivirus Software:
+- Add the entire folder containing remote-server.exe to your antivirus exclusions
+- Or add remote-server.exe specifically to the whitelist
+
+VERIFICATION:
+- The application is open source and can be inspected
+- No malicious code is present
+- Only performs legitimate remote desktop server functions
+- Uses standard Node.js libraries and FFmpeg
+
+For additional security, you can:
+1. Run the application in a sandboxed environment first
+2. Check the digital signature (if available)
+3. Review the source code at the repository
+
+If you continue to have issues, please contact support or run the application
+from the Node.js source files directly using: node main-cli.js
