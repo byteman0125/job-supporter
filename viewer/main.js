@@ -9,7 +9,7 @@ const notifier = require('node-notifier');
 const fs = require('fs');
 // Audio playback disabled - speaker module removed
 
-class SupporterApp {
+class ViewerApp {
   constructor() {
     this.mainWindow = null;
     this.server = null;
@@ -26,9 +26,9 @@ class SupporterApp {
   }
 
   init() {
-    console.log('🚀 Supporter App starting...');
+    console.log('🚀 Viewer App starting...');
     app.whenReady().then(() => {
-      console.log('✅ Supporter App ready');
+      console.log('✅ Viewer App ready');
       this.createMainWindow();
       this.setupIpcHandlers();
     });
@@ -366,7 +366,7 @@ class SupporterApp {
     });
   }
 
-  connectToTester(testerId, port = 3000) {
+  connectToServer(serverId, port = 3000) {
     const io = require('socket.io-client');
     
     // Disconnect existing connection if any
@@ -391,38 +391,38 @@ class SupporterApp {
       console.log('✅ Connected to Railway relay service');
       console.log('Socket ID:', this.socket.id);
       
-      // Register as supporter for specific tester
-      this.socket.emit('register-supporter', testerId);
+      // Register as viewer for specific server
+      this.socket.emit('register-viewer', serverId);
     });
     
     this.socket.on('registered', (data) => {
-      if (data.type === 'supporter') {
-        console.log('📋 Registered as supporter for tester:', data.testerId);
-        console.log('⏳ Waiting for tester to connect...');
+      if (data.type === 'viewer') {
+        console.log('📋 Registered as viewer for server:', data.serverId);
+        console.log('⏳ Waiting for server to connect...');
       }
     });
     
-    this.socket.on('tester-connected', (data) => {
-      console.log('✅ Tester connected:', data.testerId);
+    this.socket.on('server-connected', (data) => {
+      console.log('✅ Server connected:', data.serverId);
       console.log('🖱️ CURSOR: Ready to receive mouse position data');
       
       this.isConnected = true;
-      this.mainWindow.webContents.send('connection-status', { connected: true, testerId });
+      this.mainWindow.webContents.send('connection-status', { connected: true, serverId });
       
       console.log('🖥️ Starting screen sharing...');
       this.socket.emit('start-screen-sharing');
     });
     
-    this.socket.on('waiting-for-tester', (data) => {
-      console.log('⏳ Waiting for tester:', data.testerId);
+    this.socket.on('waiting-for-server', (data) => {
+      console.log('⏳ Waiting for server:', data.serverId);
       this.mainWindow.webContents.send('connection-status', { 
         connected: false, 
-        message: `Waiting for tester ${data.testerId} to come online...` 
+        message: `Waiting for server ${data.serverId} to come online...` 
       });
     });
 
     this.socket.on('connecting', () => {
-      console.log('🔄 Connecting to tester...');
+      console.log('🔄 Connecting to server...');
     });
 
     this.socket.on('reconnect', (attemptNumber) => {
@@ -449,7 +449,7 @@ class SupporterApp {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔌 Disconnected from tester:', reason);
+      console.log('🔌 Disconnected from server:', reason);
       this.isConnected = false;
       this.mainWindow.webContents.send('connection-status', { connected: false });
     });
@@ -602,7 +602,7 @@ class SupporterApp {
     // Mouse cursor is now captured directly in screen images (cursor: true)
 
     this.socket.on('screen-resolution', (data) => {
-      // Handle the locked screen resolution from tester
+      // Handle the locked screen resolution from server
       console.log(`🔒 Received locked screen resolution: ${data.width}x${data.height}`);
       
       // Send the resolution to renderer to resize window
@@ -616,12 +616,12 @@ class SupporterApp {
 
     this.socket.on('chatMessage', (message) => {
       // Store message locally
-      if (!this.chatMessages.has('tester')) {
-        this.chatMessages.set('tester', []);
+      if (!this.chatMessages.has('server')) {
+        this.chatMessages.set('server', []);
       }
       
-      this.chatMessages.get('tester').push({
-        type: 'tester',
+      this.chatMessages.get('server').push({
+        type: 'server',
         message: message,
         timestamp: new Date()
       });
@@ -629,19 +629,19 @@ class SupporterApp {
       // Send to renderer
       this.mainWindow.webContents.send('chat-message', {
         message: message,
-        sender: 'tester'
+        sender: 'server'
       });
     });
 
     this.socket.on('captured-image', (data) => {
-      // Save the captured image from tester
+      // Save the captured image from server
       const imageDir = path.join(__dirname, 'images');
       if (!fs.existsSync(imageDir)) {
         fs.mkdirSync(imageDir, { recursive: true });
       }
       
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `tester-captured-${timestamp}.png`;
+      const filename = `server-captured-${timestamp}.png`;
       const filepath = path.join(imageDir, filename);
       
       const buffer = Buffer.from(data.imageData, 'base64');
@@ -653,11 +653,11 @@ class SupporterApp {
         const image = nativeImage.createFromBuffer(buffer);
         clipboard.writeImage(image);
       } catch (error) {
-        console.error('❌ Failed to copy tester captured image to clipboard:', error);
+        console.error('❌ Failed to copy server captured image to clipboard:', error);
       }
       
-      // Notify the renderer that tester captured image was received
-      this.mainWindow.webContents.send('tester-image-received', { 
+      // Notify the renderer that server captured image was received
+      this.mainWindow.webContents.send('server-image-received', { 
         success: true, 
         filepath,
         clipboardSuccess: true
@@ -671,11 +671,11 @@ class SupporterApp {
 
   // IPC handlers
   setupIpcHandlers() {
-    ipcMain.on('connect-to-tester', (event, { testerId }) => {
-      this.connectToTester(testerId);
+    ipcMain.on('connect-to-server', (event, { serverId }) => {
+      this.connectToTester(serverId);
     });
 
-    ipcMain.on('disconnect-from-tester', () => {
+    ipcMain.on('disconnect-from-server', () => {
       if (this.socket) {
         this.socket.disconnect();
         this.socket = null;
@@ -711,7 +711,7 @@ class SupporterApp {
 
 
 
-    ipcMain.handle('send-data-to-tester', (event, data) => {
+    ipcMain.handle('send-data-to-server', (event, data) => {
       if (this.socket && this.isConnected) {
         this.socket.emit('receiveData', data);
         return true;
@@ -721,11 +721,11 @@ class SupporterApp {
 
     ipcMain.handle('capture-screenshot', (event) => {
       if (this.socket && this.isConnected) {
-        // Request a fresh, full-quality screenshot from tester
+        // Request a fresh, full-quality screenshot from server
         this.socket.emit('request-screenshot');
-        return { success: true, message: 'Screenshot requested from tester' };
+        return { success: true, message: 'Screenshot requested from server' };
       }
-      return { success: false, message: 'Not connected to tester' };
+      return { success: false, message: 'Not connected to server' };
     });
 
     ipcMain.handle('set-control-mode', (event, mode) => {
@@ -764,12 +764,12 @@ class SupporterApp {
         this.socket.emit('chatMessage', message);
         
         // Store message locally
-        if (!this.chatMessages.has('tester')) {
-          this.chatMessages.set('tester', []);
+        if (!this.chatMessages.has('server')) {
+          this.chatMessages.set('server', []);
         }
         
-        this.chatMessages.get('tester').push({
-          type: 'supporter',
+        this.chatMessages.get('server').push({
+          type: 'viewer',
           message: message,
           timestamp: new Date()
         });
@@ -780,7 +780,7 @@ class SupporterApp {
     });
 
     ipcMain.handle('get-chat-messages', (event) => {
-      return this.chatMessages.get('tester') || [];
+      return this.chatMessages.get('server') || [];
     });
 
     ipcMain.handle('toggle-voice-mute', (event) => {
@@ -808,4 +808,4 @@ class SupporterApp {
   }
 }
 
-new SupporterApp();
+new ViewerApp();

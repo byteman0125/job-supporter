@@ -1,11 +1,11 @@
 # Code Supporter App
 
-A remote desktop assistance tool designed for coding support scenarios. The application consists of two parts: a **Tester (Client)** and a **Supporter (Server)** that communicate via TCP/IP protocol.
+A remote desktop assistance tool designed for coding support scenarios. The application consists of two parts: a **Server (Client)** and a **Viewer (Server)** that communicate via TCP/IP protocol.
 
 ## Features
 
-### Tester (Client) Application
-- **Screen Sharing**: Shares screen with supporter in real-time
+### Server (Client) Application
+- **Screen Sharing**: Shares screen with viewer in real-time
 - **System Tray Integration**: Minimizes to tray when connected for privacy
 - **Keyboard Shortcuts**:
   - `ALT+L`: Input one word at a time (human-like typing speed)
@@ -15,11 +15,11 @@ A remote desktop assistance tool designed for coding support scenarios. The appl
 - **Privacy Features**: Window becomes invisible during screen sharing
 - **Settings Window**: Accessible via tray icon for device configuration
 
-### Supporter (Server) Application
+### Viewer (Server) Application
 - **Remote Control**: Two modes - View Mode (default) and Control Mode
 - **Screen Capture**: Save screenshots to image directory
-- **Data Transmission**: Send answers/code to tester via text area
-- **Audio Support**: Listen to tester's audio and speak via microphone
+- **Data Transmission**: Send answers/code to server via text area
+- **Audio Support**: Listen to server's audio and speak via microphone
 - **Device Selection**: Choose audio input/output devices
 - **Real-time Communication**: TCP/IP based communication
 
@@ -32,11 +32,11 @@ A remote desktop assistance tool designed for coding support scenarios. The appl
 
 2. **Development Mode**:
    ```bash
-   # Start Tester app
-   npm run dev:tester
+   # Start Server app
+   npm run dev:server
    
-   # Start Supporter app (in another terminal)
-   npm run dev:supporter
+   # Start Viewer app (in another terminal)
+   npm run dev:viewer
    ```
 
 3. **Build Executables**:
@@ -45,32 +45,32 @@ A remote desktop assistance tool designed for coding support scenarios. The appl
    npm run build:all
    
    # Or build individually
-   npm run build:tester
-   npm run build:supporter
+   npm run build:server
+   npm run build:viewer
    ```
 
 ## Usage
 
-### Starting the Supporter (Server)
-1. Run the supporter application
+### Starting the Viewer (Server)
+1. Run the viewer application
 2. Note the IP address and port (default: 3000)
 3. The server will start and wait for connections
 
-### Connecting the Tester (Client)
-1. Run the tester application
-2. Enter the supporter's IP address and port
-3. Click "Connect to Supporter"
+### Connecting the Server (Client)
+1. Run the server application
+2. Enter the viewer's IP address and port
+3. Click "Connect to Viewer"
 4. The app will minimize to system tray when connected
 
 ### Using the Applications
 
-#### Supporter Controls:
-- **View Mode**: Only view the tester's screen
-- **Control Mode**: Control tester's mouse and keyboard
-- **Capture**: Save screenshots of tester's screen
-- **Send Answer**: Type code/answers and send to tester
+#### Viewer Controls:
+- **View Mode**: Only view the server's screen
+- **Control Mode**: Control server's mouse and keyboard
+- **Capture**: Save screenshots of server's screen
+- **Send Answer**: Type code/answers and send to server
 
-#### Tester Shortcuts:
+#### Server Shortcuts:
 - **ALT+L**: Type received data word by word
 - **ALT+K**: Type received data line by line
 - **ALT+C**: Copy clipboard to temp data
@@ -88,11 +88,11 @@ A remote desktop assistance tool designed for coding support scenarios. The appl
 
 ```
 code-supporter-app/
-├── tester/                 # Client application
+├── server/                 # Client application
 │   ├── main.js            # Main process
 │   ├── renderer/          # UI components
 │   └── assets/            # Icons and resources
-├── supporter/             # Server application
+├── viewer/             # Server application
 │   ├── main.js            # Main process
 │   ├── renderer/          # UI components
 │   ├── assets/            # Icons and resources
@@ -102,7 +102,7 @@ code-supporter-app/
 
 ## Security Notes
 
-- The tester app window becomes invisible during screen sharing
+- The server app window becomes invisible during screen sharing
 - All communication is local network based
 - No external servers or cloud services required
 - Audio and screen data are transmitted in real-time only

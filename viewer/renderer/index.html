@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remote Desktop Manager</title>
+    <title>Remote Desktop Viewer</title>
     <style>
         * {
             margin: 0;
@@ -281,10 +281,10 @@
     <!-- Connection Modal -->
     <div class="connection-modal" id="connectionModal">
         <div class="modal-content">
-            <h2 class="modal-title">Connect to Tester</h2>
+            <h2 class="modal-title">Connect to Server</h2>
             <div class="input-group">
-                <label for="testerId">Tester ID:</label>
-                <input type="text" id="testerId" placeholder="Enter Tester ID (e.g. a1b2c3d4)" value="">
+                <label for="serverId">Server ID:</label>
+                <input type="text" id="serverId" placeholder="Enter Server ID (e.g. a1b2c3d4)" value="">
                 </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="connectBtn">Connect</button>
@@ -300,7 +300,7 @@
     <div class="screen-viewer" id="screenViewer">
         <div class="no-connection" id="noConnection">
             <h2>No Connection</h2>
-            <p>Press Ctrl+Shift+H to connect to a tester</p>
+            <p>Press Ctrl+Shift+H to connect to a server</p>
         </div>
         
         <!-- Real system cursor will be visible automatically -->
@@ -318,7 +318,7 @@
         const connectionStatus = document.getElementById('connectionStatus');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
-        const testerId = document.getElementById('testerId');
+        const serverId = document.getElementById('serverId');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
 
@@ -336,7 +336,7 @@
         // Connection Modal
         function showConnectionModal() {
             connectionModal.classList.remove('hidden');
-            testerId.focus();
+            serverId.focus();
         }
 
         function hideConnectionModal() {
@@ -344,22 +344,22 @@
         }
 
         // Connection Functions
-        function connectToTester() {
-            const testerIdValue = testerId.value.trim();
+        function connectToServer() {
+            const serverIdValue = serverId.value.trim();
             
-            console.log('🔗 Attempting to connect to tester:', testerIdValue);
+            console.log('🔗 Attempting to connect to server:', serverIdValue);
 
-            if (!testerIdValue) {
-                alert('Please enter a valid Tester ID');
+            if (!serverIdValue) {
+                alert('Please enter a valid Server ID');
                 return;
             }
 
             hideConnectionModal();
-            ipcRenderer.send('connect-to-tester', { testerId: testerIdValue });
+            ipcRenderer.send('connect-to-server', { serverId: serverIdValue });
         }
 
-        function disconnectFromTester() {
-            ipcRenderer.send('disconnect-from-tester');
+        function disconnectFromServer() {
+            ipcRenderer.send('disconnect-from-server');
             hideRemoteCursor(); // Hide cursor when disconnecting
         }
 
@@ -464,19 +464,19 @@
 
 
         // Event Listeners
-        connectBtn.addEventListener('click', connectToTester);
+        connectBtn.addEventListener('click', connectToServer);
         cancelBtn.addEventListener('click', hideConnectionModal);
 
 
-        testerId.addEventListener('keydown', (e) => {
-            console.log('🔤 Tester ID input keydown:', e.key, 'value:', e.target.value);
+        serverId.addEventListener('keydown', (e) => {
+            console.log('🔤 Server ID input keydown:', e.key, 'value:', e.target.value);
             if (e.key === 'Enter') {
-                connectToTester();
+                connectToServer();
             }
         });
 
-        testerId.addEventListener('input', (e) => {
-            console.log('📝 Tester ID input changed:', e.target.value);
+        serverId.addEventListener('input', (e) => {
+            console.log('📝 Server ID input changed:', e.target.value);
         });
 
         // Screen viewer events

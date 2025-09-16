@@ -1,7 +1,7 @@
-# Tester CLI - Pure Node.js Screen Capture
+# Server CLI - Pure Node.js Screen Capture
 
 ## Overview
-This is a lightweight CLI version of the tester app that uses pure Node.js instead of Electron. It's much more stealthy and efficient.
+This is a lightweight CLI version of the server app that uses pure Node.js instead of Electron. It's much more stealthy and efficient.
 
 ## Benefits over Electron Version
 - ✅ **90% smaller** - ~10MB vs 100MB+
@@ -37,7 +37,7 @@ setup-ffmpeg.bat
 node main-cli.js
 
 # Option 2: Using batch file
-run-tester.bat
+run-server.bat
 
 # Option 3: Using npm script
 npm start
@@ -104,10 +104,10 @@ tester.connectToSupporter('192.168.1.100', 8080);
 
 ## File Structure
 ```
-tester/
+server/
 ├── main-cli.js          # Main CLI application
 ├── package.json         # CLI package configuration
-├── run-tester.bat       # Windows batch runner
+├── run-server.bat       # Windows batch runner
 ├── setup-ffmpeg.bat     # FFmpeg setup script
 ├── assets/
 │   └── ffmpeg/          # FFmpeg binaries
@@ -166,9 +166,9 @@ dir assets\ffmpeg\bin\ffmpeg.exe
 - **Fast preset** - FFmpeg ultrafast preset
 
 ## Deployment
-1. **Copy files** - tester/ folder
+1. **Copy files** - server/ folder
 2. **Run setup** - setup-ffmpeg.bat
-3. **Start app** - run-tester.bat
+3. **Start app** - run-server.bat
 4. **Or build exe** - npm run build
 
 The CLI version is much more suitable for stealth operations and resource-constrained environments.

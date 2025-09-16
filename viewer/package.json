@@ -1,7 +1,7 @@
 {
-  "name": "remote-desktop-manager",
+  "name": "remote-desktop-viewer",
   "version": "1.0.0",
-  "description": "Remote Desktop Manager",
+  "description": "Remote Desktop Viewer",
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
@@ -11,7 +11,7 @@
   },
   "build": {
     "appId": "com.microsoft.remotedesktop",
-    "productName": "Remote Desktop Manager",
+    "productName": "Remote Desktop Viewer",
     "directories": {
       "output": "dist"
     },
@@ -24,14 +24,14 @@
     ],
     "win": {
       "target": "nsis",
-      "publisherName": "Code Supporter"
+      "publisherName": "Code Viewer"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Remote Desktop Manager",
+      "shortcutName": "Remote Desktop Viewer",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },

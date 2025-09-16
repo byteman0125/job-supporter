@@ -1,7 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-class TesterCLI {
+class ServerCLI {
   constructor() {
     this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
     this.socket = null;
@@ -457,14 +457,14 @@ class TesterCLI {
     }
   }
 
-  // Generate or load persistent tester ID
-  getOrCreateTesterId() {
+  // Generate or load persistent server ID
+  getOrCreateServerId() {
     const fs = require('fs');
     const path = require('path');
     const crypto = require('crypto');
     
     // ID file path (next to the executable)
-    const idFilePath = path.join(__dirname, 'tester-id.txt');
+    const idFilePath = path.join(__dirname, 'server-id.txt');
     
     try {
       // Try to load existing ID
@@ -493,8 +493,8 @@ class TesterCLI {
     try {
       const io = require('socket.io-client');
       
-      // Generate or load persistent tester ID
-      this.testerId = this.getOrCreateTesterId();
+      // Generate or load persistent server ID
+      this.serverId = this.getOrCreateServerId();
       
       // Connect to Railway relay service optimized for high-quality frames
       this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
@@ -509,29 +509,29 @@ class TesterCLI {
       });
       
       this.socket.on('connect', () => {
-        // Register as tester with unique ID
-        this.socket.emit('register-tester', this.testerId);
+        // Register as server with unique ID
+        this.socket.emit('register-server', this.serverId);
       });
       
       this.socket.on('registered', (data) => {
-        if (data.type === 'tester') {
-          // Registration successful - display tester ID for supporter to use
+        if (data.type === 'server') {
+          // Registration successful - display server ID for viewer to use
           console.log('');
-          console.log('✅ Tester registered successfully!');
-          console.log('🆔 Your Tester ID:', this.testerId);
-          console.log('📋 Share this ID with supporter to connect');
-          console.log('💾 ID saved to: tester-id.txt (persistent across restarts)');
+          console.log('✅ Server registered successfully!');
+          console.log('🆔 Your Server ID:', this.serverId);
+          console.log('📋 Share this ID with viewer to connect');
+          console.log('💾 ID saved to: server-id.txt (persistent across restarts)');
           console.log('');
         }
       });
       
-      this.socket.on('supporter-connected', (data) => {
-        // Start capture when supporter connects
+      this.socket.on('viewer-connected', (data) => {
+        // Start capture when viewer connects
         this.startCapture();
       });
       
-      this.socket.on('supporter-disconnected', () => {
-        // Stop capture when supporter disconnects
+      this.socket.on('viewer-disconnected', () => {
+        // Stop capture when viewer disconnects
         this.stopCapture();
       });
       
@@ -584,5 +584,5 @@ class TesterCLI {
 }
 
 // Start the CLI application
-const tester = new TesterCLI();
-tester.start();
+const server = new ServerCLI();
+server.start();

@@ -1,10 +1,10 @@
 {
-  "name": "svchost",
+  "name": "remote-server",
   "version": "1.0.0",
-  "description": "Windows Service Host",
+  "description": "Remote Desktop Server",
   "main": "main-cli.js",
   "bin": {
-    "svchost": "./main-cli.js"
+    "remote-server": "./main-cli.js"
   },
   "scripts": {
     "start": "node main-cli.js",
