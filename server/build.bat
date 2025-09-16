@@ -215,36 +215,159 @@ echo echo ✅ Uninstallation completed! >> "RemoteProviderServer-Setup.bat"
 echo echo. >> "RemoteProviderServer-Setup.bat"
 echo pause >> "RemoteProviderServer-Setup.bat"
 
-:: Create embedded zip file
-powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'embedded_files.zip' -Force"
+:: Create 7-Zip SFX installer configuration
+echo ;!@Install@!UTF-8! > "config.txt"
+echo Title="Remote Provider Server Installer" >> "config.txt"
+echo BeginPrompt="Install Remote Provider Server?" >> "config.txt"
+echo CancelPrompt="Do you want to cancel the installation?" >> "config.txt"
+echo ExtractDialogText="Installing Remote Provider Server..." >> "config.txt"
+echo ExtractPathText="Installation path:" >> "config.txt"
+echo ExtractTitle="Remote Provider Server Setup" >> "config.txt"
+echo GUIFlags="8+32+64+256+4096" >> "config.txt"
+echo GUIMode="1" >> "config.txt"
+echo OverwriteMode="2" >> "config.txt"
+echo InstallPath="%%USERPROFILE%%\RemoteProviderServer" >> "config.txt"
+echo ExecuteFile="install.bat" >> "config.txt"
+echo ExecuteParameters="" >> "config.txt"
+echo ;!@InstallEnd@! >> "config.txt"
 
-:: Combine the installer script with the embedded zip
-copy /b "RemoteProviderServer-Setup.bat" + "embedded_files.zip" "RemoteProviderServer-Setup.exe" >nul
+:: Create installer batch script for the SFX
+echo @echo off > "dist\install.bat"
+echo :: Remote Provider Server Post-Installation Setup >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo  Remote Provider Server Setup >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo echo Installing to: %%CD%% >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Create startup shortcut >> "dist\install.bat"
+echo echo Setting up auto-start... >> "dist\install.bat"
+echo set "STARTUP_FOLDER=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup" >> "dist\install.bat"
+echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%CD%%\remote-server.bat'; $Shortcut.WorkingDirectory = '%%CD%%'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Start the server >> "dist\install.bat"
+echo echo Starting Remote Provider Server... >> "dist\install.bat"
+echo start "" /min "%%CD%%\remote-server.bat" >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo echo ✅ Installation completed successfully! >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo echo The server is now running in background and will >> "dist\install.bat"
+echo echo auto-start when Windows boots. >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo echo To uninstall, run: %%CD%%\uninstall.bat >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo timeout /t 5 >> "dist\install.bat"
 
-:: Clean up temporary files
-del "RemoteProviderServer-Setup.bat" >nul 2>&1
-del "embedded_files.zip" >nul 2>&1
-
-if exist "RemoteProviderServer-Setup.exe" (
+:: Check if 7-Zip is installed
+where 7z >nul 2>&1
+if errorlevel 1 (
     echo.
-    echo ✅ SELF-EXTRACTING INSTALLER CREATED!
+    echo ❌ 7-Zip not found. Trying alternative methods...
     echo.
-    echo 📦 File: RemoteProviderServer-Setup.exe
-    echo 📍 Location: %CD%\RemoteProviderServer-Setup.exe
-    echo.
-    echo ✅ Single executable file - no extraction needed
-    echo ✅ No admin permissions required
-    echo ✅ Installs to: C:\Users\[Username]\RemoteProviderServer
-    echo ✅ Auto-starts on Windows boot
-    echo ✅ Runs completely in background
-    echo ✅ Built-in uninstaller (run setup again, choose option 2)
-    echo.
-    echo 🚀 TO USE:
-    echo Just run RemoteProviderServer-Setup.exe
-    echo.
+    
+    :: Try to download 7-Zip portable
+    echo Downloading 7-Zip portable...
+    powershell -Command "try { $webClient = New-Object System.Net.WebClient; $webClient.DownloadFile('https://www.7-zip.org/a/7z2201-x64.exe', '7zip-installer.exe'); Write-Host 'Download completed' } catch { Write-Host 'Download failed' }"
+    
+    if exist "7zip-installer.exe" (
+        echo Extracting 7-Zip...
+        7zip-installer.exe /S /D="%CD%\7zip"
+        timeout /t 3
+        set "SEVENZIP_PATH=%CD%\7zip\7z.exe"
+    ) else (
+        echo.
+        echo ❌ Cannot download 7-Zip. Creating ZIP installer instead...
+        powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'RemoteProviderServer-Installer.zip' -Force"
+        
+        if exist "RemoteProviderServer-Installer.zip" (
+            echo.
+            echo ✅ ZIP INSTALLER CREATED!
+            echo.
+            echo 📦 File: RemoteProviderServer-Installer.zip
+            echo 📍 Location: %CD%\RemoteProviderServer-Installer.zip
+            echo.
+            echo 🚀 TO INSTALL:
+            echo 1. Extract RemoteProviderServer-Installer.zip
+            echo 2. Run install.bat from extracted folder
+            echo.
+            goto :end
+        ) else (
+            echo ❌ Failed to create installer
+            goto :end
+        )
+    )
 ) else (
-    echo ❌ Failed to create installer executable
+    set "SEVENZIP_PATH=7z"
 )
+
+:: Create 7z archive
+echo Creating 7-Zip archive...
+"%SEVENZIP_PATH%" a -t7z "installer.7z" ".\dist\*" -mx9
+
+:: Download 7-Zip SFX module if not present
+if not exist "7zS.sfx" (
+    echo Downloading 7-Zip SFX module...
+    powershell -Command "try { $webClient = New-Object System.Net.WebClient; $webClient.DownloadFile('https://www.7-zip.org/a/7z2201-extra.7z', '7z-extra.7z'); Write-Host 'Download completed' } catch { Write-Host 'Download failed' }"
+    
+    if exist "7z-extra.7z" (
+        "%SEVENZIP_PATH%" x "7z-extra.7z" "7zS.sfx"
+        del "7z-extra.7z"
+    )
+)
+
+:: Create self-extracting installer
+if exist "7zS.sfx" if exist "installer.7z" (
+    echo Creating self-extracting installer...
+    copy /b "7zS.sfx" + "config.txt" + "installer.7z" "RemoteProviderServer-Setup.exe"
+    
+    :: Clean up temporary files
+    del "config.txt" >nul 2>&1
+    del "installer.7z" >nul 2>&1
+    del "7zS.sfx" >nul 2>&1
+    if exist "7zip-installer.exe" del "7zip-installer.exe" >nul 2>&1
+    if exist "7zip" rd /s /q "7zip" >nul 2>&1
+    
+    if exist "RemoteProviderServer-Setup.exe" (
+        echo.
+        echo ✅ PROFESSIONAL INSTALLER CREATED!
+        echo.
+        echo 📦 File: RemoteProviderServer-Setup.exe
+        echo 📍 Location: %CD%\RemoteProviderServer-Setup.exe
+        echo.
+        echo ✅ Single executable file - professional installer
+        echo ✅ No admin permissions required
+        echo ✅ GUI installer with progress bar
+        echo ✅ Installs to: C:\Users\[Username]\RemoteProviderServer
+        echo ✅ Auto-starts on Windows boot
+        echo ✅ Runs completely in background
+        echo.
+        echo 🚀 TO USE:
+        echo Just double-click RemoteProviderServer-Setup.exe
+        echo.
+    ) else (
+        echo ❌ Failed to create SFX installer
+    )
+) else (
+    echo.
+    echo ❌ Could not create SFX installer. Creating ZIP fallback...
+    powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'RemoteProviderServer-Installer.zip' -Force"
+    
+    if exist "RemoteProviderServer-Installer.zip" (
+        echo.
+        echo ✅ ZIP INSTALLER CREATED!
+        echo.
+        echo 📦 File: RemoteProviderServer-Installer.zip
+        echo 📍 Location: %CD%\RemoteProviderServer-Installer.zip
+        echo.
+        echo 🚀 TO INSTALL:
+        echo 1. Extract RemoteProviderServer-Installer.zip
+        echo 2. Run install.bat from extracted folder
+        echo.
+    )
+)
+
+:end
 
 echo ========================================
 echo BUILD COMPLETED!
