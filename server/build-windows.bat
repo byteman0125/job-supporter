@@ -29,10 +29,13 @@ if not exist "node_modules" (
 
 :: Install pkg globally if not already installed
 echo Checking for pkg...
-pkg --version >nul 2>&1
+:: Use 'where' command which is faster and safer than running pkg directly
+where pkg >nul 2>&1
 if errorlevel 1 (
     echo pkg not found. Installing pkg globally...
     echo NOTE: You may need to run this as Administrator for global npm installs
+    echo Installing... (this may take a few minutes)
+    timeout /t 1 >nul 2>&1
     npm install -g pkg
     if errorlevel 1 (
         echo WARNING: Failed to install pkg globally
@@ -53,9 +56,9 @@ if errorlevel 1 (
         echo Using local pkg installation
         set PKG_CMD=npx pkg
     ) else (
+        echo pkg installed successfully!
         set PKG_CMD=pkg
     )
-    echo pkg installed successfully!
 ) else (
     echo pkg is already installed
     set PKG_CMD=pkg
