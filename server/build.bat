@@ -10,34 +10,133 @@ if not exist "dist" mkdir dist
 
 echo.
 echo ========================================
-echo METHOD 1: Node.js Bundle (Recommended)
+echo METHOD 1: Standalone Executable (No Node.js Required)
 echo ========================================
 
-echo Creating portable Node.js application...
+:: First try to create standalone executable with pkg
+echo Checking for pkg...
 
-:: Copy all necessary files
-echo Copying application files...
-copy "main-cli.js" "dist\" >nul
-copy "ffmpeg-crossplatform.js" "dist\" >nul
-copy "package.json" "dist\" >nul
-
-:: Copy assets if they exist
-if exist "assets" (
-    xcopy "assets" "dist\assets\" /E /I /Y >nul
-    echo Assets copied
+:: Try global pkg first
+where pkg >nul 2>&1
+if not errorlevel 1 (
+    echo Using global pkg...
+    pkg main-cli.js --target node18-win-x64 --output dist/remote-server.exe
+    goto :check_exe
 )
 
-:: Install dependencies in dist folder
-echo Installing dependencies...
-cd dist
-call npm install --production
-cd ..
+:: Try npx pkg (downloads temporarily without installing)
+echo Trying npx pkg (no installation required)...
+npx --yes pkg@5.8.1 main-cli.js --target node18-win-x64 --output dist/remote-server.exe
+if exist "dist/remote-server.exe" goto :check_exe
 
-:: Create launcher script (runs in background with minimized window)
-echo @echo off > "dist\remote-server.bat"
-echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
-echo cd /d "%%~dp0" >> "dist\remote-server.bat"
-echo start "" /min node main-cli.js --background --silent >> "dist\remote-server.bat"
+:: Try installing pkg locally as last resort
+echo Installing pkg locally as fallback...
+npm install pkg --no-save
+if exist "node_modules/.bin/pkg.cmd" (
+    echo Using local pkg...
+    node_modules\.bin\pkg.cmd main-cli.js --target node18-win-x64 --output dist/remote-server.exe
+)
+
+:check_exe
+echo Creating standalone executable...
+
+if exist "dist/remote-server.exe" (
+    echo ✅ Standalone executable created: dist/remote-server.exe
+    
+    :: Update launcher to use executable instead of node
+    echo @echo off > "dist\remote-server.bat"
+    echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
+    echo cd /d "%%~dp0" >> "dist\remote-server.bat"
+    echo start "" /min remote-server.exe --background --silent >> "dist\remote-server.bat"
+    
+    echo ✅ METHOD 1 COMPLETED - Standalone executable (no Node.js required)
+) else (
+    echo ❌ Failed to create standalone executable. Creating Node.js bundle fallback...
+    echo Creating portable Node.js application...
+)
+
+if not exist "dist/remote-server.exe" (
+    :: Copy all necessary files for Node.js bundle
+    echo Copying application files...
+    copy "main-cli.js" "dist\" >nul
+    copy "ffmpeg-crossplatform.js" "dist\" >nul
+    copy "package.json" "dist\" >nul
+
+    :: Copy assets if they exist
+    if exist "assets" (
+        xcopy "assets" "dist\assets\" /E /I /Y >nul
+        echo Assets copied
+    )
+
+    :: Install dependencies in dist folder
+    echo Installing dependencies...
+    cd dist
+    call npm install --production
+    cd ..
+    
+    :: Check if we should bundle Node.js portable
+    echo.
+    echo ❌ Standalone executable failed. Creating Node.js portable bundle...
+    echo.
+    
+    :: Download Node.js portable
+    echo Downloading Node.js portable for systems without Node.js...
+    powershell -Command "try { $webClient = New-Object System.Net.WebClient; $webClient.DownloadFile('https://nodejs.org/dist/v18.17.0/node-v18.17.0-win-x64.zip', 'nodejs-portable.zip'); Write-Host 'Node.js download completed' } catch { Write-Host 'Node.js download failed' }"
+    
+    if exist "nodejs-portable.zip" (
+        echo Extracting Node.js portable...
+        powershell -Command "Expand-Archive -Path 'nodejs-portable.zip' -DestinationPath 'temp_nodejs' -Force"
+        
+        :: Copy Node.js to dist
+        if exist "temp_nodejs" (
+            for /d %%i in (temp_nodejs\*) do (
+                xcopy "%%i" "dist\nodejs\" /E /I /Y >nul
+            )
+            rd /s /q "temp_nodejs" >nul 2>&1
+        )
+        del "nodejs-portable.zip" >nul 2>&1
+        
+        if exist "dist\nodejs\node.exe" (
+            echo ✅ Node.js portable bundled successfully
+            
+            :: Create launcher that uses bundled Node.js
+            echo @echo off > "dist\remote-server.bat"
+            echo :: Remote Provider Server Launcher ^(with bundled Node.js^) >> "dist\remote-server.bat"
+            echo cd /d "%%~dp0" >> "dist\remote-server.bat"
+            echo start "" /min "%%~dp0nodejs\node.exe" main-cli.js --background --silent >> "dist\remote-server.bat"
+            
+            echo ✅ METHOD 1 COMPLETED - Portable bundle with Node.js included
+        ) else (
+            echo ❌ Failed to bundle Node.js. Using system Node.js requirement.
+            
+            :: Create standard launcher
+            echo @echo off > "dist\remote-server.bat"
+            echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
+            echo cd /d "%%~dp0" >> "dist\remote-server.bat"
+            echo start "" /min node main-cli.js --background --silent >> "dist\remote-server.bat"
+            
+            echo ⚠️  METHOD 1 COMPLETED - Requires Node.js on target system
+        )
+    ) else (
+        echo ❌ Could not download Node.js portable. Using system Node.js requirement.
+        
+        :: Create standard launcher
+        echo @echo off > "dist\remote-server.bat"
+        echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
+        echo cd /d "%%~dp0" >> "dist\remote-server.bat"
+        echo start "" /min node main-cli.js --background --silent >> "dist\remote-server.bat"
+        
+        echo ⚠️  METHOD 1 COMPLETED - Requires Node.js on target system
+    )
+) else (
+    :: Copy assets for standalone executable
+    if exist "assets" (
+        xcopy "assets" "dist\assets\" /E /I /Y >nul
+        echo Assets copied for standalone executable
+    )
+)
+
+::  Launcher already created above based on executable type
 
 :: Create installer
 echo @echo off > "dist\install.bat"
