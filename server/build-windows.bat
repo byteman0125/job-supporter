@@ -91,6 +91,7 @@ if exist "system-tray.js" copy "system-tray.js" "dist\" >nul
 if exist "antivirus-whitelist.txt" copy "antivirus-whitelist.txt" "dist\" >nul
 if exist "USAGE.md" copy "USAGE.md" "dist\" >nul
 if exist "test-ffmpeg-setup.bat" copy "test-ffmpeg-setup.bat" "dist\" >nul
+if exist "download-ffmpeg-simple.ps1" copy "download-ffmpeg-simple.ps1" "dist\" >nul
 
 echo ========================================
 echo STEP 2: Setting up FFmpeg for Windows

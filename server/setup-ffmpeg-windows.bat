@@ -45,8 +45,9 @@ echo try { >> temp_download_ffmpeg.ps1
 echo     Write-Host "🔄 Downloading FFmpeg..." >> temp_download_ffmpeg.ps1
 echo     $urls = @( >> temp_download_ffmpeg.ps1
 echo         "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", >> temp_download_ffmpeg.ps1
-echo         "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip", >> temp_download_ffmpeg.ps1
-echo         "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-01-01-12-55/ffmpeg-master-latest-win64-gpl.zip" >> temp_download_ffmpeg.ps1
+echo         "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-12-19-13-18/ffmpeg-master-latest-win64-gpl.zip", >> temp_download_ffmpeg.ps1
+echo         "https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip", >> temp_download_ffmpeg.ps1
+echo         "https://github.com/GyanD/codexffmpeg/releases/download/7.0.2/ffmpeg-7.0.2-essentials_build.zip" >> temp_download_ffmpeg.ps1
 echo     ^) >> temp_download_ffmpeg.ps1
 echo     $output = "ffmpeg-win.zip" >> temp_download_ffmpeg.ps1
 echo. >> temp_download_ffmpeg.ps1
@@ -83,7 +84,7 @@ echo     Remove-Item "temp_ffmpeg" -Recurse -Force -ErrorAction SilentlyContinue
 echo     Write-Host "✅ FFmpeg setup completed successfully!" >> temp_download_ffmpeg.ps1
 echo } >> temp_download_ffmpeg.ps1
 echo catch { >> temp_download_ffmpeg.ps1
-echo     Write-Host "❌ FFmpeg download failed: $($_.Exception.Message)" >> temp_download_ffmpeg.ps1
+echo     Write-Host "FFmpeg download failed: $($_.Exception.Message)" >> temp_download_ffmpeg.ps1
 echo     Write-Host "Please download FFmpeg manually from https://ffmpeg.org/download.html" >> temp_download_ffmpeg.ps1
 echo     Write-Host "Extract ffmpeg.exe to: assets\ffmpeg\win\ffmpeg.exe" >> temp_download_ffmpeg.ps1
 echo     exit 1 >> temp_download_ffmpeg.ps1
@@ -99,14 +100,49 @@ del temp_download_ffmpeg.ps1
 if not exist "assets\ffmpeg\win\ffmpeg.exe" (
     echo ⚠️  PowerShell download failed, trying alternative methods...
     
-    :: Try using curl with smaller essential build first
-    echo Trying curl download (essential build)...
-    curl -L "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o "ffmpeg-win.zip"
+    :: Test network connectivity first
+    echo Testing network connectivity...
+    ping -n 1 8.8.8.8 >nul 2>&1
+    if errorlevel 1 (
+        echo ❌ No internet connection detected
+        echo Please check your network connection and try again
+        goto :manual_instructions
+    )
     
-    :: If that fails, try the full build
+    :: Test DNS resolution
+    echo Testing DNS resolution...
+    nslookup github.com >nul 2>&1
+    if errorlevel 1 (
+        echo ⚠️ DNS resolution issues detected
+        echo Trying with IP addresses and alternative DNS...
+    ) else (
+        echo ✅ DNS resolution working
+    )
+    
+    :: Try using curl with multiple URLs
+    echo Trying curl download...
+    
+    :: Try gyan.dev essentials build
+    echo Trying: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+    curl -L --connect-timeout 30 --max-time 300 "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o "ffmpeg-win.zip"
+    
+    :: If that fails, try GitHub releases
     if not exist "ffmpeg-win.zip" (
-        echo Trying full build...
-        curl -L "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" -o "ffmpeg-win.zip"
+        echo Trying: https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip
+        curl -L --connect-timeout 30 --max-time 300 "https://github.com/GyanD/codexffmpeg/releases/download/7.1/ffmpeg-7.1-essentials_build.zip" -o "ffmpeg-win.zip"
+    )
+    
+    :: Last resort - try older stable version
+    if not exist "ffmpeg-win.zip" (
+        echo Trying: https://github.com/GyanD/codexffmpeg/releases/download/7.0.2/ffmpeg-7.0.2-essentials_build.zip
+        curl -L --connect-timeout 30 --max-time 300 "https://github.com/GyanD/codexffmpeg/releases/download/7.0.2/ffmpeg-7.0.2-essentials_build.zip" -o "ffmpeg-win.zip"
+    )
+    
+    :: Final fallback - try direct download from ffmpeg.org
+    if not exist "ffmpeg-win.zip" (
+        echo Trying: https://ffmpeg.org/releases/ffmpeg-snapshot.tar.bz2
+        echo Note: This is a source archive, looking for pre-built binaries...
+        curl -L --connect-timeout 30 --max-time 300 "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1-essentials_build.zip" -o "ffmpeg-win.zip"
     )
     
     if exist "ffmpeg-win.zip" (
@@ -127,8 +163,26 @@ if not exist "assets\ffmpeg\win\ffmpeg.exe" (
     )
 )
 
+:: Final fallback - use the simple PowerShell downloader
+if not exist "assets\ffmpeg\win\ffmpeg.exe" (
+    echo ⚠️  All curl methods failed, trying simple PowerShell downloader...
+    
+    if exist "download-ffmpeg-simple.ps1" (
+        powershell -ExecutionPolicy Bypass -File download-ffmpeg-simple.ps1
+    ) else (
+        echo ❌ download-ffmpeg-simple.ps1 not found
+    )
+)
+
 if not exist "assets\ffmpeg\win\ffmpeg.exe" (
     echo ❌ All automatic download methods failed
+    echo.
+    echo NETWORK TROUBLESHOOTING:
+    echo 1. Check your internet connection
+    echo 2. Try disabling antivirus/firewall temporarily
+    echo 3. Check if your network blocks downloads from GitHub/gyan.dev
+    echo 4. Try running this script as Administrator
+    echo.
     goto :manual_instructions
 )
 
