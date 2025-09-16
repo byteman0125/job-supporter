@@ -9,7 +9,7 @@ class ServerCLI {
     this.isCapturing = false;
     this.screenWidth = 1920;  // Full HD resolution for maximum quality
     this.screenHeight = 1080; // 1080p - best visual clarity
-    this.framerate = 24;      // Higher FPS for smoother real-time experience
+    this.framerate = 10;      // 10 FPS for stable performance and lower bandwidth
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -401,8 +401,8 @@ class ServerCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to 24 FPS for smooth real-time experience
-    if (now - this.lastFrameTime < 42) {  // 1000ms / 24fps = ~42ms
+    // Throttle frame rate to 10 FPS for stable performance
+    if (now - this.lastFrameTime < 100) {  // 1000ms / 10fps = 100ms
       return;
     }
     
