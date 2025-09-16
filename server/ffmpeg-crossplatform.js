@@ -17,22 +17,83 @@ class FFmpegCrossPlatform {
 
     // Initialize FFmpeg paths for different platforms
     initializePlatformPaths() {
+        // Check if running as standalone executable (pkg)
+        const isStandalone = typeof process.pkg !== 'undefined';
+        
         if (this.platform === 'win32') {
             // Windows
-            this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
+            if (isStandalone) {
+                // In pkg executable, assets are in the snapshot filesystem
+                // pkg extracts assets to process.pkg.entrypoint directory
+                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
+                
+                // Alternative: Extract embedded FFmpeg to temp directory
+                this.extractEmbeddedFFmpeg('win', 'ffmpeg.exe');
+            } else {
+                this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
+            }
             this.captureInput = 'gdigrab';
             this.desktopSource = 'desktop';
         } else if (this.platform === 'darwin') {
             // macOS
-            this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'mac', 'ffmpeg');
+            if (isStandalone) {
+                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'mac', 'ffmpeg');
+                this.extractEmbeddedFFmpeg('mac', 'ffmpeg');
+            } else {
+                this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'mac', 'ffmpeg');
+            }
             this.captureInput = 'avfoundation';
             this.desktopSource = '1:0'; // Screen:Audio (screen only)
         } else {
             // Linux
-            this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'linux', 'ffmpeg');
+            if (isStandalone) {
+                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'linux', 'ffmpeg');
+                this.extractEmbeddedFFmpeg('linux', 'ffmpeg');
+            } else {
+                this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'linux', 'ffmpeg');
+            }
             this.captureInput = 'x11grab';
             // Try to detect the correct display
             this.desktopSource = process.env.DISPLAY || ':0';
+        }
+    }
+
+    // Extract embedded FFmpeg from pkg executable to temp directory
+    extractEmbeddedFFmpeg(platform, filename) {
+        try {
+            const tempDir = path.join(os.tmpdir(), 'remote-provider-ffmpeg');
+            const platformDir = path.join(tempDir, platform);
+            const extractedPath = path.join(platformDir, filename);
+            
+            // Create temp directory if it doesn't exist
+            if (!fs.existsSync(platformDir)) {
+                fs.mkdirSync(platformDir, { recursive: true });
+            }
+            
+            // Check if already extracted
+            if (fs.existsSync(extractedPath)) {
+                this.ffmpegPath = extractedPath;
+                return;
+            }
+            
+            // Try to read embedded asset
+            const embeddedPath = path.join(__dirname, 'assets', 'ffmpeg', platform, filename);
+            if (fs.existsSync(embeddedPath)) {
+                // Copy embedded file to temp directory
+                fs.copyFileSync(embeddedPath, extractedPath);
+                
+                // Make executable on Unix systems
+                if (platform !== 'win') {
+                    fs.chmodSync(extractedPath, 0o755);
+                }
+                
+                this.ffmpegPath = extractedPath;
+                // console.log(`FFmpeg extracted to: ${extractedPath}`);
+            }
+        } catch (error) {
+            // console.error('Failed to extract embedded FFmpeg:', error);
+            // Fall back to system FFmpeg
+            this.checkSystemFFmpeg();
         }
     }
 
