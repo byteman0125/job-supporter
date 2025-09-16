@@ -9,7 +9,7 @@ class ServerCLI {
     this.isCapturing = false;
     this.screenWidth = 1920;  // Full HD resolution for maximum quality
     this.screenHeight = 1080; // 1080p - best visual clarity
-    this.framerate = 12;      // Reduced FPS for better quality per frame
+    this.framerate = 24;      // Higher FPS for smoother real-time experience
     
     // Frame buffering for complete MJPEG frames
     this.frameBuffer = Buffer.alloc(0);
@@ -296,8 +296,8 @@ class ServerCLI {
         '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality Lanczos scaling
         '-f', 'mjpeg',
         '-q:v', '1',              // Maximum quality (1 = ~98% quality)
-        '-preset', 'slow',        // High quality encoding preset
-        '-tune', 'stillimage',    // Optimized for static content/text
+        '-preset', 'ultrafast',   // Fastest encoding for real-time streaming
+        '-tune', 'zerolatency',   // Optimized for real-time streaming
         '-threads', '0',          // Use all CPU cores
         '-huffman', 'optimal',    // Optimal Huffman coding for better compression
         '-compression_level', '0', // No additional compression loss
@@ -401,8 +401,8 @@ class ServerCLI {
   sendFrame(frameData) {
     const now = Date.now();
     
-    // Throttle frame rate to 12 FPS for maximum quality per frame
-    if (now - this.lastFrameTime < 83) {  // 1000ms / 12fps = ~83ms
+    // Throttle frame rate to 24 FPS for smooth real-time experience
+    if (now - this.lastFrameTime < 42) {  // 1000ms / 24fps = ~42ms
       return;
     }
     
