@@ -31,13 +31,34 @@ if not exist "node_modules" (
 echo Checking for pkg...
 pkg --version >nul 2>&1
 if errorlevel 1 (
-    echo Installing pkg globally...
+    echo pkg not found. Installing pkg globally...
+    echo NOTE: You may need to run this as Administrator for global npm installs
     npm install -g pkg
     if errorlevel 1 (
-        echo ERROR: Failed to install pkg
-        pause
-        exit /b 1
+        echo WARNING: Failed to install pkg globally
+        echo Trying to use local pkg installation...
+        
+        :: Try to install pkg locally
+        npm install pkg
+        if errorlevel 1 (
+            echo ERROR: Failed to install pkg both globally and locally
+            echo.
+            echo SOLUTION: Please run one of these commands as Administrator:
+            echo   npm install -g pkg
+            echo   OR run this script as Administrator
+            echo.
+            pause
+            exit /b 1
+        )
+        echo Using local pkg installation
+        set PKG_CMD=npx pkg
+    ) else (
+        set PKG_CMD=pkg
     )
+    echo pkg installed successfully!
+) else (
+    echo pkg is already installed
+    set PKG_CMD=pkg
 )
 
 :: Create dist directory if it doesn't exist
@@ -46,7 +67,8 @@ if not exist "dist" mkdir dist
 echo ========================================
 echo STEP 1: Building Windows Executable
 echo ========================================
-pkg main-cli.js --targets node18-win-x64 --output dist/svchost.exe
+echo Using command: %PKG_CMD%
+%PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/svchost.exe
 
 if errorlevel 1 (
     echo ERROR: Build failed
