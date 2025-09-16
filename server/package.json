@@ -20,18 +20,12 @@
   },
   "pkg": {
     "assets": [
-      "assets/**/*",
       "ffmpeg-crossplatform.js",
       "system-tray.js"
     ],
     "targets": [
-      "node18-win-x64",
-      "node18-macos-x64",
-      "node18-linux-x64"
+      "node18-win-x64"
     ],
-    "outputPath": "dist",
-    "options": [
-      "--resource", "app.rc"
-    ]
+    "outputPath": "dist"
   }
 }

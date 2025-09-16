@@ -70,12 +70,23 @@ echo ========================================
 echo STEP 1: Building Windows Executable
 echo ========================================
 echo Using command: %PKG_CMD%
+echo Building executable...
 %PKG_CMD% main-cli.js --targets node18-win-x64 --output dist/remote-server.exe
 
 if errorlevel 1 (
-    echo ERROR: Build failed
+    echo ERROR: pkg command failed with error level %errorlevel%
     pause
     exit /b 1
+)
+
+:: Verify the executable was created
+if not exist "dist\remote-server.exe" (
+    echo ERROR: remote-server.exe was not created
+    echo This usually means pkg failed silently
+    pause
+    exit /b 1
+) else (
+    echo ✅ remote-server.exe created successfully
 )
 
 :: Copy assets to dist folder
