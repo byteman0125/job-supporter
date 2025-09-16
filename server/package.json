@@ -9,23 +9,11 @@
   "scripts": {
     "start": "node main-cli.js",
     "dev": "node main-cli.js",
-    "build": "pkg main-cli.js --targets node18-win-x64 --output remote-server.exe",
-    "build:win": "pkg main-cli.js --targets node18-win-x64 --output remote-server.exe"
+    "build": "build.bat"
   },
   "dependencies": {
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
-    "pkg": "^5.8.1"
-  },
-  "pkg": {
-    "assets": [
-      "ffmpeg-crossplatform.js",
-      "system-tray.js"
-    ],
-    "targets": [
-      "node18-win-x64"
-    ],
-    "outputPath": "dist"
   }
 }
