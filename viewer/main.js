@@ -672,7 +672,7 @@ class ViewerApp {
   // IPC handlers
   setupIpcHandlers() {
     ipcMain.on('connect-to-server', (event, { serverId }) => {
-      this.connectToTester(serverId);
+      this.connectToServer(serverId);
     });
 
     ipcMain.on('disconnect-from-server', () => {
