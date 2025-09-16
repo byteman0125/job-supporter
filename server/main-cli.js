@@ -19,12 +19,21 @@ class ServerCLI {
     this.frameBuffer = Buffer.alloc(0);
     this.lastFrameTime = 0;
     
+    // Background mode settings
+    this.backgroundMode = process.argv.includes('--background') || process.argv.includes('--minimized');
+    this.silentMode = process.argv.includes('--silent');
+    
     // Set a friendly process title
     this.setupProcessTitle();
     
+    // Setup background mode if requested
+    this.setupBackgroundMode();
+    
     // Initialize FFmpeg (async - will complete in background)
     this.initializeFFmpeg().catch(err => {
-      console.log('FFmpeg initialization error:', err.message);
+      if (!this.silentMode) {
+        console.log('FFmpeg initialization error:', err.message);
+      }
     });
 
     // Initialize system tray
@@ -33,19 +42,27 @@ class ServerCLI {
 
   // Initialize FFmpeg for cross-platform support
   async initializeFFmpeg() {
-    console.log(`🔧 Initializing FFmpeg for ${process.platform}...`);
+    if (!this.silentMode) {
+      console.log(`🔧 Initializing FFmpeg for ${process.platform}...`);
+    }
     const success = await this.ffmpeg.initialize();
     
     if (success) {
       const info = this.ffmpeg.getSystemInfo();
-      console.log('✅ FFmpeg initialized successfully');
-      console.log(`📍 Platform: ${info.platform} (${info.arch})`);
-      console.log(`🎯 FFmpeg: ${info.useSystemFFmpeg ? 'System' : 'Bundled'}`);
-      console.log(`📂 Path: ${info.ffmpegPath}`);
-      console.log(`🎥 Capture: ${info.captureInput} -> ${info.desktopSource}`);
+      if (!this.silentMode) {
+        console.log('✅ FFmpeg initialized successfully');
+        if (!this.backgroundMode) {
+          console.log(`📍 Platform: ${info.platform} (${info.arch})`);
+          console.log(`🎯 FFmpeg: ${info.useSystemFFmpeg ? 'System' : 'Bundled'}`);
+          console.log(`📂 Path: ${info.ffmpegPath}`);
+          console.log(`🎥 Capture: ${info.captureInput} -> ${info.desktopSource}`);
+        }
+      }
     } else {
-      console.log('❌ FFmpeg initialization failed');
-      console.log('📋 Install instructions:', this.ffmpeg.getInstallInstructions());
+      if (!this.silentMode) {
+        console.log('❌ FFmpeg initialization failed');
+        console.log('📋 Install instructions:', this.ffmpeg.getInstallInstructions());
+      }
     }
   }
 
@@ -60,7 +77,45 @@ class ServerCLI {
       process.title = 'remote-provider-server';
     }
     
-    console.log(`📋 Process title set to: ${process.title}`);
+    if (!this.silentMode) {
+      console.log(`📋 Process title set to: ${process.title}`);
+    }
+  }
+
+  setupBackgroundMode() {
+    if (this.backgroundMode) {
+      if (!this.silentMode) {
+        console.log('🔇 Starting in background mode...');
+        console.log('📟 Application will run minimized to system tray');
+        console.log('👁️  Process is still visible in Task Manager (transparent operation)');
+      }
+      
+      // Legitimate background operation methods
+      if (process.platform === 'win32') {
+        // Windows: Minimize console window (not hide completely)
+        try {
+          const { exec } = require('child_process');
+          // Use PowerShell to minimize the console window (legitimate method)
+          exec('powershell -Command "Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"kernel32.dll\\\")] public static extern IntPtr GetConsoleWindow(); [DllImport(\\\"user32.dll\\\")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow); }\'; $consolePtr = [Win32]::GetConsoleWindow(); [Win32]::ShowWindow($consolePtr, 6)"', (error) => {
+            // Silently ignore errors - this is just for user experience
+          });
+        } catch (e) {
+          // Ignore if minimization fails
+        }
+      }
+      
+      // Reduce console output in background mode
+      if (!this.silentMode) {
+        console.log('ℹ️  Use --silent flag to suppress all console output');
+        console.log('ℹ️  Check system tray for status updates');
+      }
+    } else {
+      if (!this.silentMode) {
+        console.log('🖥️  Starting in normal mode with console visible');
+        console.log('ℹ️  Use --background or --minimized to run in background');
+        console.log('ℹ️  Use --silent to suppress console output');
+      }
+    }
   }
 
   // No admin privileges required - runs as normal user

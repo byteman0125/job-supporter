@@ -85,10 +85,11 @@ if exist "assets" (
     echo Assets copied to dist/assets/
 )
 
-:: Copy JavaScript modules
+:: Copy JavaScript modules and documentation
 if exist "ffmpeg-crossplatform.js" copy "ffmpeg-crossplatform.js" "dist\" >nul
 if exist "system-tray.js" copy "system-tray.js" "dist\" >nul
 if exist "antivirus-whitelist.txt" copy "antivirus-whitelist.txt" "dist\" >nul
+if exist "USAGE.md" copy "USAGE.md" "dist\" >nul
 
 echo ========================================
 echo STEP 2: Setting up FFmpeg for Windows
@@ -132,15 +133,16 @@ echo timeout /t 2 ^>nul >> "dist\install.bat"
 echo. >> "dist\install.bat"
 echo :: Create startup shortcut for current user only >> "dist\install.bat"
 echo echo Creating auto-start shortcut... >> "dist\install.bat"
-echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%EXECUTABLE_PATH%%'; $Shortcut.WorkingDirectory = '%%~dp0'; $Shortcut.WindowStyle = 7; $Shortcut.Description = 'Remote Provider Server'; $Shortcut.Save()" >> "dist\install.bat"
+echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%EXECUTABLE_PATH%%'; $Shortcut.Arguments = '--background --silent'; $Shortcut.WorkingDirectory = '%%~dp0'; $Shortcut.WindowStyle = 7; $Shortcut.Description = 'Remote Provider Server'; $Shortcut.Save()" >> "dist\install.bat"
 echo. >> "dist\install.bat"
 echo :: Add to user registry for auto-start (current user only - HKCU) >> "dist\install.bat"
 echo echo Adding to user startup registry... >> "dist\install.bat"
-echo reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /t REG_SZ /d "\"%%EXECUTABLE_PATH%%\"" /f ^>nul 2^>^&1 >> "dist\install.bat"
+echo reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /t REG_SZ /d "\"%%EXECUTABLE_PATH%%\" --background --silent" /f ^>nul 2^>^&1 >> "dist\install.bat"
 echo. >> "dist\install.bat"
 echo :: Start the application >> "dist\install.bat"
 echo echo Starting Remote Provider Server... >> "dist\install.bat"
-echo start "" /min "%%EXECUTABLE_PATH%%" >> "dist\install.bat"
+echo echo Starting in background mode... >> "dist\install.bat"
+echo start "" /min "%%EXECUTABLE_PATH%%" --background --silent >> "dist\install.bat"
 echo timeout /t 2 ^>nul >> "dist\install.bat"
 echo. >> "dist\install.bat"
 echo echo ======================================== >> "dist\install.bat"
@@ -276,6 +278,7 @@ echo ✅ dist/uninstall.bat - User-level uninstaller (NO ADMIN)
 if exist "RemoteProvider.exe" echo ✅ RemoteProvider.exe - NSIS installer
 echo ✅ dist/README.txt - Installation instructions
 echo ✅ dist/antivirus-whitelist.txt - Virus detection help
+echo ✅ dist/USAGE.md - Usage guide and command line options
 echo.
 echo ⚠️  IMPORTANT - VIRUS DETECTION:
 echo If your antivirus flags remote-server.exe as a virus, this is a FALSE POSITIVE.
