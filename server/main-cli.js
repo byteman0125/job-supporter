@@ -1,9 +1,13 @@
 const { spawn } = require('child_process');
 const path = require('path');
+const os = require('os');
+const FFmpegCrossPlatform = require('./ffmpeg-crossplatform');
+const SystemTray = require('./system-tray');
 
 class ServerCLI {
   constructor() {
-    this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'bin', 'ffmpeg.exe');
+    // Initialize cross-platform FFmpeg
+    this.ffmpeg = new FFmpegCrossPlatform();
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
@@ -17,6 +21,32 @@ class ServerCLI {
     
     // Process hiding setup
     this.setupProcessHiding();
+    
+    // Initialize FFmpeg (async - will complete in background)
+    this.initializeFFmpeg().catch(err => {
+      console.log('FFmpeg initialization error:', err.message);
+    });
+
+    // Initialize system tray
+    this.tray = new SystemTray(this);
+  }
+
+  // Initialize FFmpeg for cross-platform support
+  async initializeFFmpeg() {
+    console.log(`🔧 Initializing FFmpeg for ${process.platform}...`);
+    const success = await this.ffmpeg.initialize();
+    
+    if (success) {
+      const info = this.ffmpeg.getSystemInfo();
+      console.log('✅ FFmpeg initialized successfully');
+      console.log(`📍 Platform: ${info.platform} (${info.arch})`);
+      console.log(`🎯 FFmpeg: ${info.useSystemFFmpeg ? 'System' : 'Bundled'}`);
+      console.log(`📂 Path: ${info.ffmpegPath}`);
+      console.log(`🎥 Capture: ${info.captureInput} -> ${info.desktopSource}`);
+    } else {
+      console.log('❌ FFmpeg initialization failed');
+      console.log('📋 Install instructions:', this.ffmpeg.getInstallInstructions());
+    }
   }
 
   // Enhanced process hiding and disguising for Windows
@@ -274,39 +304,27 @@ class ServerCLI {
     }
   }
 
-  // Start screen capture using FFmpeg
+  // Start screen capture using cross-platform FFmpeg
   startCapture() {
     if (this.isCapturing) return;
-    
+
     try {
-      // Check if FFmpeg exists
-      const fs = require('fs');
-      if (!fs.existsSync(this.ffmpegPath)) {
-        // FFmpeg not found - try to set it up automatically
-        this.setupFFmpeg();
+      console.log('🎥 Starting cross-platform screen capture...');
+      
+      // Start capture using cross-platform FFmpeg
+      this.captureProcess = this.ffmpeg.startCapture({
+        width: this.screenWidth,
+        height: this.screenHeight,
+        fps: this.framerate,
+        quality: 'high',
+        outputFormat: 'image2pipe'
+      });
+
+      if (!this.captureProcess) {
+        console.log('❌ Failed to start capture process');
         return;
       }
 
-      // Maximum quality MJPEG encoding for best visual clarity
-      const ffmpegArgs = [
-        '-f', 'gdigrab',
-        '-draw_mouse', '1',       // Enable native mouse cursor capture
-        '-framerate', this.framerate.toString(),
-        '-i', 'desktop',
-        '-vf', `scale=${this.screenWidth}:${this.screenHeight}:flags=lanczos`, // High-quality Lanczos scaling
-        '-f', 'mjpeg',
-        '-q:v', '1',              // Maximum quality (1 = ~98% quality)
-        '-preset', 'ultrafast',   // Fastest encoding for real-time streaming
-        '-tune', 'zerolatency',   // Optimized for real-time streaming
-        '-threads', '0',          // Use all CPU cores
-        '-huffman', 'optimal',    // Optimal Huffman coding for better compression
-        '-compression_level', '0', // No additional compression loss
-        '-loglevel', 'quiet',
-        'pipe:1'
-      ];
-
-      // Start FFmpeg process
-      this.captureProcess = spawn(this.ffmpegPath, ffmpegArgs);
       this.isCapturing = true;
 
       // Handle FFmpeg output - buffer complete MJPEG frames
@@ -316,15 +334,11 @@ class ServerCLI {
         }
       });
 
-      // Handle FFmpeg errors
-      this.captureProcess.stderr.on('data', (data) => {
-        // Log errors for debugging but don't show to user
-      });
-
       // Handle process exit
       this.captureProcess.on('close', (code) => {
         this.isCapturing = false;
         if (code !== 0) {
+          console.log(`⚠️ Capture process exited with code: ${code}`);
           // Try to restart capture after a delay
           setTimeout(() => {
             if (this.socket && this.socket.connected) {
@@ -334,7 +348,10 @@ class ServerCLI {
         }
       });
 
+      console.log('✅ Screen capture started successfully');
+
     } catch (error) {
+      console.log('❌ Capture error:', error.message);
       // Try to restart capture after error
       setTimeout(() => {
         if (this.socket && this.socket.connected) {
@@ -424,11 +441,10 @@ class ServerCLI {
 
   // Stop screen capture
   stopCapture() {
-    if (this.captureProcess) {
-      this.captureProcess.kill();
-      this.captureProcess = null;
-      this.isCapturing = false;
-    }
+    console.log('🛑 Stopping screen capture...');
+    this.ffmpeg.stopCapture();
+    this.captureProcess = null;
+    this.isCapturing = false;
     
     // Clear frame buffer
     this.frameBuffer = Buffer.alloc(0);
@@ -464,7 +480,26 @@ class ServerCLI {
     const crypto = require('crypto');
     
     // ID file path (next to the executable)
-    const idFilePath = path.join(__dirname, 'server-id.txt');
+    // Use secure location for server-id.txt (outside git repository)
+    // Cross-platform config directory
+    let configDir;
+    if (process.platform === 'win32') {
+      // Windows: Use AppData/Roaming
+      configDir = path.join(os.homedir(), 'AppData', 'Roaming', 'RemoteProvider');
+    } else if (process.platform === 'darwin') {
+      // macOS: Use Application Support
+      configDir = path.join(os.homedir(), 'Library', 'Application Support', 'RemoteProvider');
+    } else {
+      // Linux/Unix: Use .config
+      configDir = path.join(os.homedir(), '.config', 'remote-provider');
+    }
+    
+    const idFilePath = path.join(configDir, 'server-id.txt');
+    
+    // Ensure config directory exists
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
     
     try {
       // Try to load existing ID
@@ -520,27 +555,60 @@ class ServerCLI {
           console.log('✅ Server registered successfully!');
           console.log('🆔 Your Server ID:', this.serverId);
           console.log('📋 Share this ID with viewer to connect');
-          console.log('💾 ID saved to: server-id.txt (persistent across restarts)');
+          console.log('💾 ID saved to secure location (persistent across restarts)');
           console.log('');
+
+          // Update tray status
+          if (this.tray) {
+            this.tray.onServerRegistered(this.serverId);
+          }
         }
       });
       
       this.socket.on('viewer-connected', (data) => {
+        console.log('👀 Viewer connected - Starting screen capture');
+        
         // Start capture when viewer connects
         this.startCapture();
+
+        // Update tray status
+        if (this.tray) {
+          this.tray.onViewerConnected();
+        }
       });
       
       this.socket.on('viewer-disconnected', () => {
+        console.log('👋 Viewer disconnected - Stopping screen capture');
+        
         // Stop capture when viewer disconnects
         this.stopCapture();
+
+        // Update tray status
+        if (this.tray) {
+          this.tray.onViewerDisconnected();
+        }
       });
       
       this.socket.on('disconnect', () => {
+        console.log('🔌 Disconnected from relay server');
+        
         // Stop capture on disconnect
         this.stopCapture();
+
+        // Update tray status
+        if (this.tray) {
+          this.tray.updateTrayStatus('offline', 'Disconnected from relay server');
+        }
       });
-      
+
       this.socket.on('connect_error', (error) => {
+        console.log('❌ Connection error:', error.message);
+
+        // Update tray status
+        if (this.tray) {
+          this.tray.onConnectionError(error.message);
+        }
+
         // Try to reconnect after error
         setTimeout(() => {
           this.connectToRelay();
@@ -574,10 +642,30 @@ class ServerCLI {
     
     // Keep the process alive
     process.on('SIGINT', () => {
+      console.log('\n🛑 Shutting down Remote Provider Server...');
+      
       this.stopCapture();
+      
       if (this.socket) {
         this.socket.disconnect();
       }
+      
+      if (this.tray) {
+        this.tray.destroy();
+      }
+      
+      console.log('✅ Server shutdown complete');
+      process.exit(0);
+    });
+
+    // Handle other termination signals
+    process.on('SIGTERM', () => {
+      console.log('🛑 Server termination requested...');
+      
+      if (this.tray) {
+        this.tray.destroy();
+      }
+      
       process.exit(0);
     });
   }

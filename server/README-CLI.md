@@ -111,8 +111,7 @@ server/
 ├── setup-ffmpeg.bat     # FFmpeg setup script
 ├── assets/
 │   └── ffmpeg/          # FFmpeg binaries
-├── ffmpeg-windows.js    # FFmpeg wrapper
-└── ffmpeg-capture.js    # Generic FFmpeg capture
+└── ffmpeg-crossplatform.js # Cross-platform FFmpeg wrapper
 ```
 
 ## Comparison: Electron vs CLI

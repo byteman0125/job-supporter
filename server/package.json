@@ -21,11 +21,13 @@
   "pkg": {
     "assets": [
       "assets/**/*",
-      "ffmpeg-windows.js",
-      "ffmpeg-capture.js"
+      "ffmpeg-crossplatform.js",
+      "system-tray.js"
     ],
     "targets": [
-      "node18-win-x64"
+      "node18-win-x64",
+      "node18-macos-x64",
+      "node18-linux-x64"
     ],
     "outputPath": "dist"
   }
