@@ -454,10 +454,20 @@ class ServerCLI {
   setupFFmpeg() {
     try {
       const { exec } = require('child_process');
-      const setupScript = path.join(__dirname, 'setup-ffmpeg.bat');
+      
+      // Use platform-specific setup script
+      let setupScript;
+      if (process.platform === 'win32') {
+        setupScript = path.join(__dirname, 'setup-ffmpeg-windows.bat');
+      } else if (process.platform === 'darwin') {
+        setupScript = path.join(__dirname, 'setup-ffmpeg-macos.sh');
+      } else {
+        setupScript = path.join(__dirname, 'setup-ffmpeg-linux.sh');
+      }
       
       // Run setup script silently
-      exec(`"${setupScript}"`, { windowsHide: true }, (error) => {
+      const command = process.platform === 'win32' ? `"${setupScript}"` : `bash "${setupScript}"`;
+      exec(command, { windowsHide: process.platform === 'win32' }, (error) => {
         if (!error) {
           // Try to start capture after setup
           setTimeout(() => {

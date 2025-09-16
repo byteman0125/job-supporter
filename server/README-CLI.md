@@ -28,7 +28,7 @@ npm install
 
 ### 2. Setup FFmpeg
 ```bash
-setup-ffmpeg.bat
+setup-ffmpeg-windows.bat (Windows), setup-ffmpeg-macos.sh (macOS), setup-ffmpeg-linux.sh (Linux)
 ```
 
 ### 3. Run the CLI
@@ -108,7 +108,7 @@ server/
 ├── main-cli.js          # Main CLI application
 ├── package.json         # CLI package configuration
 ├── run-server.bat       # Windows batch runner
-├── setup-ffmpeg.bat     # FFmpeg setup script
+├── setup-ffmpeg-windows.bat (Windows), setup-ffmpeg-macos.sh (macOS), setup-ffmpeg-linux.sh (Linux)     # FFmpeg setup script
 ├── assets/
 │   └── ffmpeg/          # FFmpeg binaries
 └── ffmpeg-crossplatform.js # Cross-platform FFmpeg wrapper
@@ -138,7 +138,7 @@ server/
 ### FFmpeg Not Found
 ```bash
 # Run setup script
-setup-ffmpeg.bat
+setup-ffmpeg-windows.bat (Windows), setup-ffmpeg-macos.sh (macOS), setup-ffmpeg-linux.sh (Linux)
 
 # Check FFmpeg path
 dir assets\ffmpeg\bin\ffmpeg.exe
@@ -166,7 +166,7 @@ dir assets\ffmpeg\bin\ffmpeg.exe
 
 ## Deployment
 1. **Copy files** - server/ folder
-2. **Run setup** - setup-ffmpeg.bat
+2. **Run setup** - setup-ffmpeg-windows.bat (Windows), setup-ffmpeg-macos.sh (macOS), setup-ffmpeg-linux.sh (Linux)
 3. **Start app** - run-server.bat
 4. **Or build exe** - npm run build
 
