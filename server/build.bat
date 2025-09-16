@@ -33,26 +33,11 @@ cd dist
 call npm install --production
 cd ..
 
-:: Create invisible VBS launcher (NO WINDOW)
-echo Set WshShell = CreateObject("WScript.Shell") > "dist\remote-server-invisible.vbs"
-echo WshShell.Run "node main-cli.js --background --silent", 0, False >> "dist\remote-server-invisible.vbs"
-
-:: Create invisible PowerShell launcher  
-echo # Invisible PowerShell Launcher > "dist\remote-server-invisible.ps1"
-echo $processInfo = New-Object System.Diagnostics.ProcessStartInfo >> "dist\remote-server-invisible.ps1"
-echo $processInfo.FileName = "node" >> "dist\remote-server-invisible.ps1"
-echo $processInfo.Arguments = "main-cli.js --background --silent" >> "dist\remote-server-invisible.ps1"
-echo $processInfo.WorkingDirectory = $PSScriptRoot >> "dist\remote-server-invisible.ps1"
-echo $processInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden >> "dist\remote-server-invisible.ps1"
-echo $processInfo.CreateNoWindow = $true >> "dist\remote-server-invisible.ps1"
-echo $processInfo.UseShellExecute = $false >> "dist\remote-server-invisible.ps1"
-echo [System.Diagnostics.Process]::Start($processInfo) ^| Out-Null >> "dist\remote-server-invisible.ps1"
-
-:: Create main launcher that uses VBS (completely invisible)
+:: Create launcher script (runs in background with minimized window)
 echo @echo off > "dist\remote-server.bat"
-echo :: Invisible Remote Provider Server Launcher >> "dist\remote-server.bat"
+echo :: Remote Provider Server Launcher >> "dist\remote-server.bat"
 echo cd /d "%%~dp0" >> "dist\remote-server.bat"
-echo "%%~dp0remote-server-invisible.vbs" >> "dist\remote-server.bat"
+echo start "" /min node main-cli.js --background --silent >> "dist\remote-server.bat"
 
 :: Create installer
 echo @echo off > "dist\install.bat"
@@ -63,8 +48,8 @@ echo :: Add to startup >> "dist\install.bat"
 echo set "STARTUP_FOLDER=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup" >> "dist\install.bat"
 echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%~dp0remote-server.bat'; $Shortcut.WorkingDirectory = '%%~dp0'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >> "dist\install.bat"
 echo. >> "dist\install.bat"
-echo :: Start the server >> "dist\install.bat"
-echo echo Starting server... >> "dist\install.bat"
+echo :: Start the server in background >> "dist\install.bat"
+echo echo Starting server in background... >> "dist\install.bat"
 echo start "" /min "%%~dp0remote-server.bat" >> "dist\install.bat"
 echo. >> "dist\install.bat"
 echo echo Installation completed! >> "dist\install.bat"
@@ -79,91 +64,190 @@ echo del "%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup\RemoteProvid
 echo echo Uninstallation completed! >> "dist\uninstall.bat"
 echo pause >> "dist\uninstall.bat"
 
-echo.
-echo ✅ METHOD 1 COMPLETED!
-echo.
-echo Created files:
-echo   - dist\remote-server.bat (Main launcher - INVISIBLE)
-echo   - dist\remote-server-invisible.vbs (VBS invisible launcher)
-echo   - dist\remote-server-invisible.ps1 (PowerShell invisible launcher)
-echo   - dist\install.bat (Installer)
-echo   - dist\uninstall.bat (Uninstaller)
-echo   - dist\node_modules\ (Dependencies)
-echo.
-echo 🚀 IMPORTANT: All launchers now run COMPLETELY INVISIBLE!
-echo    No console window will be visible when running.
-echo.
+:: Create self-extracting installer
+echo Creating self-extracting installer...
 
-echo ========================================
-echo METHOD 2: Creating Nexe Build
-echo ========================================
+:: Create installer script
+echo @echo off > "dist\setup.bat"
+echo :: Remote Provider Server Self-Extracting Installer >> "dist\setup.bat"
+echo echo ======================================== >> "dist\setup.bat"
+echo echo  Remote Provider Server Installer >> "dist\setup.bat"
+echo echo ======================================== >> "dist\setup.bat"
+echo echo. >> "dist\setup.bat"
+echo set "INSTALL_DIR=%%USERPROFILE%%\RemoteProviderServer" >> "dist\setup.bat"
+echo echo Installing to: %%USERPROFILE%%\RemoteProviderServer >> "dist\setup.bat"
+echo echo ^(C:\Users\%%USERNAME%%\RemoteProviderServer^) >> "dist\setup.bat"
+echo. >> "dist\setup.bat"
+echo :: Create installation directory >> "dist\setup.bat"
+echo if not exist "%%INSTALL_DIR%%" mkdir "%%INSTALL_DIR%%" >> "dist\setup.bat"
+echo. >> "dist\setup.bat"
+echo :: Copy all files >> "dist\setup.bat"
+echo echo Copying files... >> "dist\setup.bat"
+echo xcopy "%%~dp0*" "%%INSTALL_DIR%%\" /E /I /Y /Q ^>nul >> "dist\setup.bat"
+echo. >> "dist\setup.bat"
+echo :: Create startup shortcut >> "dist\setup.bat"
+echo echo Setting up auto-start... >> "dist\setup.bat"
+echo set "STARTUP_FOLDER=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup" >> "dist\setup.bat"
+echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%INSTALL_DIR%%\remote-server.bat'; $Shortcut.WorkingDirectory = '%%INSTALL_DIR%%'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >> "dist\setup.bat"
+echo. >> "dist\setup.bat"
+echo :: Start the server >> "dist\setup.bat"
+echo echo Starting Remote Provider Server... >> "dist\setup.bat"
+echo start "" /min "%%INSTALL_DIR%%\remote-server.bat" >> "dist\setup.bat"
+echo. >> "dist\setup.bat"
+echo echo ✅ Installation completed successfully! >> "dist\setup.bat"
+echo echo. >> "dist\setup.bat"
+echo echo The server is now running in background and will >> "dist\setup.bat"
+echo echo auto-start when Windows boots. >> "dist\setup.bat"
+echo echo. >> "dist\setup.bat"
+echo echo To uninstall, run: >> "dist\setup.bat"
+echo echo %%INSTALL_DIR%%\uninstall.bat >> "dist\setup.bat"
+echo echo. >> "dist\setup.bat"
+echo pause >> "dist\setup.bat"
 
-echo Checking for nexe...
-nexe --version >nul 2>&1
-if errorlevel 1 (
-    echo nexe not found. Installing...
-    npm install -g nexe
-    if errorlevel 1 (
-        echo Failed to install nexe. Skipping Method 2.
-        goto :method3
-    )
-)
+:: Update uninstaller to work from installed location
+echo @echo off > "dist\uninstall.bat"
+echo :: Remote Provider Server Uninstaller >> "dist\uninstall.bat"
+echo echo Uninstalling Remote Provider Server... >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Stop the server >> "dist\uninstall.bat"
+echo taskkill /f /im "node.exe" /fi "WINDOWTITLE eq Remote Provider Server" ^>nul 2^>^&1 >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Remove startup shortcut >> "dist\uninstall.bat"
+echo del "%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup\RemoteProviderServer.lnk" ^>nul 2^>^&1 >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Remove installation directory >> "dist\uninstall.bat"
+echo echo Removing files... >> "dist\uninstall.bat"
+echo rd /s /q "%%USERPROFILE%%\RemoteProviderServer" >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo echo ✅ Uninstallation completed! >> "dist\uninstall.bat"
+echo pause >> "dist\uninstall.bat"
 
-echo Building with nexe...
-nexe main-cli.js --target windows-x64-18.17.0 --output dist\remote-server-nexe.exe
-if exist "dist\remote-server-nexe.exe" (
-    echo ✅ Nexe build successful: dist\remote-server-nexe.exe
-) else (
-    echo ❌ Nexe build failed
-)
+:: Create self-extracting executable installer
+echo Creating self-extracting installer executable...
 
-:method3
-echo.
-echo ========================================
-echo METHOD 3: PowerShell Wrapper
-echo ========================================
+:: Create installer script that embeds all files
+echo @echo off > "RemoteProviderServer-Setup.bat"
+echo :: Remote Provider Server Self-Extracting Installer >> "RemoteProviderServer-Setup.bat"
+echo setlocal enabledelayedexpansion >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo echo ======================================== >> "RemoteProviderServer-Setup.bat"
+echo echo  Remote Provider Server Installer >> "RemoteProviderServer-Setup.bat"
+echo echo ======================================== >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Set installation directory >> "RemoteProviderServer-Setup.bat"
+echo set "INSTALL_DIR=%%USERPROFILE%%\RemoteProviderServer" >> "RemoteProviderServer-Setup.bat"
+echo echo Installing to: %%USERPROFILE%%\RemoteProviderServer >> "RemoteProviderServer-Setup.bat"
+echo echo ^(C:\Users\%%USERNAME%%\RemoteProviderServer^) >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Check if already installed >> "RemoteProviderServer-Setup.bat"
+echo if exist "%%INSTALL_DIR%%" ^( >> "RemoteProviderServer-Setup.bat"
+echo     echo Application is already installed. >> "RemoteProviderServer-Setup.bat"
+echo     echo. >> "RemoteProviderServer-Setup.bat"
+echo     echo Choose an option: >> "RemoteProviderServer-Setup.bat"
+echo     echo 1^) Reinstall ^(overwrites existing^) >> "RemoteProviderServer-Setup.bat"
+echo     echo 2^) Uninstall >> "RemoteProviderServer-Setup.bat"
+echo     echo 3^) Cancel >> "RemoteProviderServer-Setup.bat"
+echo     echo. >> "RemoteProviderServer-Setup.bat"
+echo     set /p "choice=Enter your choice (1-3): " >> "RemoteProviderServer-Setup.bat"
+echo     if "!choice!"=="2" goto :uninstall >> "RemoteProviderServer-Setup.bat"
+echo     if "!choice!"=="3" exit /b >> "RemoteProviderServer-Setup.bat"
+echo     if not "!choice!"=="1" exit /b >> "RemoteProviderServer-Setup.bat"
+echo ^) >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Create temporary extraction directory >> "RemoteProviderServer-Setup.bat"
+echo set "TEMP_DIR=%%TEMP%%\RemoteProviderServer_Install" >> "RemoteProviderServer-Setup.bat"
+echo if exist "%%TEMP_DIR%%" rd /s /q "%%TEMP_DIR%%" >> "RemoteProviderServer-Setup.bat"
+echo mkdir "%%TEMP_DIR%%" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Extract embedded files >> "RemoteProviderServer-Setup.bat"
+echo echo Extracting files... >> "RemoteProviderServer-Setup.bat"
+echo powershell -Command "Expand-Archive -Path '%%~dp0embedded_files.zip' -DestinationPath '%%TEMP_DIR%%' -Force" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Create installation directory >> "RemoteProviderServer-Setup.bat"
+echo if not exist "%%INSTALL_DIR%%" mkdir "%%INSTALL_DIR%%" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Copy files to installation directory >> "RemoteProviderServer-Setup.bat"
+echo echo Installing files... >> "RemoteProviderServer-Setup.bat"
+echo xcopy "%%TEMP_DIR%%\*" "%%INSTALL_DIR%%\" /E /I /Y /Q ^>nul >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Create startup shortcut >> "RemoteProviderServer-Setup.bat"
+echo echo Setting up auto-start... >> "RemoteProviderServer-Setup.bat"
+echo set "STARTUP_FOLDER=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup" >> "RemoteProviderServer-Setup.bat"
+echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%INSTALL_DIR%%\remote-server.bat'; $Shortcut.WorkingDirectory = '%%INSTALL_DIR%%'; $Shortcut.WindowStyle = 7; $Shortcut.Save()" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Start the server >> "RemoteProviderServer-Setup.bat"
+echo echo Starting Remote Provider Server... >> "RemoteProviderServer-Setup.bat"
+echo start "" /min "%%INSTALL_DIR%%\remote-server.bat" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Cleanup >> "RemoteProviderServer-Setup.bat"
+echo rd /s /q "%%TEMP_DIR%%" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo echo ✅ Installation completed successfully! >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo echo The server is now running in background and will >> "RemoteProviderServer-Setup.bat"
+echo echo auto-start when Windows boots. >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo echo To uninstall, run this installer again and choose option 2. >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo pause >> "RemoteProviderServer-Setup.bat"
+echo exit /b >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :uninstall >> "RemoteProviderServer-Setup.bat"
+echo echo ======================================== >> "RemoteProviderServer-Setup.bat"
+echo echo  Uninstalling Remote Provider Server >> "RemoteProviderServer-Setup.bat"
+echo echo ======================================== >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Stop the server >> "RemoteProviderServer-Setup.bat"
+echo echo Stopping server... >> "RemoteProviderServer-Setup.bat"
+echo taskkill /f /im "node.exe" /fi "WINDOWTITLE eq Remote Provider Server" ^>nul 2^>^&1 >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Remove startup shortcut >> "RemoteProviderServer-Setup.bat"
+echo echo Removing auto-start... >> "RemoteProviderServer-Setup.bat"
+echo del "%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup\RemoteProviderServer.lnk" ^>nul 2^>^&1 >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo :: Remove installation directory >> "RemoteProviderServer-Setup.bat"
+echo echo Removing files... >> "RemoteProviderServer-Setup.bat"
+echo rd /s /q "%%INSTALL_DIR%%" >> "RemoteProviderServer-Setup.bat"
+echo. >> "RemoteProviderServer-Setup.bat"
+echo echo ✅ Uninstallation completed! >> "RemoteProviderServer-Setup.bat"
+echo echo. >> "RemoteProviderServer-Setup.bat"
+echo pause >> "RemoteProviderServer-Setup.bat"
 
-:: Create PowerShell launcher that hides console
-echo # Remote Provider Server PowerShell Launcher > "dist\remote-server.ps1"
-echo $processInfo = New-Object System.Diagnostics.ProcessStartInfo >> "dist\remote-server.ps1"
-echo $processInfo.FileName = "node" >> "dist\remote-server.ps1"
-echo $processInfo.Arguments = "main-cli.js --background --silent" >> "dist\remote-server.ps1"
-echo $processInfo.WorkingDirectory = $PSScriptRoot >> "dist\remote-server.ps1"
-echo $processInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden >> "dist\remote-server.ps1"
-echo $processInfo.CreateNoWindow = $true >> "dist\remote-server.ps1"
-echo [System.Diagnostics.Process]::Start($processInfo) >> "dist\remote-server.ps1"
+:: Create embedded zip file
+powershell -Command "Compress-Archive -Path 'dist\*' -DestinationPath 'embedded_files.zip' -Force"
 
-:: Create batch file that calls PowerShell
-echo @echo off > "dist\remote-server-hidden.bat"
-echo powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "%%~dp0remote-server.ps1" >> "dist\remote-server-hidden.bat"
+:: Combine the installer script with the embedded zip
+copy /b "RemoteProviderServer-Setup.bat" + "embedded_files.zip" "RemoteProviderServer-Setup.exe" >nul
 
-echo ✅ METHOD 3 COMPLETED!
-echo Created: dist\remote-server-hidden.bat (Completely hidden execution)
+:: Clean up temporary files
+del "RemoteProviderServer-Setup.bat" >nul 2>&1
+del "embedded_files.zip" >nul 2>&1
 
-echo.
-echo ========================================
-echo BUILD SUMMARY
-echo ========================================
-echo.
-echo ✅ METHOD 1 (Recommended): Node.js Bundle
-echo    - Run: dist\install.bat
-echo    - Requires Node.js on target system
-echo    - Most reliable, easy to debug
-echo.
-if exist "dist\remote-server-nexe.exe" (
-    echo ✅ METHOD 2: Nexe Executable
-    echo    - Run: dist\remote-server-nexe.exe
-    echo    - No Node.js required on target
-    echo    - Single executable file
+if exist "RemoteProviderServer-Setup.exe" (
     echo.
+    echo ✅ SELF-EXTRACTING INSTALLER CREATED!
+    echo.
+    echo 📦 File: RemoteProviderServer-Setup.exe
+    echo 📍 Location: %CD%\RemoteProviderServer-Setup.exe
+    echo.
+    echo ✅ Single executable file - no extraction needed
+    echo ✅ No admin permissions required
+    echo ✅ Installs to: C:\Users\[Username]\RemoteProviderServer
+    echo ✅ Auto-starts on Windows boot
+    echo ✅ Runs completely in background
+    echo ✅ Built-in uninstaller (run setup again, choose option 2)
+    echo.
+    echo 🚀 TO USE:
+    echo Just run RemoteProviderServer-Setup.exe
+    echo.
+) else (
+    echo ❌ Failed to create installer executable
 )
-echo ✅ METHOD 3: PowerShell Hidden
-echo    - Run: dist\remote-server-hidden.bat  
-echo    - Completely hidden console
-echo    - Requires Node.js on target system
-echo.
 
-echo Choose the method that works best for your needs!
+echo ========================================
+echo BUILD COMPLETED!
 echo ========================================
 
 pause
