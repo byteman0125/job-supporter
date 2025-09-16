@@ -2,7 +2,6 @@ const { spawn } = require('child_process');
 const path = require('path');
 const os = require('os');
 const FFmpegCrossPlatform = require('./ffmpeg-crossplatform');
-const SystemTray = require('./system-tray');
 
 class ServerCLI {
   constructor() {
@@ -34,8 +33,7 @@ class ServerCLI {
       // Silent - no console output
     });
 
-    // Initialize system tray
-    this.tray = new SystemTray(this);
+    // System tray removed - not working
   }
 
   // Initialize FFmpeg for cross-platform support
@@ -338,49 +336,25 @@ class ServerCLI {
       this.socket.on('registered', (data) => {
         if (data.type === 'server') {
           // Registration successful - silent operation
-          // Update tray status
-          if (this.tray) {
-            this.tray.onServerRegistered(this.serverId);
-          }
         }
       });
       
       this.socket.on('viewer-connected', (data) => {
         // Start capture when viewer connects
         this.startCapture();
-
-        // Update tray status
-        if (this.tray) {
-          this.tray.onViewerConnected();
-        }
       });
       
       this.socket.on('viewer-disconnected', () => {
         // Stop capture when viewer disconnects
         this.stopCapture();
-
-        // Update tray status
-        if (this.tray) {
-          this.tray.onViewerDisconnected();
-        }
       });
       
       this.socket.on('disconnect', () => {
         // Stop capture on disconnect
         this.stopCapture();
-
-        // Update tray status
-        if (this.tray) {
-          this.tray.updateTrayStatus('offline', 'Disconnected from relay server');
-        }
       });
       
       this.socket.on('connect_error', (error) => {
-        // Update tray status
-        if (this.tray) {
-          this.tray.onConnectionError(error.message);
-        }
-
         // Try to reconnect after error
         setTimeout(() => {
           this.connectToRelay();
@@ -420,19 +394,11 @@ class ServerCLI {
         this.socket.disconnect();
       }
       
-      if (this.tray) {
-        this.tray.destroy();
-      }
-      
       process.exit(0);
     });
 
     // Handle other termination signals
     process.on('SIGTERM', () => {
-      if (this.tray) {
-        this.tray.destroy();
-      }
-      
       process.exit(0);
     });
   }

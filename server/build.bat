@@ -19,7 +19,6 @@ echo Creating portable Node.js application...
 echo Copying application files...
 copy "main-cli.js" "dist\" >nul
 copy "ffmpeg-crossplatform.js" "dist\" >nul
-copy "system-tray.js" "dist\" >nul
 copy "package.json" "dist\" >nul
 
 :: Copy assets if they exist
