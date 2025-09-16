@@ -91,7 +91,7 @@ echo } >> temp_download_ffmpeg.ps1
 echo catch { >> temp_download_ffmpeg.ps1
 echo     Write-Host "FFmpeg download failed: $($_.Exception.Message)" >> temp_download_ffmpeg.ps1
 echo     Write-Host "Please download FFmpeg manually from https://ffmpeg.org/download.html" >> temp_download_ffmpeg.ps1
-echo     Write-Host "Extract ffmpeg.exe to: assets\ffmpeg\win\ffmpeg.exe" >> temp_download_ffmpeg.ps1
+echo     Write-Host "Extract ffmpeg.exe to: assets\\ffmpeg\\win\\ffmpeg.exe" >> temp_download_ffmpeg.ps1
 echo     exit 1 >> temp_download_ffmpeg.ps1
 echo } >> temp_download_ffmpeg.ps1
 
@@ -192,14 +192,7 @@ if exist "assets\ffmpeg\win\ffmpeg.exe" (
     goto :test_ffmpeg
 )
 
-:: Final fallback - use the simple PowerShell downloader
-echo ⚠️  Curl methods failed, trying simple PowerShell downloader...
-
-if exist "download-ffmpeg-simple.ps1" (
-    powershell -ExecutionPolicy Bypass -File download-ffmpeg-simple.ps1
-) else (
-    echo ❌ download-ffmpeg-simple.ps1 not found
-)
+:: No more fallback methods available
 
 if not exist "assets\ffmpeg\win\ffmpeg.exe" (
     echo ❌ All automatic download methods failed
