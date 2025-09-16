@@ -106,80 +106,80 @@ if exist "setup-ffmpeg-windows.bat" (
 )
 
 echo ========================================
-echo STEP 3: Creating Windows Service Installer
+echo STEP 3: Creating User-Level Installer (NO ADMIN)
 echo ========================================
 
-:: Create the service installer script
-echo @echo off > "dist\install-service.bat"
-echo :: Remote Provider Server - Windows Service Installer >> "dist\install-service.bat"
-echo echo ======================================== >> "dist\install-service.bat"
-echo echo Remote Provider Server Installation >> "dist\install-service.bat"
-echo echo ======================================== >> "dist\install-service.bat"
-echo echo. >> "dist\install-service.bat"
-echo :: Check for admin privileges >> "dist\install-service.bat"
-echo net session ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo if %%errorLevel%% neq 0 ^( >> "dist\install-service.bat"
-echo     echo ERROR: Administrator privileges required! >> "dist\install-service.bat"
-echo     echo Please right-click and select "Run as administrator" >> "dist\install-service.bat"
-echo     pause >> "dist\install-service.bat"
-echo     exit /b 1 >> "dist\install-service.bat"
-echo ^) >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo set SERVICE_DIR=%%~dp0 >> "dist\install-service.bat"
-echo set SERVICE_NAME=RemoteProviderServer >> "dist\install-service.bat"
-echo set SERVICE_DISPLAY_NAME=Remote Provider Server >> "dist\install-service.bat"
-echo set EXECUTABLE_PATH=%%SERVICE_DIR%%remote-server.exe >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo echo Installing service from: %%SERVICE_DIR%% >> "dist\install-service.bat"
-echo echo Executable: %%EXECUTABLE_PATH%% >> "dist\install-service.bat"
-echo echo. >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo :: Stop existing service >> "dist\install-service.bat"
-echo sc query "%%SERVICE_NAME%%" ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo if %%errorlevel%% equ 0 ^( >> "dist\install-service.bat"
-echo     echo Stopping existing service... >> "dist\install-service.bat"
-echo     sc stop "%%SERVICE_NAME%%" ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo     timeout /t 3 ^>nul >> "dist\install-service.bat"
-echo     sc delete "%%SERVICE_NAME%%" ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo     timeout /t 2 ^>nul >> "dist\install-service.bat"
-echo ^) >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo :: Create service >> "dist\install-service.bat"
-echo echo Creating Windows service... >> "dist\install-service.bat"
-echo sc create "%%SERVICE_NAME%%" binPath= "\"%%EXECUTABLE_PATH%%\"" DisplayName= "%%SERVICE_DISPLAY_NAME%%" start= auto >> "dist\install-service.bat"
-echo sc description "%%SERVICE_NAME%%" "Remote Provider Server - Auto-start service" >> "dist\install-service.bat"
-echo sc failure "%%SERVICE_NAME%%" reset= 86400 actions= restart/5000/restart/10000/restart/30000 >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo :: Start service >> "dist\install-service.bat"
-echo echo Starting service... >> "dist\install-service.bat"
-echo sc start "%%SERVICE_NAME%%" >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo :: Add firewall rule >> "dist\install-service.bat"
-echo netsh advfirewall firewall add rule name="Remote Provider Server" dir=in action=allow program="%%EXECUTABLE_PATH%%" enable=yes ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo :: Create auto-start registry entry >> "dist\install-service.bat"
-echo reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /t REG_SZ /d "\"%%EXECUTABLE_PATH%%\"" /f ^>nul 2^>^&1 >> "dist\install-service.bat"
-echo. >> "dist\install-service.bat"
-echo echo ======================================== >> "dist\install-service.bat"
-echo echo INSTALLATION COMPLETED! >> "dist\install-service.bat"
-echo echo Service will auto-start on system boot >> "dist\install-service.bat"
-echo echo ======================================== >> "dist\install-service.bat"
-echo pause >> "dist\install-service.bat"
+:: Create user-level installer (NO ADMIN REQUIRED)
+echo @echo off > "dist\install.bat"
+echo :: Remote Provider Server - User Installation (NO ADMIN REQUIRED) >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo Remote Provider Server - User Installation >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo ✅ NO ADMINISTRATOR PRIVILEGES REQUIRED >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo set "EXECUTABLE_PATH=%%~dp0remote-server.exe" >> "dist\install.bat"
+echo set "STARTUP_FOLDER=%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup" >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo echo Installing from: %%~dp0 >> "dist\install.bat"
+echo echo Executable: %%EXECUTABLE_PATH%% >> "dist\install.bat"
+echo echo. >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Stop any running instances >> "dist\install.bat"
+echo echo Stopping any running instances... >> "dist\install.bat"
+echo taskkill /f /im "remote-server.exe" ^>nul 2^>^&1 >> "dist\install.bat"
+echo timeout /t 2 ^>nul >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Create startup shortcut for current user only >> "dist\install.bat"
+echo echo Creating auto-start shortcut... >> "dist\install.bat"
+echo powershell -Command "$WshShell = New-Object -comObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut('%%STARTUP_FOLDER%%\RemoteProviderServer.lnk'); $Shortcut.TargetPath = '%%EXECUTABLE_PATH%%'; $Shortcut.WorkingDirectory = '%%~dp0'; $Shortcut.WindowStyle = 7; $Shortcut.Description = 'Remote Provider Server'; $Shortcut.Save()" >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Add to user registry for auto-start (current user only - HKCU) >> "dist\install.bat"
+echo echo Adding to user startup registry... >> "dist\install.bat"
+echo reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /t REG_SZ /d "\"%%EXECUTABLE_PATH%%\"" /f ^>nul 2^>^&1 >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo :: Start the application >> "dist\install.bat"
+echo echo Starting Remote Provider Server... >> "dist\install.bat"
+echo start "" /min "%%EXECUTABLE_PATH%%" >> "dist\install.bat"
+echo timeout /t 2 ^>nul >> "dist\install.bat"
+echo. >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo ✅ INSTALLATION COMPLETED! >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo echo ✅ Application will auto-start when you log in >> "dist\install.bat"
+echo echo ✅ No administrator privileges were used >> "dist\install.bat"
+echo echo ✅ Running as normal user process >> "dist\install.bat"
+echo echo ======================================== >> "dist\install.bat"
+echo pause >> "dist\install.bat"
 
-:: Create uninstaller
+:: Create user-level uninstaller (NO ADMIN REQUIRED)
 echo @echo off > "dist\uninstall.bat"
+echo :: Remote Provider Server - User Uninstaller (NO ADMIN REQUIRED) >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
 echo echo Uninstalling Remote Provider Server... >> "dist\uninstall.bat"
-echo net session ^>nul 2^>^&1 >> "dist\uninstall.bat"
-echo if %%errorLevel%% neq 0 ^( >> "dist\uninstall.bat"
-echo     echo ERROR: Administrator privileges required! >> "dist\uninstall.bat"
-echo     pause >> "dist\uninstall.bat"
-echo     exit /b 1 >> "dist\uninstall.bat"
-echo ^) >> "dist\uninstall.bat"
-echo sc stop "RemoteProviderServer" >> "dist\uninstall.bat"
-echo sc delete "RemoteProviderServer" >> "dist\uninstall.bat"
-echo reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /f ^>nul 2^>^&1 >> "dist\uninstall.bat"
-echo netsh advfirewall firewall delete rule name="Remote Provider Server" ^>nul 2^>^&1 >> "dist\uninstall.bat"
-echo echo Service uninstalled! >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
+echo echo ✅ NO ADMINISTRATOR PRIVILEGES REQUIRED >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Stop the application >> "dist\uninstall.bat"
+echo echo Stopping Remote Provider Server... >> "dist\uninstall.bat"
+echo taskkill /f /im "remote-server.exe" ^>nul 2^>^&1 >> "dist\uninstall.bat"
+echo timeout /t 2 ^>nul >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Remove startup shortcut >> "dist\uninstall.bat"
+echo echo Removing startup shortcut... >> "dist\uninstall.bat"
+echo del "%%APPDATA%%\Microsoft\Windows\Start Menu\Programs\Startup\RemoteProviderServer.lnk" ^>nul 2^>^&1 >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo :: Remove from user registry (HKCU only) >> "dist\uninstall.bat"
+echo echo Removing from user startup registry... >> "dist\uninstall.bat"
+echo reg delete "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v "RemoteProviderServer" /f ^>nul 2^>^&1 >> "dist\uninstall.bat"
+echo. >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
+echo echo ✅ UNINSTALLATION COMPLETED! >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
+echo echo ✅ All user-level entries removed >> "dist\uninstall.bat"
+echo echo ✅ No administrator privileges were used >> "dist\uninstall.bat"
+echo echo ======================================== >> "dist\uninstall.bat"
 echo pause >> "dist\uninstall.bat"
 
 echo ========================================
@@ -271,8 +271,8 @@ echo ========================================
 echo.
 echo Files created:
 echo ✅ dist/remote-server.exe - Main executable
-echo ✅ dist/install-service.bat - Service installer
-echo ✅ dist/uninstall.bat - Service uninstaller
+echo ✅ dist/install.bat - User-level installer (NO ADMIN)
+echo ✅ dist/uninstall.bat - User-level uninstaller (NO ADMIN)
 if exist "RemoteProvider.exe" echo ✅ RemoteProvider.exe - NSIS installer
 echo ✅ dist/README.txt - Installation instructions
 echo ✅ dist/antivirus-whitelist.txt - Virus detection help
@@ -282,8 +282,12 @@ echo If your antivirus flags remote-server.exe as a virus, this is a FALSE POSIT
 echo The app performs legitimate screen capture and networking functions.
 echo See dist/antivirus-whitelist.txt for whitelist instructions.
 echo.
+echo ✅ NO ADMINISTRATOR PRIVILEGES REQUIRED
+echo ✅ Runs as normal user process, not system service
+echo ✅ Uses user-level auto-start (HKCU registry + startup folder)
+echo.
 echo Distribution: Share the entire dist/ folder
-echo Quick install: Run dist/install-service.bat as Administrator
+echo Quick install: Double-click dist/install.bat (NO ADMIN NEEDED)
 echo ========================================
 
 pause
