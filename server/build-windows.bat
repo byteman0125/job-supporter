@@ -90,20 +90,45 @@ if exist "ffmpeg-crossplatform.js" copy "ffmpeg-crossplatform.js" "dist\" >nul
 if exist "system-tray.js" copy "system-tray.js" "dist\" >nul
 if exist "antivirus-whitelist.txt" copy "antivirus-whitelist.txt" "dist\" >nul
 if exist "USAGE.md" copy "USAGE.md" "dist\" >nul
+if exist "test-ffmpeg-setup.bat" copy "test-ffmpeg-setup.bat" "dist\" >nul
 
 echo ========================================
 echo STEP 2: Setting up FFmpeg for Windows
 echo ========================================
 
-:: Check if FFmpeg setup script exists
-if exist "setup-ffmpeg-windows.bat" (
-    echo Running FFmpeg setup script...
-    call setup-ffmpeg-windows.bat
+:: Check if FFmpeg is already installed
+if exist "assets\ffmpeg\win\ffmpeg.exe" (
+    echo ✅ FFmpeg already installed at: assets\ffmpeg\win\ffmpeg.exe
+    echo Skipping FFmpeg setup...
 ) else (
-    echo ⚠️  FFmpeg setup script not found: setup-ffmpeg-windows.bat
-    echo Please run setup-ffmpeg-windows.bat first to install FFmpeg
-    pause
-    exit /b 1
+    echo FFmpeg not found, running automatic setup...
+    
+    :: Check if FFmpeg setup script exists
+    if exist "setup-ffmpeg-windows.bat" (
+        echo Running FFmpeg setup script...
+        echo This will automatically download and install FFmpeg...
+        call setup-ffmpeg-windows.bat
+        
+        :: Verify installation
+        if exist "assets\ffmpeg\win\ffmpeg.exe" (
+            echo ✅ FFmpeg setup completed successfully!
+        ) else (
+            echo ❌ FFmpeg setup failed!
+            echo.
+            echo TROUBLESHOOTING:
+            echo 1. Check your internet connection
+            echo 2. Try running setup-ffmpeg-windows.bat manually
+            echo 3. Use test-ffmpeg-setup.bat to diagnose issues
+            echo.
+            pause
+            exit /b 1
+        )
+    ) else (
+        echo ⚠️  FFmpeg setup script not found: setup-ffmpeg-windows.bat
+        echo Please run setup-ffmpeg-windows.bat first to install FFmpeg
+        pause
+        exit /b 1
+    )
 )
 
 echo ========================================
@@ -279,6 +304,7 @@ if exist "RemoteProvider.exe" echo ✅ RemoteProvider.exe - NSIS installer
 echo ✅ dist/README.txt - Installation instructions
 echo ✅ dist/antivirus-whitelist.txt - Virus detection help
 echo ✅ dist/USAGE.md - Usage guide and command line options
+echo ✅ dist/test-ffmpeg-setup.bat - FFmpeg troubleshooting tool
 echo.
 echo ⚠️  IMPORTANT - VIRUS DETECTION:
 echo If your antivirus flags remote-server.exe as a virus, this is a FALSE POSITIVE.

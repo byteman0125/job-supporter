@@ -39,15 +39,29 @@ echo ========================================
 echo Downloading FFmpeg from GitHub releases...
 echo This may take a few minutes depending on your internet connection.
 
-:: Create PowerShell download script
+:: Create PowerShell download script with multiple fallback URLs
 echo $ErrorActionPreference = "Stop" > temp_download_ffmpeg.ps1
 echo try { >> temp_download_ffmpeg.ps1
 echo     Write-Host "🔄 Downloading FFmpeg..." >> temp_download_ffmpeg.ps1
-echo     $url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" >> temp_download_ffmpeg.ps1
+echo     $urls = @( >> temp_download_ffmpeg.ps1
+echo         "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", >> temp_download_ffmpeg.ps1
+echo         "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip", >> temp_download_ffmpeg.ps1
+echo         "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2024-01-01-12-55/ffmpeg-master-latest-win64-gpl.zip" >> temp_download_ffmpeg.ps1
+echo     ^) >> temp_download_ffmpeg.ps1
 echo     $output = "ffmpeg-win.zip" >> temp_download_ffmpeg.ps1
-echo     $webClient = New-Object System.Net.WebClient >> temp_download_ffmpeg.ps1
-echo     $webClient.DownloadFile($url, $output) >> temp_download_ffmpeg.ps1
-echo     Write-Host "✅ Download completed" >> temp_download_ffmpeg.ps1
+echo. >> temp_download_ffmpeg.ps1
+echo     foreach ($url in $urls) { >> temp_download_ffmpeg.ps1
+echo         try { >> temp_download_ffmpeg.ps1
+echo             Write-Host "Trying: $url" >> temp_download_ffmpeg.ps1
+echo             $webClient = New-Object System.Net.WebClient >> temp_download_ffmpeg.ps1
+echo             $webClient.DownloadFile($url, $output) >> temp_download_ffmpeg.ps1
+echo             Write-Host "✅ Download completed from: $url" >> temp_download_ffmpeg.ps1
+echo             break >> temp_download_ffmpeg.ps1
+echo         } catch { >> temp_download_ffmpeg.ps1
+echo             Write-Host "Failed: $url - $_" >> temp_download_ffmpeg.ps1
+echo             if ($url -eq $urls[-1]) { throw $_ } >> temp_download_ffmpeg.ps1
+echo         } >> temp_download_ffmpeg.ps1
+echo     } >> temp_download_ffmpeg.ps1
 echo. >> temp_download_ffmpeg.ps1
 echo     Write-Host "📦 Extracting FFmpeg..." >> temp_download_ffmpeg.ps1
 echo     Expand-Archive -Path $output -DestinationPath "temp_ffmpeg" -Force >> temp_download_ffmpeg.ps1
@@ -81,8 +95,40 @@ powershell -ExecutionPolicy Bypass -File temp_download_ffmpeg.ps1
 :: Clean up PowerShell script
 del temp_download_ffmpeg.ps1
 
+:: If PowerShell download failed, try alternative methods
 if not exist "assets\ffmpeg\win\ffmpeg.exe" (
-    echo ❌ FFmpeg installation failed
+    echo ⚠️  PowerShell download failed, trying alternative methods...
+    
+    :: Try using curl with smaller essential build first
+    echo Trying curl download (essential build)...
+    curl -L "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o "ffmpeg-win.zip"
+    
+    :: If that fails, try the full build
+    if not exist "ffmpeg-win.zip" (
+        echo Trying full build...
+        curl -L "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip" -o "ffmpeg-win.zip"
+    )
+    
+    if exist "ffmpeg-win.zip" (
+        echo Extracting with PowerShell...
+        powershell -Command "Expand-Archive -Path 'ffmpeg-win.zip' -DestinationPath 'temp_ffmpeg' -Force"
+        
+        echo Finding FFmpeg executable...
+        for /r "temp_ffmpeg" %%i in (ffmpeg.exe) do (
+            echo Found FFmpeg at: %%i
+            copy "%%i" "assets\ffmpeg\win\ffmpeg.exe" >nul
+            goto :cleanup_curl
+        )
+        
+        :cleanup_curl
+        echo Cleaning up...
+        del "ffmpeg-win.zip" >nul 2>&1
+        rmdir /s /q "temp_ffmpeg" >nul 2>&1
+    )
+)
+
+if not exist "assets\ffmpeg\win\ffmpeg.exe" (
+    echo ❌ All automatic download methods failed
     goto :manual_instructions
 )
 
