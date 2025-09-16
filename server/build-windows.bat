@@ -27,24 +27,26 @@ if not exist "node_modules" (
     )
 )
 
-:: Install pkg globally if not already installed
+:: Check for pkg installation (global or local)
 echo Checking for pkg...
-:: Use 'where' command which is faster and safer than running pkg directly
+
+:: First check if pkg is available globally
 where pkg >nul 2>&1
 if errorlevel 1 (
-    echo pkg not found. Installing pkg globally...
-    echo NOTE: You may need to run this as Administrator for global npm installs
-    echo Installing... (this may take a few minutes)
-    timeout /t 1 >nul 2>&1
-    npm install -g pkg
-    if errorlevel 1 (
-        echo WARNING: Failed to install pkg globally
-        echo Trying to use local pkg installation...
-        
-        :: Try to install pkg locally
-        npm install pkg
+    echo pkg not found globally, checking local installation...
+    
+    :: Check if pkg is installed locally
+    if exist "node_modules\.bin\pkg.cmd" (
+        echo Found local pkg installation
+        set PKG_CMD=npx pkg
+    ) else (
+        echo pkg not found locally either. Installing pkg globally...
+        echo NOTE: You may need to run this as Administrator for global npm installs
+        echo Installing... (this may take a few minutes)
+        timeout /t 1 >nul 2>&1
+        npm install -g pkg
         if errorlevel 1 (
-            echo ERROR: Failed to install pkg both globally and locally
+            echo ERROR: Failed to install pkg globally
             echo.
             echo SOLUTION: Please run one of these commands as Administrator:
             echo   npm install -g pkg
@@ -53,14 +55,11 @@ if errorlevel 1 (
             pause
             exit /b 1
         )
-        echo Using local pkg installation
-        set PKG_CMD=npx pkg
-    ) else (
         echo pkg installed successfully!
         set PKG_CMD=pkg
     )
 ) else (
-    echo pkg is already installed
+    echo pkg found globally
     set PKG_CMD=pkg
 )
 
