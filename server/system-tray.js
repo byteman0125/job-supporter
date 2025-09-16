@@ -65,8 +65,7 @@ class SystemTray {
         
         this.tray.setToolTip(tooltip);
 
-        // Only show console status - NO notifications
-        console.log(`📟 Status: ${tooltip}`);
+    // Silent - no console output
     }
 
     showServerInfo() {

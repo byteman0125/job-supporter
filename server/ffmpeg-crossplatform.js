@@ -41,10 +41,8 @@ class FFmpegCrossPlatform {
         return new Promise((resolve) => {
             exec('ffmpeg -version', (error, stdout, stderr) => {
                 if (error) {
-                    console.log('System FFmpeg not available, will try bundled version');
                     resolve(false);
                 } else {
-                    console.log('✅ System FFmpeg found');
                     this.useSystemFFmpeg = true;
                     this.ffmpegPath = 'ffmpeg';
                     resolve(true);
@@ -57,7 +55,7 @@ class FFmpegCrossPlatform {
     async checkBundledFFmpeg() {
         return new Promise((resolve) => {
             if (!fs.existsSync(this.ffmpegPath)) {
-                console.log(`❌ Bundled FFmpeg not found at: ${this.ffmpegPath}`);
+                // console.log(`❌ Bundled FFmpeg not found at: ${this.ffmpegPath}`);
                 resolve(false);
                 return;
             }
@@ -67,7 +65,7 @@ class FFmpegCrossPlatform {
                 try {
                     fs.chmodSync(this.ffmpegPath, '755');
                 } catch (e) {
-                    console.log('Warning: Could not make FFmpeg executable');
+                    // console.log('Warning: Could not make FFmpeg executable');
                 }
             }
 
@@ -77,16 +75,16 @@ class FFmpegCrossPlatform {
 
             testProcess.on('close', (code) => {
                 if (code === 0) {
-                    console.log('✅ Bundled FFmpeg working');
+                    // console.log('✅ Bundled FFmpeg working');
                     resolve(true);
                 } else {
-                    console.log('❌ Bundled FFmpeg test failed');
+                    // console.log('❌ Bundled FFmpeg test failed');
                     resolve(false);
                 }
             });
 
             testProcess.on('error', (error) => {
-                console.log('❌ Bundled FFmpeg error:', error.message);
+                // console.log('❌ Bundled FFmpeg error:', error.message);
                 resolve(false);
             });
 
@@ -100,7 +98,7 @@ class FFmpegCrossPlatform {
 
     // Initialize FFmpeg (check system first, then bundled)
     async initialize() {
-        console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
+        // console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
         
         // First try system FFmpeg
         if (await this.checkSystemFFmpeg()) {
@@ -112,7 +110,7 @@ class FFmpegCrossPlatform {
             return true;
         }
 
-        console.log('❌ No working FFmpeg found');
+        // console.log('❌ No working FFmpeg found');
         return false;
     }
 
@@ -182,14 +180,14 @@ class FFmpegCrossPlatform {
     // Start screen capture
     startCapture(options = {}) {
         if (this.isCapturing) {
-            console.log('⚠️ Capture already in progress');
+            // console.log('⚠️ Capture already in progress');
             return null;
         }
 
         const args = this.getCaptureArgs(options);
         
-        console.log(`🎥 Starting ${this.platform} screen capture...`);
-        console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
+        // console.log(`🎥 Starting ${this.platform} screen capture...`);
+        // console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
 
         // Set up environment
         let env = { ...process.env };
@@ -230,12 +228,12 @@ class FFmpegCrossPlatform {
         this.isCapturing = true;
 
         this.ffmpegProcess.on('error', (error) => {
-            console.log('❌ FFmpeg error:', error.message);
+            // console.log('❌ FFmpeg error:', error.message);
             this.isCapturing = false;
         });
 
         this.ffmpegProcess.on('close', (code) => {
-            console.log(`🔚 FFmpeg process closed with code: ${code}`);
+            // console.log(`🔚 FFmpeg process closed with code: ${code}`);
             this.isCapturing = false;
         });
 
@@ -243,7 +241,7 @@ class FFmpegCrossPlatform {
         this.ffmpegProcess.stderr.on('data', (data) => {
             const message = data.toString();
             if (message.includes('error') || message.includes('Error')) {
-                console.log('FFmpeg stderr:', message);
+                // console.log('FFmpeg stderr:', message);
             }
         });
 
@@ -253,7 +251,7 @@ class FFmpegCrossPlatform {
     // Stop capture
     stopCapture() {
         if (this.ffmpegProcess && this.isCapturing) {
-            console.log('🛑 Stopping screen capture...');
+            // console.log('🛑 Stopping screen capture...');
             this.ffmpegProcess.kill('SIGTERM');
             this.isCapturing = false;
             this.ffmpegProcess = null;
