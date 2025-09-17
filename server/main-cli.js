@@ -2,14 +2,18 @@ const { spawn } = require('child_process');
 const path = require('path');
 const os = require('os');
 const FFmpegCrossPlatform = require('./ffmpeg-crossplatform');
+const InputController = require('./input-controller');
 
 class ServerCLI {
   constructor() {
     // Initialize cross-platform FFmpeg
     this.ffmpeg = new FFmpegCrossPlatform();
+    this.inputController = new InputController();
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
+    this.isControlModeEnabled = false;
+    this.controllerViewerId = null;
     this.screenWidth = 1920;  // Full HD resolution for maximum quality
     this.screenHeight = 1080; // 1080p - best visual clarity
     this.framerate = 10;      // 10 FPS for stable performance and lower bandwidth
@@ -364,6 +368,11 @@ class ServerCLI {
       this.socket.on('error', (error) => {
         // Silently ignore errors
       });
+
+      // Handle control messages from viewer
+      this.socket.on('control-message', (data) => {
+        this.handleControlMessage(data);
+      });
       
     } catch (error) {
       // Try to reconnect after error
@@ -401,6 +410,99 @@ class ServerCLI {
     process.on('SIGTERM', () => {
       process.exit(0);
     });
+  }
+
+  // Handle control messages from viewer
+  async handleControlMessage(data) {
+    try {
+      switch (data.type) {
+        case 'control-mode':
+          await this.handleControlModeToggle(data);
+          break;
+        case 'control-mouse':
+          await this.handleMouseControl(data);
+          break;
+        case 'control-keyboard':
+          await this.handleKeyboardControl(data);
+          break;
+        default:
+          console.warn('⚠️ Unknown control message type:', data.type);
+      }
+    } catch (error) {
+      console.error('❌ Control message handling error:', error.message);
+    }
+  }
+
+  // Handle control mode toggle
+  async handleControlModeToggle(data) {
+    if (data.action === 'enter') {
+      this.isControlModeEnabled = true;
+      this.controllerViewerId = data.viewerId || 'viewer';
+      console.log('🎮 Control mode ENABLED');
+      
+      // Send confirmation back to viewer
+      if (this.socket) {
+        this.socket.emit('control-message', {
+          type: 'control-status',
+          status: 'enabled',
+          message: 'Control mode activated'
+        });
+      }
+    } else if (data.action === 'exit') {
+      this.isControlModeEnabled = false;
+      this.controllerViewerId = null;
+      console.log('🎮 Control mode DISABLED');
+      
+      // Send confirmation back to viewer
+      if (this.socket) {
+        this.socket.emit('control-message', {
+          type: 'control-status',
+          status: 'disabled',
+          message: 'Control mode deactivated'
+        });
+      }
+    }
+  }
+
+  // Handle mouse control
+  async handleMouseControl(data) {
+    if (!this.isControlModeEnabled) return;
+
+    const { action, x, y, button, delta } = data;
+    let success = false;
+
+    switch (action) {
+      case 'move':
+        success = await this.inputController.moveMouse(x, y);
+        break;
+      case 'click':
+        success = await this.inputController.clickMouse(x, y, button);
+        break;
+      case 'scroll':
+        success = await this.inputController.scrollMouse(x, y, delta);
+        break;
+    }
+
+    if (success) {
+      console.log(`🖱️ Mouse ${action} executed: (${x}, ${y})${button ? ` ${button}` : ''}${delta ? ` delta:${delta}` : ''}`);
+    }
+  }
+
+  // Handle keyboard control
+  async handleKeyboardControl(data) {
+    if (!this.isControlModeEnabled) return;
+
+    const { key, modifiers } = data;
+    const success = await this.inputController.sendKey(key, modifiers || {});
+
+    if (success) {
+      const modifierStr = Object.entries(modifiers || {})
+        .filter(([_, pressed]) => pressed)
+        .map(([mod, _]) => mod)
+        .join('+');
+      
+      console.log(`⌨️ Key executed: ${modifierStr ? modifierStr + '+' : ''}${key}`);
+    }
   }
 }
 

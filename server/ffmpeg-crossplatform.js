@@ -23,11 +23,7 @@ class FFmpegCrossPlatform {
         if (this.platform === 'win32') {
             // Windows
             if (isStandalone) {
-                // In pkg executable, assets are in the snapshot filesystem
-                // pkg extracts assets to process.pkg.entrypoint directory
-                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
-                
-                // Alternative: Extract embedded FFmpeg to temp directory
+                // For pkg executables, always extract to temp directory first
                 this.extractEmbeddedFFmpeg('win', 'ffmpeg.exe');
             } else {
                 this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
@@ -37,7 +33,6 @@ class FFmpegCrossPlatform {
         } else if (this.platform === 'darwin') {
             // macOS
             if (isStandalone) {
-                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'mac', 'ffmpeg');
                 this.extractEmbeddedFFmpeg('mac', 'ffmpeg');
             } else {
                 this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'mac', 'ffmpeg');
@@ -47,7 +42,6 @@ class FFmpegCrossPlatform {
         } else {
             // Linux
             if (isStandalone) {
-                this.ffmpegPath = path.join(path.dirname(process.pkg.entrypoint), 'assets', 'ffmpeg', 'linux', 'ffmpeg');
                 this.extractEmbeddedFFmpeg('linux', 'ffmpeg');
             } else {
                 this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'linux', 'ffmpeg');
@@ -70,14 +64,18 @@ class FFmpegCrossPlatform {
                 fs.mkdirSync(platformDir, { recursive: true });
             }
             
-            // Check if already extracted
+            // Check if already extracted and working
             if (fs.existsSync(extractedPath)) {
                 this.ffmpegPath = extractedPath;
+                console.log(`✅ Using cached FFmpeg: ${extractedPath}`);
                 return;
             }
             
-            // Try to read embedded asset
+            // In pkg, assets are accessible via __dirname even in snapshot
             const embeddedPath = path.join(__dirname, 'assets', 'ffmpeg', platform, filename);
+            
+            console.log(`🔍 Looking for embedded FFmpeg at: ${embeddedPath}`);
+            
             if (fs.existsSync(embeddedPath)) {
                 // Copy embedded file to temp directory
                 fs.copyFileSync(embeddedPath, extractedPath);
@@ -88,10 +86,38 @@ class FFmpegCrossPlatform {
                 }
                 
                 this.ffmpegPath = extractedPath;
-                // console.log(`FFmpeg extracted to: ${extractedPath}`);
+                console.log(`✅ FFmpeg extracted to: ${extractedPath}`);
+                return;
             }
+            
+            // If embedded path doesn't exist, try alternative locations
+            const alternativePaths = [
+                path.join(process.cwd(), 'assets', 'ffmpeg', platform, filename),
+                path.join(path.dirname(process.execPath), 'assets', 'ffmpeg', platform, filename)
+            ];
+            
+            console.log(`❌ Embedded path not found, trying alternatives...`);
+            for (const altPath of alternativePaths) {
+                console.log(`🔍 Trying alternative path: ${altPath}`);
+                if (fs.existsSync(altPath)) {
+                    fs.copyFileSync(altPath, extractedPath);
+                    
+                    if (platform !== 'win') {
+                        fs.chmodSync(extractedPath, 0o755);
+                    }
+                    
+                    this.ffmpegPath = extractedPath;
+                    console.log(`✅ FFmpeg found and extracted from: ${altPath}`);
+                    return;
+                }
+            }
+            
+            // If no embedded FFmpeg found, fall back to system FFmpeg
+            console.log('❌ No embedded FFmpeg found, checking system FFmpeg...');
+            this.checkSystemFFmpeg();
+            
         } catch (error) {
-            // console.error('Failed to extract embedded FFmpeg:', error);
+            console.error('❌ Failed to extract embedded FFmpeg:', error);
             // Fall back to system FFmpeg
             this.checkSystemFFmpeg();
         }
@@ -157,9 +183,62 @@ class FFmpegCrossPlatform {
         });
     }
 
+    // Test Windows screen capture capabilities
+    async testWindowsCapture() {
+        if (this.platform !== 'win32') return true;
+        
+        console.log('🧪 Testing Windows screen capture capabilities...');
+        
+        return new Promise((resolve) => {
+            const testArgs = [
+                '-f', 'gdigrab',
+                '-list_devices', 'true',
+                '-i', 'dummy'
+            ];
+            
+            console.log(`🔍 Running: ${this.ffmpegPath} ${testArgs.join(' ')}`);
+            
+            const testProcess = spawn(this.ffmpegPath, testArgs, {
+                stdio: ['ignore', 'pipe', 'pipe']
+            });
+            
+            let output = '';
+            let errorOutput = '';
+            
+            testProcess.stdout.on('data', (data) => {
+                output += data.toString();
+            });
+            
+            testProcess.stderr.on('data', (data) => {
+                errorOutput += data.toString();
+            });
+            
+            testProcess.on('close', (code) => {
+                console.log('📋 Available capture devices:');
+                console.log(errorOutput); // FFmpeg outputs device list to stderr
+                resolve(true);
+            });
+            
+            testProcess.on('error', (error) => {
+                console.log('❌ Windows capture test failed:', error.message);
+                resolve(false);
+            });
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                testProcess.kill();
+                resolve(false);
+            }, 10000);
+        });
+    }
+
     // Initialize FFmpeg (check system first, then bundled)
     async initialize() {
-        // console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
+        console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
+        console.log(`📂 __dirname: ${__dirname}`);
+        console.log(`📂 process.cwd(): ${process.cwd()}`);
+        console.log(`📂 process.execPath: ${process.execPath}`);
+        console.log(`🎯 Is standalone (pkg): ${typeof process.pkg !== 'undefined'}`);
         
         // First try system FFmpeg
         if (await this.checkSystemFFmpeg()) {
@@ -167,11 +246,19 @@ class FFmpegCrossPlatform {
         }
 
         // Then try bundled FFmpeg
+        console.log(`🔍 Checking bundled FFmpeg at: ${this.ffmpegPath}`);
         if (await this.checkBundledFFmpeg()) {
+            console.log(`✅ Using bundled FFmpeg: ${this.ffmpegPath}`);
+            
+            // Test Windows capture capabilities
+            if (this.platform === 'win32') {
+                await this.testWindowsCapture();
+            }
+            
             return true;
         }
 
-        // console.log('❌ No working FFmpeg found');
+        console.log('❌ No working FFmpeg found');
         return false;
     }
 
@@ -189,18 +276,20 @@ class FFmpegCrossPlatform {
         let args = [];
 
         if (this.platform === 'win32') {
-            // Windows: gdigrab
+            // Windows: gdigrab with improved settings
             args = [
                 '-f', this.captureInput,
                 '-framerate', fps.toString(),
+                '-offset_x', '0',
+                '-offset_y', '0',
+                '-video_size', `${width}x${height}`,
                 '-i', this.desktopSource,
-                '-vf', `scale=${width}:${height}`,
                 '-f', outputFormat,
                 '-vcodec', 'mjpeg',
                 '-pix_fmt', 'yuvj420p',
                 '-q:v', '3',
                 '-y',
-                '-loglevel', 'error',
+                '-loglevel', 'verbose',  // Changed from 'error' to see more info
                 outputPath
             ];
         } else if (this.platform === 'darwin') {
@@ -247,8 +336,10 @@ class FFmpegCrossPlatform {
 
         const args = this.getCaptureArgs(options);
         
-        // console.log(`🎥 Starting ${this.platform} screen capture...`);
-        // console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
+        console.log(`🎥 Starting ${this.platform} screen capture...`);
+        console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
+        console.log(`🔧 Use system FFmpeg: ${this.useSystemFFmpeg}`);
+        console.log(`⚙️  Capture args:`, args);
 
         // Set up environment
         let env = { ...process.env };
@@ -289,20 +380,21 @@ class FFmpegCrossPlatform {
         this.isCapturing = true;
 
         this.ffmpegProcess.on('error', (error) => {
-            // console.log('❌ FFmpeg error:', error.message);
+            console.log('❌ FFmpeg error:', error.message);
             this.isCapturing = false;
         });
 
         this.ffmpegProcess.on('close', (code) => {
-            // console.log(`🔚 FFmpeg process closed with code: ${code}`);
+            console.log(`🔚 FFmpeg process closed with code: ${code}`);
             this.isCapturing = false;
         });
 
         // Handle stderr for debugging
         this.ffmpegProcess.stderr.on('data', (data) => {
             const message = data.toString();
+            console.log('FFmpeg stderr:', message.trim());
             if (message.includes('error') || message.includes('Error')) {
-                // console.log('FFmpeg stderr:', message);
+                console.log('❌ FFmpeg Error:', message.trim());
             }
         });
 

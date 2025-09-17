@@ -201,6 +201,58 @@ FFMPEG_MAC_OK=false
 # Check Windows FFmpeg
 if verify_ffmpeg "win" "ffmpeg.exe"; then
     FFMPEG_WIN_OK=true
+else
+    # Try to download Windows FFmpeg since we're building from Linux
+    echo "⚠️  Attempting to download Windows FFmpeg for cross-platform build..."
+    mkdir -p "assets/ffmpeg/win"
+    
+    # Download Windows FFmpeg
+    if command -v wget &> /dev/null; then
+        echo "   Downloading Windows FFmpeg..."
+        
+        # Create temp directory for Windows FFmpeg download
+        current_dir=$(pwd)
+        temp_win_dir="/tmp/ffmpeg-win-download-$$"
+        mkdir -p "$temp_win_dir"
+        cd "$temp_win_dir"
+        
+        # Try multiple Windows FFmpeg sources
+        win_urls=(
+            "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+        )
+        
+        for url in "${win_urls[@]}"; do
+            echo "   Trying: $url"
+            if wget -q --timeout=30 -O "ffmpeg-win.zip" "$url"; then
+                echo "   ✅ Downloaded from: $url"
+                
+                # Extract FFmpeg
+                if command -v unzip &> /dev/null; then
+                    unzip -q "ffmpeg-win.zip"
+                    
+                    # Find ffmpeg.exe in extracted files
+                    ffmpeg_exe=$(find . -name "ffmpeg.exe" -type f | head -1)
+                    if [ -n "$ffmpeg_exe" ] && [ -f "$ffmpeg_exe" ]; then
+                        cp "$ffmpeg_exe" "$current_dir/assets/ffmpeg/win/ffmpeg.exe"
+                        echo "   ✅ Windows FFmpeg installed"
+                        FFMPEG_WIN_OK=true
+                        break
+                    else
+                        echo "   ❌ ffmpeg.exe not found in archive"
+                    fi
+                else
+                    echo "   ❌ unzip not available"
+                fi
+            else
+                echo "   ❌ Download failed"
+            fi
+        done
+        
+        # Cleanup
+        cd "$current_dir"
+        rm -rf "$temp_win_dir"
+    fi
 fi
 
 # Check Linux FFmpeg

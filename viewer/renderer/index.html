@@ -274,6 +274,53 @@
             background: #2ed573;
         }
 
+        /* Control Mode Indicator */
+        .control-mode-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 140, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            border: 2px solid #ff8c00;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .control-mode-indicator.active {
+            display: flex;
+        }
+
+        .control-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        /* Control Mode Screen Border */
+        .screen-viewer.control-mode {
+            border: 3px solid #ff8c00;
+            box-shadow: 0 0 20px rgba(255, 140, 0, 0.3);
+        }
+
     </style>
 </head>
 <body>
@@ -296,11 +343,20 @@
                 </div>
             </div>
 
+    <!-- Control Mode Indicator -->
+    <div class="control-mode-indicator" id="controlModeIndicator">
+        <div class="control-dot"></div>
+        <span>CONTROL MODE - Press Ctrl+Alt to exit</span>
+    </div>
+
     <!-- Main Screen Viewer -->
     <div class="screen-viewer" id="screenViewer">
         <div class="no-connection" id="noConnection">
             <h2>No Connection</h2>
             <p>Press Ctrl+Shift+H to connect to a server</p>
+            <div class="shortcut-hint">
+                Double-click to enter control mode when connected
+            </div>
         </div>
         
         <!-- Real system cursor will be visible automatically -->
@@ -321,15 +377,32 @@
         const serverId = document.getElementById('serverId');
         const connectBtn = document.getElementById('connectBtn');
         const cancelBtn = document.getElementById('cancelBtn');
+        const controlModeIndicator = document.getElementById('controlModeIndicator');
 
         // State
         let isConnected = false;
+        let isControlMode = false;
 
         // Keyboard Shortcuts
         document.addEventListener('keydown', (e) => {
+            // Connection modal shortcut
             if (e.ctrlKey && e.shiftKey && e.key === 'H') {
                 e.preventDefault();
                 showConnectionModal();
+                return;
+            }
+            
+            // Exit control mode with Ctrl+Alt
+            if (e.ctrlKey && e.altKey && isControlMode) {
+                e.preventDefault();
+                exitControlMode();
+                return;
+            }
+            
+            // Send keyboard input if in control mode
+            if (isControlMode && isConnected) {
+                e.preventDefault();
+                sendKeyboardInput(e);
             }
         });
 
@@ -361,6 +434,89 @@
         function disconnectFromServer() {
             ipcRenderer.send('disconnect-from-server');
             hideRemoteCursor(); // Hide cursor when disconnecting
+            exitControlMode(); // Exit control mode when disconnecting
+        }
+
+        // Control Mode Functions
+        function enterControlMode() {
+            if (!isConnected) return;
+            
+            isControlMode = true;
+            controlModeIndicator.classList.add('active');
+            screenViewer.classList.add('control-mode');
+            
+            // Change cursor to indicate control mode
+            screenViewer.style.cursor = 'crosshair';
+            
+            // Notify main process
+            ipcRenderer.invoke('set-control-mode', true);
+            
+            // Send control mode message to server
+            ipcRenderer.invoke('send-control-message', {
+                type: 'control-mode',
+                action: 'enter'
+            });
+            
+            console.log('🎮 Control mode ENTERED');
+        }
+
+        function exitControlMode() {
+            if (!isControlMode) return;
+            
+            isControlMode = false;
+            controlModeIndicator.classList.remove('active');
+            screenViewer.classList.remove('control-mode');
+            
+            // Reset cursor
+            screenViewer.style.cursor = 'default';
+            
+            // Notify main process
+            ipcRenderer.invoke('set-control-mode', false);
+            
+            // Send control mode message to server
+            ipcRenderer.invoke('send-control-message', {
+                type: 'control-mode',
+                action: 'exit'
+            });
+            
+            console.log('🎮 Control mode EXITED');
+        }
+
+        function sendKeyboardInput(e) {
+            if (!isControlMode || !isConnected) return;
+            
+            const keyData = {
+                type: 'control-keyboard',
+                action: 'keydown',
+                key: e.key,
+                code: e.code,
+                modifiers: {
+                    ctrl: e.ctrlKey,
+                    shift: e.shiftKey,
+                    alt: e.altKey,
+                    meta: e.metaKey
+                }
+            };
+            
+            ipcRenderer.invoke('send-control-message', keyData);
+            console.log('⌨️ Sent keyboard:', keyData);
+        }
+
+        function sendMouseControl(action, x, y, button = null, delta = null) {
+            if (!isControlMode || !isConnected) return;
+            
+            const mouseData = {
+                type: 'control-mouse',
+                action: action, // 'move', 'click', 'scroll'
+                x: x,
+                y: y
+            };
+            
+            if (button) mouseData.button = button;
+            if (delta) mouseData.delta = delta;
+            
+            ipcRenderer.invoke('send-control-message', mouseData);
+            console.log('🖱️ Sent mouse:', mouseData);
         }
 
         // Screen Display
@@ -481,7 +637,14 @@
 
         // Screen viewer events
         screenViewer.addEventListener('click', (e) => {
-            if (isConnected && e.button === 0) { // Left click
+            if (!isConnected) return;
+            
+            if (isControlMode && e.button === 0) { // Control mode - send click
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                }
+            } else if (!isControlMode && e.button === 0) { // Normal mode - existing behavior
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'left' });
@@ -490,17 +653,34 @@
         });
 
         screenViewer.addEventListener('dblclick', (e) => {
-            if (isConnected) {
+            if (!isConnected) return;
+            
+            if (!isControlMode) {
+                // Double-click enters control mode
+                enterControlMode();
+            } else {
+                // In control mode, send double-click
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
-                    ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'left' });
+                    sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                    // Send second click for double-click
+                    setTimeout(() => {
+                        sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                    }, 50);
                 }
             }
         });
 
         screenViewer.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            if (isConnected) {
+            if (!isConnected) return;
+            
+            if (isControlMode) {
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    sendMouseControl('click', mousePos.x, mousePos.y, 'right');
+                }
+            } else {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'right' });
@@ -510,7 +690,14 @@
 
         // Mouse movement for control
         screenViewer.addEventListener('mousemove', (e) => {
-            if (isConnected) {
+            if (!isConnected) return;
+            
+            if (isControlMode) {
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    sendMouseControl('move', mousePos.x, mousePos.y);
+                }
+            } else {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     ipcRenderer.send('send-mouse-move', { x: mousePos.x, y: mousePos.y });
@@ -518,8 +705,24 @@
             }
         });
 
-        // Keyboard input
+        // Mouse wheel for control mode
+        screenViewer.addEventListener('wheel', (e) => {
+            if (isControlMode && isConnected) {
+                e.preventDefault();
+                const mousePos = calculateMousePosition(e);
+                if (mousePos) {
+                    sendMouseControl('scroll', mousePos.x, mousePos.y, null, e.deltaY);
+                }
+            }
+        });
+
+        // Legacy keyboard input (for non-control mode)
         document.addEventListener('keydown', (e) => {
+            // Skip if already handled by control mode or shortcuts
+            if (isControlMode || (e.ctrlKey && e.shiftKey && e.key === 'H') || (e.ctrlKey && e.altKey)) {
+                return;
+            }
+            
             if (isConnected && !e.ctrlKey && !e.shiftKey) {
                 // Don't send modifier keys alone
                 if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -530,10 +733,10 @@
                             shift: e.shiftKey,
                             alt: e.altKey,
                             meta: e.metaKey
-                    }
-                });
+                        }
+                    });
+                }
             }
-        }
         });
 
         // Mouse position calculation

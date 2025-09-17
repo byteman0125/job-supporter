@@ -805,6 +805,15 @@ class ViewerApp {
       }
       return false;
     });
+
+    // Control message handling
+    ipcMain.handle('send-control-message', (event, message) => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('control-message', message);
+        return true;
+      }
+      return false;
+    });
   }
 }
 
