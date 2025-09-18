@@ -268,52 +268,60 @@ class InputController {
     await this.windowsMoveMouse(x, y);
     
     if (button === 'left') {
-      // Use ONLY built-in Windows PowerShell for left click
+      // Use PowerShell with Windows API for REAL left click
       await this.windowsMoveMouse(x, y);
       
-      // Use Windows Forms SendKeys with actual coordinates
       const psCommand = `
-Add-Type -AssemblyName System.Windows.Forms
+Add-Type -MemberDefinition @'
+[DllImport("user32.dll")] public static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+'@ -Name MouseAPI -Namespace Win32
 [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x},${y})
-Start-Sleep -Milliseconds 50
-[System.Windows.Forms.SendKeys]::SendWait(' ')
+Start-Sleep -Milliseconds 10
+[Win32.MouseAPI]::mouse_event(2, 0, 0, 0, 0)
+Start-Sleep -Milliseconds 10  
+[Win32.MouseAPI]::mouse_event(4, 0, 0, 0, 0)
+Write-Host 'CLICKED'
 `;
       
-      const command = `powershell -WindowStyle Hidden -Command "${psCommand.replace(/\n/g, '; ')}"`;
+      const command = `powershell -WindowStyle Hidden -Command "Add-Type -AssemblyName System.Windows.Forms; ${psCommand.replace(/\n/g, '; ')}"`;
       
       return new Promise((resolve) => {
-        exec(command, { timeout: 2000 }, (error) => {
-          if (!error) {
-            console.log('✅ Left click succeeded with PowerShell');
+        exec(command, { timeout: 3000 }, (error, stdout) => {
+          if (!error && stdout.includes('CLICKED')) {
+            console.log('✅ Left click succeeded with PowerShell mouse_event');
             resolve(true);
           } else {
-            console.log('❌ Left click failed:', error.message);
+            console.log('❌ Left click failed:', error?.message || 'no output');
             resolve(false);
           }
         });
       });
       
     } else if (button === 'right') {
-      // Use ONLY built-in Windows PowerShell for right click
+      // Use PowerShell with Windows API for REAL right click
       await this.windowsMoveMouse(x, y);
       
-      // Use Windows Forms SendKeys with Shift+F10 for context menu
       const psCommand = `
-Add-Type -AssemblyName System.Windows.Forms
+Add-Type -MemberDefinition @'
+[DllImport("user32.dll")] public static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+'@ -Name MouseAPI -Namespace Win32
 [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x},${y})
-Start-Sleep -Milliseconds 50
-[System.Windows.Forms.SendKeys]::SendWait('+{F10}')
+Start-Sleep -Milliseconds 10
+[Win32.MouseAPI]::mouse_event(8, 0, 0, 0, 0)
+Start-Sleep -Milliseconds 10
+[Win32.MouseAPI]::mouse_event(16, 0, 0, 0, 0)
+Write-Host 'RIGHTCLICKED'
 `;
       
-      const command = `powershell -WindowStyle Hidden -Command "${psCommand.replace(/\n/g, '; ')}"`;
+      const command = `powershell -WindowStyle Hidden -Command "Add-Type -AssemblyName System.Windows.Forms; ${psCommand.replace(/\n/g, '; ')}"`;
       
       return new Promise((resolve) => {
-        exec(command, { timeout: 2000 }, (error) => {
-          if (!error) {
-            console.log('✅ Right click succeeded with PowerShell');
+        exec(command, { timeout: 3000 }, (error, stdout) => {
+          if (!error && stdout.includes('RIGHTCLICKED')) {
+            console.log('✅ Right click succeeded with PowerShell mouse_event');
             resolve(true);
           } else {
-            console.log('❌ Right click failed:', error.message);
+            console.log('❌ Right click failed:', error?.message || 'no output');
             resolve(false);
           }
         });
