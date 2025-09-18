@@ -358,7 +358,8 @@
             </div>
             <div class="shortcut-hint">
                 Press Ctrl+Shift+H to open this dialog<br>
-                Press Ctrl+~ to enter control mode when connected
+                Press Ctrl+~ to enter control mode when connected<br>
+                Press F5 to force reconnect
             </div>
                 </div>
             </div>
@@ -380,7 +381,8 @@
             <h2>No Connection</h2>
             <p>Press Ctrl+Shift+H to connect to a server</p>
             <div class="shortcut-hint">
-                Press Ctrl+~ to enter control mode when connected
+                Press Ctrl+~ to enter control mode when connected<br>
+                Press F5 to force reconnect
             </div>
         </div>
         
@@ -447,6 +449,21 @@
             if (e.ctrlKey && e.shiftKey && e.key === 'H') {
                 e.preventDefault();
                 showConnectionModal();
+                return;
+            }
+            
+            // F5 to reconnect
+            if (e.key === 'F5') {
+                e.preventDefault();
+                console.log('🔄 F5 pressed - forcing reconnect...');
+                
+                // Exit control mode if active
+                if (isControlMode) {
+                    exitControlMode();
+                }
+                
+                // Force reconnect
+                forceReconnect();
                 return;
             }
             
@@ -543,6 +560,30 @@
             ipcRenderer.send('disconnect-from-server');
             hideRemoteCursor(); // Hide cursor when disconnecting
             exitControlMode(); // Exit control mode when disconnecting
+        }
+
+        function forceReconnect() {
+            console.log('🔄 Force reconnecting...');
+            
+            // First disconnect if connected
+            if (isConnected) {
+                console.log('🔌 Disconnecting current connection...');
+                disconnectFromServer();
+            }
+            
+            // Wait a moment, then reconnect
+            setTimeout(() => {
+                console.log('🔗 Attempting to reconnect...');
+                const serverIdValue = serverId.value.trim();
+                
+                if (serverIdValue) {
+                    console.log('🔗 Reconnecting to server:', serverIdValue);
+                    ipcRenderer.send('connect-to-server', { serverId: serverIdValue });
+                } else {
+                    console.log('⚠️ No server ID available - showing connection modal');
+                    showConnectionModal();
+                }
+            }, 1000); // 1 second delay to ensure clean disconnect
         }
 
         // CSS-based system blocking is handled by the 'control-mode-active' class on body
