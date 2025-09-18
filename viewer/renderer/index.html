@@ -368,6 +368,11 @@
         <div class="control-dot"></div>
         <span>🔒 FULL CONTROL MODE - Press Ctrl+Alt to exit</span>
     </div>
+    
+    <!-- Debug resize button -->
+    <button id="debugResizeBtn" style="position: fixed; top: 10px; right: 10px; z-index: 9999; padding: 5px 10px; background: #ff6b6b; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        🔧 Fix Screen Size
+    </button>
 
     <!-- Main Screen Viewer -->
     <div class="screen-viewer" id="screenViewer">
@@ -740,14 +745,19 @@
                     }
                     
                     console.log('📐 Resizing viewer window to:', newWidth, 'x', newHeight, 'for optimal viewing');
+                    console.log('📊 Viewer screen available:', window.screen.availWidth, 'x', window.screen.availHeight);
+                    console.log('📺 Calculated aspect ratio:', remoteAspectRatio.toFixed(2));
                     
                     // Resize window via IPC
+                    console.log('🔄 Sending resize request to main process...');
                     ipcRenderer.send('resize-window-for-screen', {
                         width: newWidth,
                         height: newHeight,
                         remoteWidth: originalScreenWidth,
                         remoteHeight: originalScreenHeight
                     });
+                    
+                    console.log('✅ Resize request sent!');
                 } else {
                     console.log('📺 Screen data update - maintaining current window size');
                 }
@@ -1313,6 +1323,39 @@
                     shiftKey: data.modifiers.shift,
                     code: data.key // Use key as code for system keys
                 });
+            }
+        });
+
+        // Debug resize button functionality
+        document.getElementById('debugResizeBtn').addEventListener('click', () => {
+            if (originalScreenWidth && originalScreenHeight) {
+                console.log('🔧 Manual resize triggered!');
+                console.log('📊 Current remote screen:', originalScreenWidth, 'x', originalScreenHeight);
+                
+                // Force resize with current screen data
+                const remoteAspectRatio = originalScreenWidth / originalScreenHeight;
+                const maxWindowWidth = window.screen.availWidth - 100;
+                const maxWindowHeight = window.screen.availHeight - 100;
+                
+                let newWidth = Math.min(originalScreenWidth, maxWindowWidth);
+                let newHeight = Math.round(newWidth / remoteAspectRatio);
+                
+                if (newHeight > maxWindowHeight) {
+                    newHeight = maxWindowHeight;
+                    newWidth = Math.round(newHeight * remoteAspectRatio);
+                }
+                
+                console.log('🔧 Manual resize to:', newWidth, 'x', newHeight);
+                
+                ipcRenderer.send('resize-window-for-screen', {
+                    width: newWidth,
+                    height: newHeight,
+                    remoteWidth: originalScreenWidth,
+                    remoteHeight: originalScreenHeight
+                });
+            } else {
+                console.log('❌ No screen data available for resize');
+                alert('No remote screen data available. Connect to a server first.');
             }
         });
 

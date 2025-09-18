@@ -935,18 +935,38 @@ class ViewerApp {
 
     ipcMain.on('resize-window-for-screen', (event, { width, height, remoteWidth, remoteHeight }) => {
       if (this.mainWindow) {
-        console.log('📐 Resizing window for optimal screen viewing:', width, 'x', height);
-        console.log('🖥️ Remote screen:', remoteWidth, 'x', remoteHeight);
+        const currentSize = this.mainWindow.getSize();
+        const currentBounds = this.mainWindow.getBounds();
+        
+        console.log('📐 Resizing window for optimal screen viewing:');
+        console.log('  📺 Current window:', currentSize[0], 'x', currentSize[1]);
+        console.log('  🖥️ Remote screen:', remoteWidth, 'x', remoteHeight);
+        console.log('  🎯 Target size:', width, 'x', height);
+        console.log('  📊 Remote aspect ratio:', (remoteWidth / remoteHeight).toFixed(2));
         
         // Store the remote screen info
         this.remoteScreenWidth = remoteWidth;
         this.remoteScreenHeight = remoteHeight;
         
+        // Get screen constraints
+        const { screen } = require('electron');
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const workArea = primaryDisplay.workAreaSize;
+        console.log('  🖥️ Available workspace:', workArea.width, 'x', workArea.height);
+        
+        // Ensure size doesn't exceed screen
+        const finalWidth = Math.min(width, workArea.width - 100);
+        const finalHeight = Math.min(height, workArea.height - 100);
+        
+        console.log('  ✅ Final window size:', finalWidth, 'x', finalHeight);
+        
         // Resize window to optimal size
-        this.mainWindow.setSize(width, height);
+        this.mainWindow.setSize(finalWidth, finalHeight);
         this.mainWindow.center(); // Center the resized window
         
-        console.log('✅ Window resized to show full remote screen');
+        // Log final result
+        const newSize = this.mainWindow.getSize();
+        console.log('  🎉 Window actually resized to:', newSize[0], 'x', newSize[1]);
       }
     });
 
