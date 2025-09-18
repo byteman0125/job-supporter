@@ -257,8 +257,7 @@ class InputController {
   }
 
   async windowsClickMouse(x, y, button) {
-    // Move to position first
-    await this.windowsMoveMouse(x, y);
+    // No pre-movement - cursor position handled by separate move events
     
     // Map button names to Windows constants
     const buttonMap = {
@@ -270,7 +269,8 @@ class InputController {
     const downFlag = buttonMap[button] || buttonMap['left'];
     const upFlag = button === 'right' ? '0x10' : button === 'middle' ? '0x40' : '0x04';
     
-    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(${downFlag}, 0, 0, 0, 0); Start-Sleep -Milliseconds 10; [Mouse]::mouse_event(${upFlag}, 0, 0, 0, 0)"`;
+    // Immediate click without any delays
+    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(${downFlag}, 0, 0, 0, 0); [Mouse]::mouse_event(${upFlag}, 0, 0, 0, 0)"`;
     
     return new Promise((resolve) => {
       exec(command, (error) => {
@@ -285,7 +285,7 @@ class InputController {
   }
 
   async windowsScrollMouse(x, y, delta) {
-    await this.windowsMoveMouse(x, y);
+    // No pre-movement - cursor position handled by separate move events
     
     const scrollAmount = Math.sign(delta) * 120; // Windows scroll units
     const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(0x0800, 0, 0, ${scrollAmount}, 0)"`;
