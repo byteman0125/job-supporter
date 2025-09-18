@@ -284,8 +284,8 @@ class InputController {
       // SIMPLEST POSSIBLE: Try multiple basic methods
       console.log('🖱️ Trying left click - Method 1: Direct Windows API');
       
-      // Method 1: Direct Windows API call (what works for right click)
-      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
+      // Method 1: Direct Windows API call (FIXED C# SYNTAX)
+      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
       
       return new Promise((resolve) => {
         exec(apiCommand, { timeout: 3000 }, (error, stdout, stderr) => {
@@ -314,8 +314,8 @@ class InputController {
       });
       
     } else if (button === 'right') {
-      // Keep the working right click method unchanged
-      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(8,0,0,0,0); [W.M]::mouse_event(16,0,0,0,0)"`;
+      // Right click method with FIXED C# SYNTAX
+      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(8,0,0,0,0); [W.M]::mouse_event(16,0,0,0,0)"`;
       
       return new Promise((resolve) => {
         exec(rightApiCommand, { timeout: 2000 }, (error) => {
