@@ -87,10 +87,8 @@ class InputController {
     return parts.join('+');
   }
 
-  // Mouse movement
+  // Mouse movement (no rate limiting - already throttled on client at 30 FPS)
   async moveMouse(x, y) {
-    if (!this.isMouseActionAllowed()) return false;
-
     try {
       switch (this.platform) {
         case 'win32':
