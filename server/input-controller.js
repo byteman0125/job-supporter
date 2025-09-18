@@ -275,58 +275,53 @@ class InputController {
   }
 
   async windowsClickMouse(x, y, button) {
-    // Try multiple approaches for mouse clicking
+    // Since right click works well, let's use a dedicated approach for each button
     
-    // Approach 1: Try the original DLL import method with better error handling
-    const buttonMap = {
-      'left': { down: '0x02', up: '0x04' },
-      'right': { down: '0x08', up: '0x10' },
-      'middle': { down: '0x20', up: '0x40' }
-    };
-    
-    const buttons = buttonMap[button] || buttonMap['left'];
-    
-    // First approach: Try Windows API directly
-    const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32 -ErrorAction Stop; [Win32.Mouse]::mouse_event(${buttons.down},${x},${y},0,0); Start-Sleep -Milliseconds 50; [Win32.Mouse]::mouse_event(${buttons.up},${x},${y},0,0) } catch { exit 1 }"`;
-    
-    return new Promise((resolve) => {
-      exec(apiCommand, { timeout: 2000 }, (error) => {
-        if (!error) {
-          resolve(true);
-          return;
-        }
-        
-        console.log('🔄 API method failed, trying alternative...');
-        
-        // Approach 2: Use Windows Script Host (more reliable)
-        const vbsScript = `
-        Set objShell = CreateObject("WScript.Shell")
-        objShell.SendKeys "{LBUTTON}"
-        `;
-        
-        // Write VBS script to temp file and execute
-        const fs = require('fs');
-        const tempScript = `${require('os').tmpdir()}\\click_${Date.now()}.vbs`;
-        
-        try {
-          fs.writeFileSync(tempScript, vbsScript);
-          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
-            // Clean up temp file
-            try { fs.unlinkSync(tempScript); } catch {}
-            
-            if (vbsError) {
-              console.error('❌ Windows mouse click failed (all methods):', vbsError.message);
-              resolve(false);
-            } else {
-              resolve(true);
-            }
-          });
-        } catch (fsError) {
-          console.error('❌ Windows mouse click failed (filesystem):', fsError.message);
-          resolve(false);
-        }
+    if (button === 'left') {
+      // Left click: Try mouse_event API specifically for left click
+      const leftClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(2,0,0,0,0); Start-Sleep -Milliseconds 10; [Win32.Mouse]::mouse_event(4,0,0,0,0) } catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(' ') }"`;
+      
+      return new Promise((resolve) => {
+        exec(leftClickCommand, { timeout: 1000 }, (error) => {
+          if (error) {
+            console.error('❌ Windows left click failed:', error.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
       });
-    });
+      
+    } else if (button === 'right') {
+      // Right click: Use the working Shift+F10 method
+      const rightClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('+{F10}')"`;
+      
+      return new Promise((resolve) => {
+        exec(rightClickCommand, { timeout: 1000 }, (error) => {
+          if (error) {
+            console.error('❌ Windows right click failed:', error.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
+      
+    } else {
+      // Middle click: Use Enter as fallback
+      const middleClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')"`;
+      
+      return new Promise((resolve) => {
+        exec(middleClickCommand, { timeout: 1000 }, (error) => {
+          if (error) {
+            console.error('❌ Windows middle click failed:', error.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
+    }
   }
 
   async windowsScrollMouse(x, y, delta) {
