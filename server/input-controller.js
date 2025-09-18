@@ -250,25 +250,13 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Use AutoHotkey script for reliable mouse movement
-    const ahkScript = `
-MouseMove, ${x}, ${y}, 0
-`;
-    
-    const fs = require('fs');
-    const tempScript = `${require('os').tmpdir()}\\mousemove_${Date.now()}.ahk`;
+    // Use native Windows rundll32 - no additional software needed
+    const command = `rundll32 user32.dll,SetCursorPos ${x} ${y}`;
     
     return new Promise((resolve) => {
-      try {
-        fs.writeFileSync(tempScript, ahkScript);
-        exec(`autohotkey "${tempScript}"`, { timeout: 500 }, (error) => {
-          try { fs.unlinkSync(tempScript); } catch {}
-          resolve(!error); // Return success if no error
-        });
-      } catch (fsError) {
-        // Fallback: Simple echo command (don't fail)
-        resolve(true);
-      }
+      exec(command, { timeout: 500 }, (error) => {
+        resolve(!error); // Return success if no error
+      });
     });
   }
 
@@ -279,23 +267,26 @@ MouseMove, ${x}, ${y}, 0
     await this.windowsMoveMouse(x, y);
     
     if (button === 'left') {
-      // Use AutoHotkey script for reliable left click
-      const ahkScript = `
-MouseMove, ${x}, ${y}, 0
-Click, ${x}, ${y}
+      // Use native Windows commands - no additional software needed
+      await this.windowsMoveMouse(x, y);
+      
+      // Use Windows Scripting Host (always available)
+      const vbsScript = `
+Set shell = CreateObject("WScript.Shell")
+shell.SendKeys " "
 `;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.ahk`;
+      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, ahkScript);
-          exec(`autohotkey "${tempScript}"`, { timeout: 1000 }, (error) => {
+          fs.writeFileSync(tempScript, vbsScript);
+          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (error) => {
             try { fs.unlinkSync(tempScript); } catch {}
             
             if (!error) {
-              console.log('✅ Left click succeeded with AutoHotkey');
+              console.log('✅ Left click succeeded with VBScript');
               resolve(true);
             } else {
               console.log('❌ Left click failed');
@@ -309,23 +300,26 @@ Click, ${x}, ${y}
       });
       
     } else if (button === 'right') {
-      // Use AutoHotkey script for reliable right click
-      const ahkScript = `
-MouseMove, ${x}, ${y}, 0
-Click, ${x}, ${y}, Right
+      // Use native Windows commands - no additional software needed
+      await this.windowsMoveMouse(x, y);
+      
+      // Use Windows Scripting Host for right click (Shift+F10)
+      const vbsScript = `
+Set shell = CreateObject("WScript.Shell")
+shell.SendKeys "+{F10}"
 `;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.ahk`;
+      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.vbs`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, ahkScript);
-          exec(`autohotkey "${tempScript}"`, { timeout: 1000 }, (error) => {
+          fs.writeFileSync(tempScript, vbsScript);
+          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (error) => {
             try { fs.unlinkSync(tempScript); } catch {}
             
             if (!error) {
-              console.log('✅ Right click succeeded with AutoHotkey');
+              console.log('✅ Right click succeeded with VBScript');
               resolve(true);
             } else {
               console.log('❌ Right click failed');
