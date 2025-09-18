@@ -259,8 +259,8 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Ultra-fast mouse movement with correct PowerShell syntax
-    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern bool SetCursorPos(int x, int y);' -Name Mouse -Namespace Win32; [Win32.Mouse]::SetCursorPos(${x},${y})"`;
+    // Alternative approach using Windows Forms (more reliable)
+    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`;
     
     return new Promise((resolve) => {
       exec(command, { timeout: 500 }, (error) => {
@@ -275,38 +275,72 @@ class InputController {
   }
 
   async windowsClickMouse(x, y, button) {
-    // Ultra-fast click with correct PowerShell syntax
+    // Try multiple approaches for mouse clicking
     
-    // Map button names to Windows constants
+    // Approach 1: Try the original DLL import method with better error handling
     const buttonMap = {
-      'left': '0x02', // MOUSEEVENTF_LEFTDOWN
-      'right': '0x08', // MOUSEEVENTF_RIGHTDOWN
-      'middle': '0x20' // MOUSEEVENTF_MIDDLEDOWN
+      'left': { down: '0x02', up: '0x04' },
+      'right': { down: '0x08', up: '0x10' },
+      'middle': { down: '0x20', up: '0x40' }
     };
     
-    const downFlag = buttonMap[button] || buttonMap['left'];
-    const upFlag = button === 'right' ? '0x10' : button === 'middle' ? '0x40' : '0x04';
+    const buttons = buttonMap[button] || buttonMap['left'];
     
-    // Fixed PowerShell command with proper spacing in C# code
-    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(${downFlag},0,0,0,0); [Win32.Mouse]::mouse_event(${upFlag},0,0,0,0)"`;
+    // First approach: Try Windows API directly
+    const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32 -ErrorAction Stop; [Win32.Mouse]::mouse_event(${buttons.down},${x},${y},0,0); Start-Sleep -Milliseconds 50; [Win32.Mouse]::mouse_event(${buttons.up},${x},${y},0,0) } catch { exit 1 }"`;
     
     return new Promise((resolve) => {
-      exec(command, { timeout: 1000 }, (error) => {
-        if (error) {
-          console.error('❌ Windows mouse click failed:', error.message);
-          resolve(false);
-        } else {
+      exec(apiCommand, { timeout: 2000 }, (error) => {
+        if (!error) {
           resolve(true);
+          return;
+        }
+        
+        console.log('🔄 API method failed, trying alternative...');
+        
+        // Approach 2: Use Windows Script Host (more reliable)
+        const vbsScript = `
+        Set objShell = CreateObject("WScript.Shell")
+        objShell.SendKeys "{LBUTTON}"
+        `;
+        
+        // Write VBS script to temp file and execute
+        const fs = require('fs');
+        const tempScript = `${require('os').tmpdir()}\\click_${Date.now()}.vbs`;
+        
+        try {
+          fs.writeFileSync(tempScript, vbsScript);
+          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
+            // Clean up temp file
+            try { fs.unlinkSync(tempScript); } catch {}
+            
+            if (vbsError) {
+              console.error('❌ Windows mouse click failed (all methods):', vbsError.message);
+              resolve(false);
+            } else {
+              resolve(true);
+            }
+          });
+        } catch (fsError) {
+          console.error('❌ Windows mouse click failed (filesystem):', fsError.message);
+          resolve(false);
         }
       });
     });
   }
 
   async windowsScrollMouse(x, y, delta) {
-    // Ultra-fast scroll with correct PowerShell syntax
+    // Use SendKeys for scroll simulation (more reliable)
     
-    const scrollAmount = Math.sign(delta) * 120; // Windows scroll units
-    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(0x0800,0,0,${scrollAmount},0)"`;
+    const scrollDirection = delta > 0 ? '{UP}' : '{DOWN}';
+    const scrollCount = Math.abs(Math.round(delta / 120)) || 1;
+    
+    let scrollKeys = '';
+    for (let i = 0; i < scrollCount; i++) {
+      scrollKeys += scrollDirection;
+    }
+    
+    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${scrollKeys}')"`;
     
     return new Promise((resolve) => {
       exec(command, { timeout: 500 }, (error) => {
