@@ -338,7 +338,8 @@
                 <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
             </div>
             <div class="shortcut-hint">
-                Press Ctrl+Shift+H to open this dialog
+                Press Ctrl+Shift+H to open this dialog<br>
+                Press Ctrl+~ to enter control mode when connected
             </div>
                 </div>
             </div>
@@ -355,7 +356,7 @@
             <h2>No Connection</h2>
             <p>Press Ctrl+Shift+H to connect to a server</p>
             <div class="shortcut-hint">
-                Double-click to enter control mode when connected
+                Press Ctrl+~ to enter control mode when connected
             </div>
         </div>
         
@@ -399,9 +400,18 @@
                 return;
             }
             
+            // Enter control mode with Ctrl+~ (backtick)
+            if (e.ctrlKey && e.key === '`' && !isControlMode && isConnected) {
+                e.preventDefault();
+                console.log('🎮 Ctrl+~ detected - entering control mode');
+                enterControlMode();
+                return;
+            }
+            
             // Exit control mode with Ctrl+Alt
             if (e.ctrlKey && e.altKey && isControlMode) {
                 e.preventDefault();
+                console.log('🎮 Ctrl+Alt detected - exiting control mode');
                 exitControlMode();
                 return;
             }
@@ -409,9 +419,11 @@
             // Handle keyboard input based on mode
             if (isConnected) {
                 if (isControlMode) {
-                    // Control mode - send all keys except exit shortcut
-                    e.preventDefault();
-                    sendKeyboardInput(e);
+                    // Control mode - send all keys except control shortcuts
+                    if (!(e.ctrlKey && e.key === '`') && !(e.ctrlKey && e.altKey)) {
+                        e.preventDefault();
+                        sendKeyboardInput(e);
+                    }
                 } else {
                     // Legacy mode - only send specific keys without modifiers
                     if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
@@ -712,11 +724,8 @@
             
             if (!isConnected) return;
             
-            if (!isControlMode) {
-                // Double-click enters control mode
-                enterControlMode();
-            } else {
-                // In control mode, send double-click
+            // In control mode, send double-click to remote
+            if (isControlMode) {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     sendMouseControl('click', mousePos.x, mousePos.y, 'left');
@@ -726,6 +735,7 @@
                     }, 50);
                 }
             }
+            // Note: Control mode is now entered with Ctrl+~, not double-click
         });
 
         screenViewer.addEventListener('contextmenu', (e) => {
@@ -1086,8 +1096,22 @@
             updateMouseCursor(x, y);
         }
         
-        // Make test function available globally for console testing
+        // Make test functions available globally for console testing
         window.testCursor = testCursor;
+        window.testControlMode = () => {
+            console.log('🧪 Testing control mode...');
+            console.log('Connected:', isConnected);
+            console.log('Control Mode:', isControlMode);
+            if (isConnected && !isControlMode) {
+                console.log('🎮 Entering control mode manually...');
+                enterControlMode();
+            } else if (isControlMode) {
+                console.log('🎮 Exiting control mode manually...');
+                exitControlMode();
+            } else {
+                console.log('❌ Not connected - cannot test control mode');
+            }
+        };
 
         // Window resize handler to maintain aspect ratio
         window.addEventListener('resize', () => {
