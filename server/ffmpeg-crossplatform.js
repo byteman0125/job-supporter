@@ -29,7 +29,7 @@ class FFmpegCrossPlatform {
                 this.ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'win', 'ffmpeg.exe');
             }
             this.captureInput = 'gdigrab';
-            this.desktopSource = 'desktop';
+            this.desktopSource = 'desktop';  // Full desktop capture
         } else if (this.platform === 'darwin') {
             // macOS
             if (isStandalone) {
@@ -193,7 +193,7 @@ class FFmpegCrossPlatform {
             const testArgs = [
                 '-f', 'gdigrab',
                 '-list_devices', 'true',
-                '-i', 'dummy'
+                '-i', 'desktop'
             ];
             
             console.log(`🔍 Running: ${this.ffmpegPath} ${testArgs.join(' ')}`);
@@ -214,13 +214,11 @@ class FFmpegCrossPlatform {
             });
             
             testProcess.on('close', (code) => {
-                console.log('📋 Available capture devices:');
-                console.log(errorOutput); // FFmpeg outputs device list to stderr
                 resolve(true);
             });
             
             testProcess.on('error', (error) => {
-                console.log('❌ Windows capture test failed:', error.message);
+                // console.log('❌ Windows capture test failed:', error.message);
                 resolve(false);
             });
             
@@ -234,11 +232,11 @@ class FFmpegCrossPlatform {
 
     // Initialize FFmpeg (check system first, then bundled)
     async initialize() {
-        console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
-        console.log(`📂 __dirname: ${__dirname}`);
-        console.log(`📂 process.cwd(): ${process.cwd()}`);
-        console.log(`📂 process.execPath: ${process.execPath}`);
-        console.log(`🎯 Is standalone (pkg): ${typeof process.pkg !== 'undefined'}`);
+        // console.log(`🔧 Initializing FFmpeg for ${this.platform}...`);
+        // console.log(`📂 __dirname: ${__dirname}`);
+        // console.log(`📂 process.cwd(): ${process.cwd()}`);
+        // console.log(`📂 process.execPath: ${process.execPath}`);
+        // console.log(`🎯 Is standalone (pkg): ${typeof process.pkg !== 'undefined'}`);
         
         // First try system FFmpeg
         if (await this.checkSystemFFmpeg()) {
@@ -246,7 +244,7 @@ class FFmpegCrossPlatform {
         }
 
         // Then try bundled FFmpeg
-        console.log(`🔍 Checking bundled FFmpeg at: ${this.ffmpegPath}`);
+        // console.log(`🔍 Checking bundled FFmpeg at: ${this.ffmpegPath}`);
         if (await this.checkBundledFFmpeg()) {
             console.log(`✅ Using bundled FFmpeg: ${this.ffmpegPath}`);
             
@@ -276,14 +274,14 @@ class FFmpegCrossPlatform {
         let args = [];
 
         if (this.platform === 'win32') {
-            // Windows: gdigrab with improved settings
+            // Windows: gdigrab with proper desktop specification
             args = [
-                '-f', this.captureInput,
+                '-f', 'gdigrab',
                 '-framerate', fps.toString(),
                 '-offset_x', '0',
                 '-offset_y', '0',
                 '-video_size', `${width}x${height}`,
-                '-i', this.desktopSource,
+                '-i', 'desktop',  // Use 'desktop' directly for full screen capture
                 '-f', outputFormat,
                 '-vcodec', 'mjpeg',
                 '-pix_fmt', 'yuvj420p',
@@ -336,10 +334,10 @@ class FFmpegCrossPlatform {
 
         const args = this.getCaptureArgs(options);
         
-        console.log(`🎥 Starting ${this.platform} screen capture...`);
-        console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
-        console.log(`🔧 Use system FFmpeg: ${this.useSystemFFmpeg}`);
-        console.log(`⚙️  Capture args:`, args);
+        // console.log(`🎥 Starting ${this.platform} screen capture...`);
+        // console.log(`📍 FFmpeg: ${this.ffmpegPath}`);
+        // console.log(`🔧 Use system FFmpeg: ${this.useSystemFFmpeg}`);
+        // console.log(`⚙️  Capture args:`, args);
 
         // Set up environment
         let env = { ...process.env };
@@ -380,19 +378,19 @@ class FFmpegCrossPlatform {
         this.isCapturing = true;
 
         this.ffmpegProcess.on('error', (error) => {
-            console.log('❌ FFmpeg error:', error.message);
+            // console.log('❌ FFmpeg error:', error.message);
             this.isCapturing = false;
         });
 
         this.ffmpegProcess.on('close', (code) => {
-            console.log(`🔚 FFmpeg process closed with code: ${code}`);
+            // console.log(`🔚 FFmpeg process closed with code: ${code}`);
             this.isCapturing = false;
         });
 
         // Handle stderr for debugging
         this.ffmpegProcess.stderr.on('data', (data) => {
             const message = data.toString();
-            console.log('FFmpeg stderr:', message.trim());
+            console.log('📺 FFmpeg output:', message.trim());
             if (message.includes('error') || message.includes('Error')) {
                 console.log('❌ FFmpeg Error:', message.trim());
             }
