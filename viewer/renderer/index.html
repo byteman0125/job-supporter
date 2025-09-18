@@ -408,7 +408,7 @@
         let isConnected = false;
         let isControlMode = false;
         let lastMouseMoveTime = 0;
-        let mouseMoveThrottle = 33; // Send mouse move every 33ms for 30 FPS smooth control
+        let mouseMoveThrottle = 16; // Send mouse move every 16ms for 60 FPS ultra-smooth control
 
         // Prevent window fullscreen on double-click
         document.addEventListener('dblclick', (e) => {
@@ -662,13 +662,13 @@
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            // ULTRA-FAST: Fire-and-forget for clicks, no waiting for response
-            if (action === 'click') {
-                // Use non-blocking send for clicks to enable rapid-fire clicking
+            // ULTRA-FAST: Fire-and-forget for clicks and moves, no waiting for response
+            if (action === 'click' || action === 'move') {
+                // Use non-blocking send for clicks and moves for maximum speed
                 ipcRenderer.send('send-control-message-fast', mouseData);
-                console.log('🖱️⚡ Rapid click sent:', action, `(${x}, ${y})`, button);
+                console.log('🖱️⚡ Fast action sent:', action, `(${x}, ${y})`, button || '');
             } else {
-                // Use regular invoke for moves/scroll (slower but with feedback)
+                // Use regular invoke for scroll (slower but with feedback)
                 ipcRenderer.invoke('send-control-message', mouseData).then(success => {
                     if (success) {
                         console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);

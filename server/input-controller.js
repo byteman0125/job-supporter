@@ -91,20 +91,33 @@ class InputController {
     return parts.join('+');
   }
 
-  // Mouse movement (no rate limiting - already throttled on client at 30 FPS)
+  // Mouse movement (no rate limiting - already throttled on client at 60 FPS)
   async moveMouse(x, y) {
+    console.log(`🖱️ Moving mouse to: (${x}, ${y})`);
     try {
+      let result;
       switch (this.platform) {
         case 'win32':
-          return await this.windowsMoveMouse(x, y);
+          result = await this.windowsMoveMouse(x, y);
+          break;
         case 'linux':
-          return await this.linuxMoveMouse(x, y);
+          result = await this.linuxMoveMouse(x, y);
+          break;
         case 'darwin':
-          return await this.macosMoveMouse(x, y);
+          result = await this.macosMoveMouse(x, y);
+          break;
         default:
           console.error('❌ Unsupported platform for mouse movement:', this.platform);
           return false;
       }
+      
+      if (result) {
+        console.log(`🖱️✅ Mouse moved to: (${x}, ${y})`);
+      } else {
+        console.log(`🖱️❌ Mouse move failed: (${x}, ${y})`);
+      }
+      
+      return result;
     } catch (error) {
       console.error('❌ Mouse move error:', error.message);
       return false;
