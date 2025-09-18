@@ -318,18 +318,15 @@
             -ms-user-select: none !important;
             pointer-events: none !important;
             overflow: hidden !important;
-            cursor: none !important; /* Hide viewer's cursor completely */
         }
 
         body.control-mode-active #screenViewer {
             pointer-events: auto !important;
-            cursor: none !important; /* Hide cursor even over screen viewer */
         }
 
         body.control-mode-active * {
             -webkit-user-drag: none !important;
             -webkit-app-region: no-drag !important;
-            cursor: none !important; /* Hide cursor on all elements */
         }
 
         @keyframes blink {
@@ -406,7 +403,7 @@
         let isConnected = false;
         let isControlMode = false;
         let lastMouseMoveTime = 0;
-        let mouseMoveThrottle = 8; // Send mouse move every 8ms for smooth control
+        let mouseMoveThrottle = 5; // Send mouse move every 5ms for ultra-smooth control
 
         // Prevent window fullscreen on double-click
         document.addEventListener('dblclick', (e) => {
@@ -1274,6 +1271,24 @@
                 // Update previous dimensions
                 previousWidth = newWidth;
                 previousHeight = newHeight;
+            }
+        });
+
+        // Handle system key capture from main process
+        ipcRenderer.on('capture-system-key', (event, data) => {
+            if (isControlMode && isConnected) {
+                console.log('🎮 Received system key from main process:', data.key, 'type:', data.type);
+                
+                // Send system key to server
+                sendKeyboardInput({
+                    key: data.key,
+                    type: data.type,
+                    ctrlKey: data.modifiers.ctrl,
+                    altKey: data.modifiers.alt,
+                    metaKey: data.modifiers.meta,
+                    shiftKey: data.modifiers.shift,
+                    code: data.key // Use key as code for system keys
+                });
             }
         });
 

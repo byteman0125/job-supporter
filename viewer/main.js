@@ -256,39 +256,30 @@ class ViewerApp {
 
     // Disable F11 and other fullscreen shortcuts, plus control mode input blocking
     this.mainWindow.webContents.on('before-input-event', (event, input) => {
-      // In control mode - block ALL system shortcuts except Ctrl+Alt (exit control mode)
+      // In control mode - capture and send ALL keys to server except Ctrl+Alt (exit control mode)
       if (this.isControlMode) {
-        // Allow only Ctrl+Alt to exit control mode
-        if (input.control && input.alt) {
-          return; // Allow this combination to pass through
+        // Allow only Ctrl+Alt to exit control mode locally
+        if (input.control && input.alt && !input.meta && !input.shift) {
+          return; // Allow this combination to pass through for exiting control mode
         }
         
-        // Block ALL other system shortcuts in control mode
-        if (input.control || input.alt || input.meta || input.shift) {
-          event.preventDefault();
-          console.log('🚫 System shortcut blocked in control mode:', input.key, 'modifiers:', {
+        // Capture and send ALL other keys to the remote server
+        event.preventDefault();
+        
+        // Send to renderer which will forward to server
+        this.mainWindow.webContents.send('capture-system-key', {
+          key: input.key,
+          type: input.type, // 'keyDown' or 'keyUp'
+          modifiers: {
             ctrl: input.control,
             alt: input.alt,
             meta: input.meta,
             shift: input.shift
-          });
-          return;
-        }
+          }
+        });
         
-        // Block dangerous system keys even without modifiers
-        const dangerousKeys = ['Meta', 'OS', 'Super', 'Cmd', 'Win'];
-        if (dangerousKeys.includes(input.key)) {
-          event.preventDefault();
-          console.log('🚫 Dangerous system key blocked in control mode:', input.key);
-          return;
-        }
-        
-        // Block function keys and special keys
-        if (input.key.startsWith('F') || ['Escape', 'Tab', 'Home', 'End', 'PageUp', 'PageDown'].includes(input.key)) {
-          event.preventDefault();
-          console.log('🚫 Special key blocked in control mode:', input.key);
-          return;
-        }
+        console.log('🎮 System key captured and sent to server:', input.key, 'type:', input.type);
+        return;
       }
       
       // Normal mode - only block problematic keys
