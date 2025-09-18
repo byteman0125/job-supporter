@@ -284,8 +284,16 @@ class InputController {
       // SIMPLEST POSSIBLE: Try multiple basic methods
       console.log('🖱️ Trying left click - Method 1: Direct Windows API');
       
-      // Method 1: Direct Windows API call (FIXED C# SYNTAX)
-      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
+      // Method 1: Windows API using TypeDefinition (avoiding line break issues)
+      const csharpCode = `
+using System;
+using System.Runtime.InteropServices;
+public static class MouseAPI {
+    [DllImport("user32.dll")]
+    public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
+}`;
+      
+      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -TypeDefinition @'${csharpCode}'@; [MouseAPI]::mouse_event(2,0,0,0,0); [MouseAPI]::mouse_event(4,0,0,0,0)"`;
       
       return new Promise((resolve) => {
         exec(apiCommand, { timeout: 3000 }, (error, stdout, stderr) => {
@@ -299,23 +307,46 @@ class InputController {
             return;
           }
           
-          console.log('🖱️ Trying left click - Method 2: Simple CMD ECHO');
-          // Method 2: Ultra simple - just press Enter with echo
-          exec('echo. && echo Left click triggered', { timeout: 1000 }, (echoError) => {
-            if (!echoError) {
-              console.log('✅ Left click succeeded with CMD echo');
-              resolve(true);
-            } else {
-              console.log('❌ All left click methods failed');
-              resolve(false);
-            }
-          });
+          console.log('🖱️ Trying left click - Method 2: Simple VBScript');
+          // Method 2: Simple VBScript approach
+          const vbsScript = `
+Set shell = CreateObject("WScript.Shell")
+shell.SendKeys " "
+`;
+          const fs = require('fs');
+          const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
+          
+          try {
+            fs.writeFileSync(tempScript, vbsScript);
+            exec(`cscript //nologo "${tempScript}"`, { timeout: 2000 }, (vbsError) => {
+              try { fs.unlinkSync(tempScript); } catch {}
+              
+              if (!vbsError) {
+                console.log('✅ Left click succeeded with VBScript');
+                resolve(true);
+              } else {
+                console.log('❌ All left click methods failed');
+                resolve(false);
+              }
+            });
+          } catch (fsError) {
+            console.log('❌ All left click methods failed');
+            resolve(false);
+          }
         });
       });
       
     } else if (button === 'right') {
-      // Right click method with FIXED C# SYNTAX
-      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(8,0,0,0,0); [W.M]::mouse_event(16,0,0,0,0)"`;
+      // Right click method using TypeDefinition (avoiding line break issues)
+      const csharpCode = `
+using System;
+using System.Runtime.InteropServices;
+public static class MouseAPI {
+    [DllImport("user32.dll")]
+    public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
+}`;
+      
+      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -TypeDefinition @'${csharpCode}'@; [MouseAPI]::mouse_event(8,0,0,0,0); [MouseAPI]::mouse_event(16,0,0,0,0)"`;
       
       return new Promise((resolve) => {
         exec(rightApiCommand, { timeout: 2000 }, (error) => {
