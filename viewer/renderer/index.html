@@ -408,7 +408,7 @@
         let isConnected = false;
         let isControlMode = false;
         let lastMouseMoveTime = 0;
-        let mouseMoveThrottle = 16; // Send mouse move every 16ms for 60 FPS ultra-smooth control
+        let mouseMoveThrottle = 33; // Send mouse move every 33ms for 30 FPS smooth control
 
         // Prevent window fullscreen on double-click
         document.addEventListener('dblclick', (e) => {
@@ -662,23 +662,16 @@
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            // ULTRA-FAST: Fire-and-forget for clicks and moves, no waiting for response
-            if (action === 'click' || action === 'move') {
-                // Use non-blocking send for clicks and moves for maximum speed
-                ipcRenderer.send('send-control-message-fast', mouseData);
-                console.log('🖱️⚡ Fast action sent:', action, `(${x}, ${y})`, button || '');
-            } else {
-                // Use regular invoke for scroll (slower but with feedback)
-                ipcRenderer.invoke('send-control-message', mouseData).then(success => {
-                    if (success) {
-                        console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);
-                    } else {
-                        console.error('🖱️❌ Mouse control failed:', action, `(${x}, ${y})`);
-                    }
-                }).catch(error => {
-                    console.error('🖱️❌ Mouse control error:', error);
-                });
-            }
+            // Use regular control message (high-speed temporarily disabled)
+            ipcRenderer.invoke('send-control-message', mouseData).then(success => {
+                if (success) {
+                    console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);
+                } else {
+                    console.error('🖱️❌ Mouse control failed:', action, `(${x}, ${y})`);
+                }
+            }).catch(error => {
+                console.error('🖱️❌ Mouse control error:', error);
+            });
         }
 
         // Screen Display
@@ -862,9 +855,11 @@
             if (isControlMode) {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
-                    // Send both clicks immediately for rapid double-click
                     sendMouseControl('click', mousePos.x, mousePos.y, 'left');
-                    sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                    // Send second click for double-click
+                    setTimeout(() => {
+                        sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                    }, 50);
                 }
             }
             // Note: Control mode is now entered with Ctrl+~, not double-click

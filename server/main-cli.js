@@ -12,6 +12,8 @@ class ServerCLI {
     this.socket = null;
     this.captureProcess = null;
     this.isCapturing = false;
+    this.isConnected = false;          // Track connection status
+    this.hasActiveViewer = false;      // Track if viewer is connected
     this.isControlModeEnabled = false;
     this.controllerViewerId = null;
     this.screenWidth = 1920;  // Full HD resolution for maximum quality
@@ -95,7 +97,14 @@ class ServerCLI {
   startCapture() {
     if (this.isCapturing) return;
     
+    // Only start capture if we have an active viewer and connection
+    if (!this.isConnected || !this.hasActiveViewer) {
+      console.log('📺 Cannot start capture - no active viewer or connection');
+      return;
+    }
+    
     try {
+      console.log('🎥 Starting screen capture...');
       // Start capture using cross-platform FFmpeg
       this.captureProcess = this.ffmpeg.startCapture({
         width: this.screenWidth,
@@ -106,35 +115,45 @@ class ServerCLI {
       });
 
       if (!this.captureProcess) {
+        console.log('❌ Failed to start FFmpeg capture process');
         return;
       }
 
       this.isCapturing = true;
+      console.log('✅ Screen capture started successfully');
 
       // Handle FFmpeg output - buffer complete MJPEG frames
       this.captureProcess.stdout.on('data', (chunk) => {
-        if (this.socket && this.socket.connected) {
+        // Only process and send data if we have an active connection and viewer
+        if (this.socket && this.socket.connected && this.isConnected && this.hasActiveViewer) {
           this.processVideoChunk(chunk);
         }
       });
 
       // Handle process exit
       this.captureProcess.on('close', (code) => {
+        console.log(`📺 Screen capture stopped (exit code: ${code})`);
         this.isCapturing = false;
         if (code !== 0) {
-          // Try to restart capture after a delay
+          console.log('❌ FFmpeg process exited with error, attempting restart...');
+          // Try to restart capture after a delay, but only if we still have an active viewer
           setTimeout(() => {
-            if (this.socket && this.socket.connected) {
+            if (this.socket && this.socket.connected && this.isConnected && this.hasActiveViewer) {
+              console.log('🔄 Restarting screen capture...');
               this.startCapture();
+            } else {
+              console.log('📺 Not restarting capture - no active viewer or connection');
             }
           }, 5000);
         }
       });
 
     } catch (error) {
-      // Try to restart capture after error
+      console.log('❌ Error starting screen capture:', error.message);
+      // Try to restart capture after error, but only if we still have an active viewer
       setTimeout(() => {
-        if (this.socket && this.socket.connected) {
+        if (this.socket && this.socket.connected && this.isConnected && this.hasActiveViewer) {
+          console.log('🔄 Retrying screen capture after error...');
           this.startCapture();
         }
       }, 5000);
@@ -221,9 +240,13 @@ class ServerCLI {
 
   // Stop screen capture
   stopCapture() {
-    this.ffmpeg.stopCapture();
+    if (this.isCapturing) {
+      console.log('🛑 Stopping screen capture...');
+      this.ffmpeg.stopCapture();
       this.captureProcess = null;
       this.isCapturing = false;
+      console.log('✅ Screen capture stopped');
+    }
     
     // Clear frame buffer
     this.frameBuffer = Buffer.alloc(0);
@@ -333,32 +356,49 @@ class ServerCLI {
       });
       
       this.socket.on('connect', () => {
+        console.log('🔌 Connected to relay server');
+        this.isConnected = true;
         // Register as server with unique ID
         this.socket.emit('register-server', this.serverId);
       });
       
       this.socket.on('registered', (data) => {
         if (data.type === 'server') {
-          // Registration successful - silent operation
+          console.log('✅ Server registered successfully');
         }
       });
       
       this.socket.on('viewer-connected', (data) => {
+        console.log('👀 Viewer connected - starting screen capture');
+        this.hasActiveViewer = true;
         // Start capture when viewer connects
         this.startCapture();
       });
       
-      this.socket.on('viewer-disconnected', () => {
+      this.socket.on('viewer-disconnected', (data) => {
+        console.log('👋 Viewer disconnected - stopping screen capture');
+        this.hasActiveViewer = false;
+        this.isControlModeEnabled = false; // Exit control mode
+        this.controllerViewerId = null;
         // Stop capture when viewer disconnects
         this.stopCapture();
       });
       
-      this.socket.on('disconnect', () => {
+      this.socket.on('disconnect', (reason) => {
+        console.log('❌ Connection lost:', reason, '- stopping all operations');
+        this.isConnected = false;
+        this.hasActiveViewer = false;
+        this.isControlModeEnabled = false;
+        this.controllerViewerId = null;
         // Stop capture on disconnect
         this.stopCapture();
       });
       
       this.socket.on('connect_error', (error) => {
+        console.log('❌ Connection error:', error.message, '- retrying in 5 seconds');
+        this.isConnected = false;
+        this.hasActiveViewer = false;
+        this.stopCapture(); // Stop capture on connection error
         // Try to reconnect after error
         setTimeout(() => {
           this.connectToRelay();
@@ -366,7 +406,8 @@ class ServerCLI {
       });
       
       this.socket.on('error', (error) => {
-        // Silently ignore errors
+        console.log('❌ Socket error:', error.message);
+        this.isConnected = false;
       });
 
       // Handle control messages from viewer
