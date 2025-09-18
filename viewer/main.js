@@ -80,11 +80,13 @@ class ViewerApp {
       icon: path.join(__dirname, 'assets/icon.png'),
       titleBarStyle: 'hidden', // Remove title bar and menubar
       frame: false, // Remove window frame
-      fullscreenable: false,
+      fullscreenable: false, // Disable fullscreen
       resizable: true, // Allow manual resizing
       maximizable: false, // Prevent maximizing
       minimizable: true, // Allow minimizing
-      closable: true // Allow closing
+      closable: true, // Allow closing
+      skipTaskbar: false, // Show in taskbar
+      alwaysOnTop: false // Not always on top
     });
 
     this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -196,6 +198,26 @@ class ViewerApp {
     this.mainWindow.on('unmaximize', () => {
       // Ensure size is correct after unmaximize
       this.restoreWindowSize();
+    });
+
+    // Prevent fullscreen mode
+    this.mainWindow.on('enter-full-screen', () => {
+      console.log('🚫 Preventing fullscreen mode');
+      this.mainWindow.setFullScreen(false);
+    });
+
+    // Disable F11 and other fullscreen shortcuts
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      // Block F11 key (fullscreen toggle)
+      if (input.key === 'F11') {
+        event.preventDefault();
+        console.log('🚫 F11 key blocked to prevent fullscreen');
+      }
+      // Block Alt+Enter (fullscreen shortcut)
+      if (input.alt && input.key === 'Enter') {
+        event.preventDefault();
+        console.log('🚫 Alt+Enter blocked to prevent fullscreen');
+      }
     });
 
   }

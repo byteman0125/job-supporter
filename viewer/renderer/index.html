@@ -383,6 +383,13 @@
         let isConnected = false;
         let isControlMode = false;
 
+        // Prevent window fullscreen on double-click
+        document.addEventListener('dblclick', (e) => {
+            // Prevent any double-click from causing fullscreen
+            e.preventDefault();
+            e.stopPropagation();
+        }, true); // Use capture phase to catch early
+
         // Keyboard Shortcuts
         document.addEventListener('keydown', (e) => {
             // Connection modal shortcut
@@ -653,6 +660,11 @@
         });
 
         screenViewer.addEventListener('dblclick', (e) => {
+            // Prevent default behavior and stop propagation to avoid fullscreen
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
             if (!isConnected) return;
             
             if (!isControlMode) {
