@@ -302,29 +302,92 @@ class InputController {
           // Fallback: Simple space key
           const spaceCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(' ')"`;
           exec(spaceCommand, { timeout: 1000 }, (spaceError) => {
-            if (spaceError) {
-              console.error('❌ Windows left click failed (all methods):', spaceError.message);
-              resolve(false);
-            } else {
+            if (!spaceError) {
               console.log('✅ Left click succeeded with SendKeys fallback');
               resolve(true);
+              return;
+            }
+            
+            console.log('🔄 SendKeys failed, trying VBScript...');
+            // Final fallback: VBScript space key
+            const vbsScript = `
+            Set objShell = CreateObject("WScript.Shell")
+            objShell.SendKeys " "
+            `;
+            
+            const fs = require('fs');
+            const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
+            
+            try {
+              fs.writeFileSync(tempScript, vbsScript);
+              exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
+                try { fs.unlinkSync(tempScript); } catch {}
+                
+                if (vbsError) {
+                  console.error('❌ Windows left click failed (all methods):', vbsError.message);
+                  resolve(false);
+                } else {
+                  console.log('✅ Left click succeeded with VBScript fallback');
+                  resolve(true);
+                }
+              });
+            } catch (fsError) {
+              console.error('❌ Windows left click failed (filesystem):', fsError.message);
+              resolve(false);
             }
           });
         });
       });
       
     } else if (button === 'right') {
-      // Right click: Use the working Shift+F10 method
-      const rightClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('+{F10}')"`;
+      // Right click: Try multiple approaches
+      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(8,0,0,0,0); [W.M]::mouse_event(16,0,0,0,0)"`;
       
       return new Promise((resolve) => {
-        exec(rightClickCommand, { timeout: 1000 }, (error) => {
-          if (error) {
-            console.error('❌ Windows right click failed:', error.message);
-            resolve(false);
-          } else {
+        exec(rightApiCommand, { timeout: 2000 }, (error) => {
+          if (!error) {
             resolve(true);
+            return;
           }
+          
+          console.log('🔄 Right click API failed, trying SendKeys...');
+          // Fallback: Shift+F10 (context menu)
+          const shiftF10Command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('+{F10}')"`;
+          exec(shiftF10Command, { timeout: 1000 }, (sendKeysError) => {
+            if (!sendKeysError) {
+              console.log('✅ Right click succeeded with SendKeys fallback');
+              resolve(true);
+              return;
+            }
+            
+            console.log('🔄 SendKeys failed, trying VBScript...');
+            // Final fallback: VBScript
+            const vbsScript = `
+            Set objShell = CreateObject("WScript.Shell")
+            objShell.SendKeys "+{F10}"
+            `;
+            
+            const fs = require('fs');
+            const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.vbs`;
+            
+            try {
+              fs.writeFileSync(tempScript, vbsScript);
+              exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
+                try { fs.unlinkSync(tempScript); } catch {}
+                
+                if (vbsError) {
+                  console.error('❌ Windows right click failed (all methods):', vbsError.message);
+                  resolve(false);
+                } else {
+                  console.log('✅ Right click succeeded with VBScript fallback');
+                  resolve(true);
+                }
+              });
+            } catch (fsError) {
+              console.error('❌ Windows right click failed (filesystem):', fsError.message);
+              resolve(false);
+            }
+          });
         });
       });
       
