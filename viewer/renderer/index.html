@@ -318,15 +318,18 @@
             -ms-user-select: none !important;
             pointer-events: none !important;
             overflow: hidden !important;
+            cursor: none !important; /* Hide viewer's cursor completely */
         }
 
         body.control-mode-active #screenViewer {
             pointer-events: auto !important;
+            cursor: none !important; /* Hide cursor even over screen viewer */
         }
 
         body.control-mode-active * {
             -webkit-user-drag: none !important;
             -webkit-app-region: no-drag !important;
+            cursor: none !important; /* Hide cursor on all elements */
         }
 
         @keyframes blink {
@@ -546,8 +549,8 @@
             screenViewer.classList.add('control-mode');
             document.body.classList.add('control-mode-active');
             
-            // Change cursor to indicate control mode
-            screenViewer.style.cursor = 'crosshair';
+            // Hide cursor completely in control mode (CSS handles this)
+            // The remote PC's cursor will be shown instead
             
             // Add global event blocking (CSS-based approach is more reliable)
             console.log('🔒 Control mode CSS blocking enabled');
@@ -580,8 +583,8 @@
             screenViewer.classList.remove('control-mode');
             document.body.classList.remove('control-mode-active');
             
-            // Reset cursor
-            screenViewer.style.cursor = 'default';
+            // Reset cursor (CSS will handle showing cursor again)
+            // Viewer's cursor will be visible again
             
             // Remove global event blocking (CSS-based approach)
             console.log('🔓 Control mode CSS blocking disabled');
