@@ -242,10 +242,11 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    const command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`;
+    // Ultra-fast mouse movement with minimal PowerShell overhead
+    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern bool SetCursorPos(int,int);' -Name Mouse -Namespace Win32; [Win32.Mouse]::SetCursorPos(${x},${y})"`;
     
     return new Promise((resolve) => {
-      exec(command, (error) => {
+      exec(command, { timeout: 500 }, (error) => {
         if (error) {
           console.error('❌ Windows mouse move failed:', error.message);
           resolve(false);
@@ -257,7 +258,7 @@ class InputController {
   }
 
   async windowsClickMouse(x, y, button) {
-    // No pre-movement - cursor position handled by separate move events
+    // Ultra-fast click using pre-compiled PowerShell with minimal overhead
     
     // Map button names to Windows constants
     const buttonMap = {
@@ -269,11 +270,11 @@ class InputController {
     const downFlag = buttonMap[button] || buttonMap['left'];
     const upFlag = button === 'right' ? '0x10' : button === 'middle' ? '0x40' : '0x04';
     
-    // Immediate click without any delays
-    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(${downFlag}, 0, 0, 0, 0); [Mouse]::mouse_event(${upFlag}, 0, 0, 0, 0)"`;
+    // Ultra-fast single-line PowerShell execution with pre-defined type
+    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "[System.Runtime.InteropServices.DllImport('user32.dll')] param(); Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(${downFlag},0,0,0,0); [Win32.Mouse]::mouse_event(${upFlag},0,0,0,0)"`;
     
     return new Promise((resolve) => {
-      exec(command, (error) => {
+      exec(command, { timeout: 1000 }, (error) => {
         if (error) {
           console.error('❌ Windows mouse click failed:', error.message);
           resolve(false);
@@ -285,13 +286,13 @@ class InputController {
   }
 
   async windowsScrollMouse(x, y, delta) {
-    // No pre-movement - cursor position handled by separate move events
+    // Ultra-fast scroll with minimal PowerShell overhead
     
     const scrollAmount = Math.sign(delta) * 120; // Windows scroll units
-    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(0x0800, 0, 0, ${scrollAmount}, 0)"`;
+    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(0x0800,0,0,${scrollAmount},0)"`;
     
     return new Promise((resolve) => {
-      exec(command, (error) => {
+      exec(command, { timeout: 500 }, (error) => {
         if (error) {
           console.error('❌ Windows mouse scroll failed:', error.message);
           resolve(false);
