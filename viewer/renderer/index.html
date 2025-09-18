@@ -574,9 +574,22 @@
                 return;
             }
             
+            // Skip modifier keys alone and some problematic keys
+            const skipKeys = ['Control', 'Alt', 'Shift', 'Meta', 'OS', 'Win', 'Super', 'Cmd'];
+            if (skipKeys.includes(e.key)) {
+                console.log('⌨️ 🚫 Skipping modifier key:', e.key);
+                return;
+            }
+            
+            // Skip dead keys and composition events
+            if (e.key === 'Dead' || e.key === 'Process') {
+                console.log('⌨️ 🚫 Skipping composition key:', e.key);
+                return;
+            }
+            
             const keyData = {
                 type: 'control-keyboard',
-                action: 'keydown',
+                action: e.type, // 'keydown' or 'keyup'
                 key: e.key,
                 code: e.code,
                 modifiers: {
@@ -589,7 +602,7 @@
             
             ipcRenderer.invoke('send-control-message', keyData).then(success => {
                 if (success) {
-                    console.log('⌨️ ✅ Sent keyboard:', keyData);
+                    console.log('⌨️ ✅ Sent keyboard:', e.type, keyData.key, keyData.modifiers);
                 } else {
                     console.log('⌨️ ❌ Failed to send keyboard:', keyData);
                 }

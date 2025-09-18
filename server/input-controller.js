@@ -206,10 +206,7 @@ class InputController {
   }
 
   async windowsSendKey(key, modifiers) {
-    // Build PowerShell SendKeys command
-    let keyString = key;
-    
-    // Handle special keys
+    // Handle special keys first
     const specialKeys = {
       'Enter': '{ENTER}',
       'Backspace': '{BACKSPACE}',
@@ -224,24 +221,39 @@ class InputController {
       'End': '{END}',
       'PageUp': '{PGUP}',
       'PageDown': '{PGDN}',
-      ' ': ' '
+      'Insert': '{INSERT}',
+      'CapsLock': '{CAPSLOCK}',
+      'NumLock': '{NUMLOCK}',
+      'ScrollLock': '{SCROLLLOCK}',
+      'PrintScreen': '{PRTSC}',
+      'Pause': '{BREAK}',
+      ' ': ' ',
+      // Function keys
+      'F1': '{F1}', 'F2': '{F2}', 'F3': '{F3}', 'F4': '{F4}',
+      'F5': '{F5}', 'F6': '{F6}', 'F7': '{F7}', 'F8': '{F8}',
+      'F9': '{F9}', 'F10': '{F10}', 'F11': '{F11}', 'F12': '{F12}'
     };
     
-    if (specialKeys[key]) {
-      keyString = specialKeys[key];
-    }
+    let keyString = specialKeys[key] || key;
     
-    // Add modifiers
-    if (modifiers.ctrl) keyString = '^' + keyString;
-    if (modifiers.alt) keyString = '%' + keyString;
-    if (modifiers.shift) keyString = '+' + keyString;
+    // Build modifier prefix (order matters in SendKeys: +^%key)
+    let modifierPrefix = '';
+    if (modifiers.shift) modifierPrefix += '+';
+    if (modifiers.ctrl) modifierPrefix += '^';
+    if (modifiers.alt) modifierPrefix += '%';
     
-    const command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${keyString}')"`;
+    // Combine modifiers with key
+    const finalKeyString = modifierPrefix + keyString;
+    
+    // Escape special characters for PowerShell
+    const escapedKey = finalKeyString.replace(/['"]/g, '`$&');
+    
+    const command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedKey}')"`;
     
     return new Promise((resolve) => {
       exec(command, (error) => {
         if (error) {
-          console.error('❌ Windows key send failed:', error.message);
+          console.error('❌ Windows key send failed:', error.message, 'Key:', finalKeyString);
           resolve(false);
         } else {
           resolve(true);
@@ -311,25 +323,35 @@ class InputController {
   }
 
   async linuxSendKey(key, modifiers) {
-    let keyString = key.toLowerCase();
-    
     // Handle special keys
     const specialKeys = {
-      'enter': 'Return',
-      'backspace': 'BackSpace',
-      'delete': 'Delete',
-      'tab': 'Tab',
-      'escape': 'Escape',
-      'arrowup': 'Up',
-      'arrowdown': 'Down',
-      'arrowleft': 'Left',
-      'arrowright': 'Right',
-      ' ': 'space'
+      'Enter': 'Return',
+      'Backspace': 'BackSpace',
+      'Delete': 'Delete',
+      'Tab': 'Tab',
+      'Escape': 'Escape',
+      'ArrowUp': 'Up',
+      'ArrowDown': 'Down',
+      'ArrowLeft': 'Left',
+      'ArrowRight': 'Right',
+      'Home': 'Home',
+      'End': 'End',
+      'PageUp': 'Prior',
+      'PageDown': 'Next',
+      'Insert': 'Insert',
+      'CapsLock': 'Caps_Lock',
+      'NumLock': 'Num_Lock',
+      'ScrollLock': 'Scroll_Lock',
+      'PrintScreen': 'Print',
+      'Pause': 'Pause',
+      ' ': 'space',
+      // Function keys
+      'F1': 'F1', 'F2': 'F2', 'F3': 'F3', 'F4': 'F4',
+      'F5': 'F5', 'F6': 'F6', 'F7': 'F7', 'F8': 'F8',
+      'F9': 'F9', 'F10': 'F10', 'F11': 'F11', 'F12': 'F12'
     };
     
-    if (specialKeys[keyString]) {
-      keyString = specialKeys[keyString];
-    }
+    let keyString = specialKeys[key] || key;
     
     // Build modifier string
     const modifierParts = [];
@@ -348,7 +370,7 @@ class InputController {
     return new Promise((resolve) => {
       exec(command, (error) => {
         if (error) {
-          console.error('❌ Linux key send failed:', error.message);
+          console.error('❌ Linux key send failed:', error.message, 'Command:', command);
           resolve(false);
         } else {
           resolve(true);

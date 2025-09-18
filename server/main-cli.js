@@ -575,7 +575,14 @@ class ServerCLI {
   async handleKeyboardControl(data) {
     if (!this.isControlModeEnabled) return;
 
-    const { key, modifiers } = data;
+    const { action, key, modifiers } = data;
+    
+    // Only process keydown events for now (SendKeys handles press and release)
+    if (action === 'keyup') {
+      // Skip keyup events as SendKeys automatically handles press/release
+      return;
+    }
+    
     const success = await this.inputController.sendKey(key, modifiers || {});
 
     if (success) {
@@ -585,6 +592,8 @@ class ServerCLI {
         .join('+');
       
       console.log(`⌨️ Key executed: ${modifierStr ? modifierStr + '+' : ''}${key}`);
+    } else {
+      console.log(`⌨️ ❌ Key failed: ${key}`);
     }
   }
 }
