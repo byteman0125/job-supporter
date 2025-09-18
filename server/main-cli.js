@@ -569,6 +569,8 @@ class ServerCLI {
 
     if (success) {
       console.log(`🖱️ Mouse ${action} executed: (${x}, ${y})${button ? ` ${button}` : ''}${delta ? ` delta:${delta}` : ''}`);
+    } else {
+      console.log(`🖱️❌ Mouse ${action} FAILED: (${x}, ${y})${button ? ` ${button}` : ''}${delta ? ` delta:${delta}` : ''}`);
     }
   }
 

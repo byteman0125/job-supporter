@@ -8,7 +8,7 @@ class InputController {
     this.lastKeyTime = 0;
     this.lastMouseTime = 0;
     this.maxActionsPerSecond = 20; // Rate limiting
-    this.maxKeysPerSecond = 50;    // Faster rate for keyboard (20ms between keys)
+    this.maxKeysPerSecond = 100;   // Much faster rate for keyboard (10ms between keys)
     this.maxMousePerSecond = 120;  // Much faster rate for smooth mouse (8ms between actions)
     
     // Dangerous key combinations to block
@@ -196,7 +196,7 @@ class InputController {
       
       // Add small delay for character keys to prevent timing issues
       if (result && key.length === 1 && !modifiers.ctrl && !modifiers.alt && !modifiers.meta) {
-        await new Promise(resolve => setTimeout(resolve, 20)); // 20ms delay for character keys
+        await new Promise(resolve => setTimeout(resolve, 5)); // 5ms delay for character keys (faster typing)
       }
       
       return result;

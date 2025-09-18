@@ -634,9 +634,21 @@
                     console.log('🖱️⚡ High-speed mouse sent:', action, `(${x}, ${y})`);
                 } else {
                     // Fallback to regular control message if high-speed fails
-                    console.log('🖱️ ⚠️ High-speed failed, using fallback');
-                    ipcRenderer.invoke('send-control-message', mouseData);
+                    console.log('🖱️ ⚠️ High-speed failed, using fallback for:', action, `(${x}, ${y})`);
+                    ipcRenderer.invoke('send-control-message', mouseData).then(fallbackSuccess => {
+                        if (fallbackSuccess) {
+                            console.log('🖱️✅ Fallback mouse sent:', action, `(${x}, ${y})`);
+                        } else {
+                            console.error('🖱️❌ Both high-speed and fallback failed for:', action, `(${x}, ${y})`);
+                        }
+                    });
                 }
+            }).catch(error => {
+                console.error('🖱️❌ Mouse control error:', error);
+                // Try fallback on error
+                ipcRenderer.invoke('send-control-message', mouseData).then(fallbackSuccess => {
+                    console.log('🖱️🔄 Fallback after error:', fallbackSuccess ? 'success' : 'failed');
+                });
             });
         }
 
