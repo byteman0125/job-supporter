@@ -11,6 +11,10 @@ class InputController {
     this.maxKeysPerSecond = 100;   // Much faster rate for keyboard (10ms between keys)
     this.maxMousePerSecond = 120;  // Much faster rate for smooth mouse (8ms between actions)
     
+    // Keyboard queue for sequential processing
+    this.keyboardQueue = [];
+    this.processingKeyboard = false;
+    
     // Dangerous key combinations to block
     this.dangerousKeys = [
       'ctrl+alt+delete',
@@ -169,8 +173,49 @@ class InputController {
     }
   }
 
-  // Keyboard input
+  // Keyboard input with queuing for proper order
   async sendKey(key, modifiers = {}) {
+    return new Promise((resolve) => {
+      // Add to queue
+      this.keyboardQueue.push({ key, modifiers, resolve });
+      
+      // Process queue if not already processing
+      if (!this.processingKeyboard) {
+        this.processKeyboardQueue();
+      }
+    });
+  }
+
+  // Process keyboard queue sequentially
+  async processKeyboardQueue() {
+    if (this.processingKeyboard || this.keyboardQueue.length === 0) {
+      return;
+    }
+
+    this.processingKeyboard = true;
+
+    while (this.keyboardQueue.length > 0) {
+      const { key, modifiers, resolve } = this.keyboardQueue.shift();
+      
+      try {
+        const result = await this.sendKeyDirect(key, modifiers);
+        resolve(result);
+        
+        // Add delay between characters to prevent timing issues
+        if (key.length === 1 && !modifiers.ctrl && !modifiers.alt && !modifiers.meta) {
+          await new Promise(r => setTimeout(r, 25)); // 25ms delay between characters for perfect order
+        }
+      } catch (error) {
+        console.error('❌ Keyboard queue processing error:', error.message);
+        resolve(false);
+      }
+    }
+
+    this.processingKeyboard = false;
+  }
+
+  // Direct keyboard input (used by queue)
+  async sendKeyDirect(key, modifiers = {}) {
     if (!this.isKeyActionAllowed()) return false;
     if (!this.isSafeKeyCombo(key, modifiers)) {
       console.warn('⚠️ Blocked dangerous key combination:', this.buildKeyCombo(key, modifiers));
@@ -192,11 +237,6 @@ class InputController {
         default:
           console.error('❌ Unsupported platform for keyboard input:', this.platform);
           return false;
-      }
-      
-      // Add small delay for character keys to prevent timing issues
-      if (result && key.length === 1 && !modifiers.ctrl && !modifiers.alt && !modifiers.meta) {
-        await new Promise(resolve => setTimeout(resolve, 5)); // 5ms delay for character keys (faster typing)
       }
       
       return result;
