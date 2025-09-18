@@ -250,8 +250,44 @@ class ViewerApp {
       this.mainWindow.setFullScreen(false);
     });
 
-    // Disable F11 and other fullscreen shortcuts
+    // Disable F11 and other fullscreen shortcuts, plus control mode input blocking
     this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      // In control mode - block ALL system shortcuts except Ctrl+Alt (exit control mode)
+      if (this.isControlMode) {
+        // Allow only Ctrl+Alt to exit control mode
+        if (input.control && input.alt) {
+          return; // Allow this combination to pass through
+        }
+        
+        // Block ALL other system shortcuts in control mode
+        if (input.control || input.alt || input.meta || input.shift) {
+          event.preventDefault();
+          console.log('🚫 System shortcut blocked in control mode:', input.key, 'modifiers:', {
+            ctrl: input.control,
+            alt: input.alt,
+            meta: input.meta,
+            shift: input.shift
+          });
+          return;
+        }
+        
+        // Block dangerous system keys even without modifiers
+        const dangerousKeys = ['Meta', 'OS', 'Super', 'Cmd', 'Win'];
+        if (dangerousKeys.includes(input.key)) {
+          event.preventDefault();
+          console.log('🚫 Dangerous system key blocked in control mode:', input.key);
+          return;
+        }
+        
+        // Block function keys and special keys
+        if (input.key.startsWith('F') || ['Escape', 'Tab', 'Home', 'End', 'PageUp', 'PageDown'].includes(input.key)) {
+          event.preventDefault();
+          console.log('🚫 Special key blocked in control mode:', input.key);
+          return;
+        }
+      }
+      
+      // Normal mode - only block problematic keys
       // Block F11 key (fullscreen toggle)
       if (input.key === 'F11') {
         event.preventDefault();
@@ -471,10 +507,36 @@ class ViewerApp {
   registerGlobalShortcuts() {
     // Register Ctrl+Shift+H to show connection modal
     globalShortcut.register('Ctrl+Shift+H', () => {
-      if (this.mainWindow) {
+      if (this.mainWindow && !this.isControlMode) { // Don't allow in control mode
         this.mainWindow.webContents.send('show-connection-modal');
       }
     });
+  }
+
+  // Block system-level shortcuts in control mode
+  enableControlModeSystemBlocking() {
+    console.log('🔒 Enabling system-level input blocking for control mode');
+    
+    // Disable all global shortcuts temporarily
+    globalShortcut.unregisterAll();
+    
+    // Set window to always be on top to capture input
+    this.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
+    
+    // Focus the window to ensure it receives all input
+    this.mainWindow.focus();
+    this.mainWindow.show();
+  }
+
+  // Re-enable system shortcuts when exiting control mode
+  disableControlModeSystemBlocking() {
+    console.log('🔓 Disabling system-level input blocking - returning to normal mode');
+    
+    // Re-register normal global shortcuts
+    this.registerGlobalShortcuts();
+    
+    // Remove always on top
+    this.mainWindow.setAlwaysOnTop(false);
   }
 
   connectToServer(serverId, port = 3000) {
@@ -838,6 +900,15 @@ class ViewerApp {
 
     ipcMain.handle('set-control-mode', (event, mode) => {
       this.isControlMode = mode;
+      
+      if (mode) {
+        // Entering control mode - enable system blocking
+        this.enableControlModeSystemBlocking();
+      } else {
+        // Exiting control mode - disable system blocking
+        this.disableControlModeSystemBlocking();
+      }
+      
       return true;
     });
 

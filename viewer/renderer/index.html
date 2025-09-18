@@ -347,7 +347,7 @@
     <!-- Control Mode Indicator -->
     <div class="control-mode-indicator" id="controlModeIndicator">
         <div class="control-dot"></div>
-        <span>CONTROL MODE - Press Ctrl+Alt to exit</span>
+        <span>🔒 FULL CONTROL MODE - Press Ctrl+Alt to exit</span>
     </div>
 
     <!-- Main Screen Viewer -->
@@ -536,7 +536,9 @@
                 action: 'enter'
             }).then(success => {
                 if (success) {
-                    console.log('🎮 ✅ Control mode ENTERED - server notified');
+                    console.log('🎮 ✅ FULL CONTROL MODE ENTERED - All system input captured!');
+                    console.log('🔒 Local system shortcuts DISABLED');
+                    console.log('⚠️ Only Ctrl+Alt will exit control mode');
                 } else {
                     console.log('🎮 ❌ Control mode FAILED - server not notified');
                 }
@@ -562,7 +564,8 @@
                 action: 'exit'
             });
             
-            console.log('🎮 Control mode EXITED');
+            console.log('🎮 ✅ Control mode EXITED - System shortcuts restored');
+            console.log('🔓 Local system input restored to normal');
         }
 
         function sendKeyboardInput(e) {
