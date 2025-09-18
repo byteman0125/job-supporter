@@ -15,6 +15,10 @@ class InputController {
     this.keyboardQueue = [];
     this.processingKeyboard = false;
     
+    // Mouse click queue for rapid-fire clicking
+    this.clickQueue = [];
+    this.processingClicks = false;
+    
     // Dangerous key combinations to block
     this.dangerousKeys = [
       'ctrl+alt+delete',

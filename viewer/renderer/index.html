@@ -662,16 +662,23 @@
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            // Use regular control message (high-speed temporarily disabled)
-            ipcRenderer.invoke('send-control-message', mouseData).then(success => {
-                if (success) {
-                    console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);
-                } else {
-                    console.error('🖱️❌ Mouse control failed:', action, `(${x}, ${y})`);
-                }
-            }).catch(error => {
-                console.error('🖱️❌ Mouse control error:', error);
-            });
+            // ULTRA-FAST: Fire-and-forget for clicks, no waiting for response
+            if (action === 'click') {
+                // Use non-blocking send for clicks to enable rapid-fire clicking
+                ipcRenderer.send('send-control-message-fast', mouseData);
+                console.log('🖱️⚡ Rapid click sent:', action, `(${x}, ${y})`, button);
+            } else {
+                // Use regular invoke for moves/scroll (slower but with feedback)
+                ipcRenderer.invoke('send-control-message', mouseData).then(success => {
+                    if (success) {
+                        console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);
+                    } else {
+                        console.error('🖱️❌ Mouse control failed:', action, `(${x}, ${y})`);
+                    }
+                }).catch(error => {
+                    console.error('🖱️❌ Mouse control error:', error);
+                });
+            }
         }
 
         // Screen Display
@@ -855,11 +862,9 @@
             if (isControlMode) {
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
+                    // Send both clicks immediately for rapid double-click
                     sendMouseControl('click', mousePos.x, mousePos.y, 'left');
-                    // Send second click for double-click
-                    setTimeout(() => {
-                        sendMouseControl('click', mousePos.x, mousePos.y, 'left');
-                    }, 50);
+                    sendMouseControl('click', mousePos.x, mousePos.y, 'left');
                 }
             }
             // Note: Control mode is now entered with Ctrl+~, not double-click

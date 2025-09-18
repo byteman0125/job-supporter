@@ -1098,6 +1098,13 @@ class ViewerApp {
       return false;
     });
 
+    // Ultra-fast click handler (fire-and-forget, no response)
+    ipcMain.on('send-control-message-fast', (event, message) => {
+      if (this.socket && this.isConnected) {
+        this.socket.emit('control-message', message);
+      }
+    });
+
     // High-speed mouse input handling
     ipcMain.handle('send-mouse-input', (event, mouseData) => {
       if (this.mouseSocket && this.isMouseConnected && this.isControlMode) {
