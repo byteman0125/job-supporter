@@ -5,7 +5,11 @@ class InputController {
   constructor() {
     this.platform = os.platform();
     this.lastActionTime = 0;
+    this.lastKeyTime = 0;
+    this.lastMouseTime = 0;
     this.maxActionsPerSecond = 20; // Rate limiting
+    this.maxKeysPerSecond = 50;    // Faster rate for keyboard (20ms between keys)
+    this.maxMousePerSecond = 20;   // Standard rate for mouse (50ms between actions)
     
     // Dangerous key combinations to block
     this.dangerousKeys = [
@@ -34,6 +38,34 @@ class InputController {
     return true;
   }
 
+  // Rate limiting for keyboard actions (faster)
+  isKeyActionAllowed() {
+    const now = Date.now();
+    const timeSinceLastKey = now - this.lastKeyTime;
+    const minInterval = 1000 / this.maxKeysPerSecond; // 20ms for 50 keys/sec
+    
+    if (timeSinceLastKey < minInterval) {
+      return false;
+    }
+    
+    this.lastKeyTime = now;
+    return true;
+  }
+
+  // Rate limiting for mouse actions (standard)
+  isMouseActionAllowed() {
+    const now = Date.now();
+    const timeSinceLastMouse = now - this.lastMouseTime;
+    const minInterval = 1000 / this.maxMousePerSecond; // 50ms for 20 actions/sec
+    
+    if (timeSinceLastMouse < minInterval) {
+      return false;
+    }
+    
+    this.lastMouseTime = now;
+    return true;
+  }
+
   // Check if key combination is safe
   isSafeKeyCombo(key, modifiers) {
     const combo = this.buildKeyCombo(key, modifiers).toLowerCase();
@@ -53,7 +85,7 @@ class InputController {
 
   // Mouse movement
   async moveMouse(x, y) {
-    if (!this.isActionAllowed()) return false;
+    if (!this.isMouseActionAllowed()) return false;
 
     try {
       switch (this.platform) {
@@ -75,7 +107,7 @@ class InputController {
 
   // Mouse click
   async clickMouse(x, y, button = 'left') {
-    if (!this.isActionAllowed()) return false;
+    if (!this.isMouseActionAllowed()) return false;
 
     try {
       switch (this.platform) {
@@ -97,7 +129,7 @@ class InputController {
 
   // Mouse scroll
   async scrollMouse(x, y, delta) {
-    if (!this.isActionAllowed()) return false;
+    if (!this.isMouseActionAllowed()) return false;
 
     try {
       switch (this.platform) {
@@ -119,24 +151,35 @@ class InputController {
 
   // Keyboard input
   async sendKey(key, modifiers = {}) {
-    if (!this.isActionAllowed()) return false;
+    if (!this.isKeyActionAllowed()) return false;
     if (!this.isSafeKeyCombo(key, modifiers)) {
       console.warn('⚠️ Blocked dangerous key combination:', this.buildKeyCombo(key, modifiers));
       return false;
     }
 
     try {
+      let result;
       switch (this.platform) {
         case 'win32':
-          return await this.windowsSendKey(key, modifiers);
+          result = await this.windowsSendKey(key, modifiers);
+          break;
         case 'linux':
-          return await this.linuxSendKey(key, modifiers);
+          result = await this.linuxSendKey(key, modifiers);
+          break;
         case 'darwin':
-          return await this.macosSendKey(key, modifiers);
+          result = await this.macosSendKey(key, modifiers);
+          break;
         default:
           console.error('❌ Unsupported platform for keyboard input:', this.platform);
           return false;
       }
+      
+      // Add small delay for character keys to prevent timing issues
+      if (result && key.length === 1 && !modifiers.ctrl && !modifiers.alt && !modifiers.meta) {
+        await new Promise(resolve => setTimeout(resolve, 20)); // 20ms delay for character keys
+      }
+      
+      return result;
     } catch (error) {
       console.error('❌ Keyboard input error:', error.message);
       return false;
