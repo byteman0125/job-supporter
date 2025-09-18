@@ -127,10 +127,8 @@ class InputController {
     }
   }
 
-  // Mouse click
+  // Mouse click (no rate limiting for responsive clicking)
   async clickMouse(x, y, button = 'left') {
-    if (!this.isMouseActionAllowed()) return false;
-
     try {
       switch (this.platform) {
         case 'win32':
@@ -149,10 +147,8 @@ class InputController {
     }
   }
 
-  // Mouse scroll
+  // Mouse scroll (no rate limiting for responsive scrolling)
   async scrollMouse(x, y, delta) {
-    if (!this.isMouseActionAllowed()) return false;
-
     try {
       switch (this.platform) {
         case 'win32':
@@ -274,7 +270,7 @@ class InputController {
     const downFlag = buttonMap[button] || buttonMap['left'];
     const upFlag = button === 'right' ? '0x10' : button === 'middle' ? '0x40' : '0x04';
     
-    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(${downFlag}, 0, 0, 0, 0); Start-Sleep -Milliseconds 50; [Mouse]::mouse_event(${upFlag}, 0, 0, 0, 0)"`;
+    const command = `powershell -Command "Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public class Mouse { [DllImport(\\"user32.dll\\", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo); }'; [Mouse]::mouse_event(${downFlag}, 0, 0, 0, 0); Start-Sleep -Milliseconds 10; [Mouse]::mouse_event(${upFlag}, 0, 0, 0, 0)"`;
     
     return new Promise((resolve) => {
       exec(command, (error) => {
