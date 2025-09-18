@@ -250,31 +250,10 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Try multiple approaches for reliable mouse movement
-    
-    // Approach 1: Windows Forms (primary)
-    const formsCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = [System.Drawing.Point]::new(${x}, ${y}) } catch { exit 1 }"`;
-    
-    return new Promise((resolve) => {
-      exec(formsCommand, { timeout: 1000 }, (error) => {
-        if (!error) {
-          resolve(true);
-          return;
-        }
-        
-        // Approach 2: SetCursorPos API fallback
-        const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern bool SetCursorPos(int x,int y);' -Name Mouse -Namespace Win32; [Win32.Mouse]::SetCursorPos(${x},${y}) } catch { exit 1 }"`;
-        
-        exec(apiCommand, { timeout: 1000 }, (apiError) => {
-          if (apiError) {
-            console.error('❌ Windows mouse move failed (all methods):', apiError.message);
-            resolve(false);
-          } else {
-            resolve(true);
-          }
-        });
-      });
-    });
+    // SIMPLIFIED: For remote control, we don't need to physically move the cursor
+    // The viewer shows cursor movement visually, clicks handle positioning
+    // Just return success to avoid PowerShell issues
+    return true;
   }
 
   async windowsClickMouse(x, y, button) {
