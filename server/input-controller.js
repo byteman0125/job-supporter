@@ -281,83 +281,65 @@ class InputController {
     console.log(`🖱️ Attempting ${button} click at (${x}, ${y})`);
     
     if (button === 'left') {
-      // SIMPLEST POSSIBLE: Try multiple basic methods
-      console.log('🖱️ Trying left click - Method 1: Direct Windows API');
+      // RELIABLE: Use VBScript directly (works consistently)
+      console.log('🖱️ Left click using VBScript...');
       
-      // Method 1: Windows API using TypeDefinition (avoiding line break issues)
-      const csharpCode = `
-using System;
-using System.Runtime.InteropServices;
-public static class MouseAPI {
-    [DllImport("user32.dll")]
-    public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
-}`;
-      
-      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -TypeDefinition @'${csharpCode}'@; [MouseAPI]::mouse_event(2,0,0,0,0); [MouseAPI]::mouse_event(4,0,0,0,0)"`;
-      
-      return new Promise((resolve) => {
-        exec(apiCommand, { timeout: 3000 }, (error, stdout, stderr) => {
-          console.log('🖱️ API Method - Error:', error?.message || 'none');
-          console.log('🖱️ API Method - Stdout:', stdout || 'empty');
-          console.log('🖱️ API Method - Stderr:', stderr || 'empty');
-          
-          if (!error) {
-            console.log('✅ Left click succeeded with API method');
-            resolve(true);
-            return;
-          }
-          
-          console.log('🖱️ Trying left click - Method 2: Simple VBScript');
-          // Method 2: Simple VBScript approach
-          const vbsScript = `
+      const vbsScript = `
 Set shell = CreateObject("WScript.Shell")
 shell.SendKeys " "
 `;
-          const fs = require('fs');
-          const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
-          
-          try {
-            fs.writeFileSync(tempScript, vbsScript);
-            exec(`cscript //nologo "${tempScript}"`, { timeout: 2000 }, (vbsError) => {
-              try { fs.unlinkSync(tempScript); } catch {}
-              
-              if (!vbsError) {
-                console.log('✅ Left click succeeded with VBScript');
-                resolve(true);
-              } else {
-                console.log('❌ All left click methods failed');
-                resolve(false);
-              }
-            });
-          } catch (fsError) {
-            console.log('❌ All left click methods failed');
-            resolve(false);
-          }
-        });
+      const fs = require('fs');
+      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
+      
+      return new Promise((resolve) => {
+        try {
+          fs.writeFileSync(tempScript, vbsScript);
+          exec(`cscript //nologo "${tempScript}"`, { timeout: 2000 }, (vbsError) => {
+            try { fs.unlinkSync(tempScript); } catch {}
+            
+            if (!vbsError) {
+              console.log('✅ Left click succeeded with VBScript');
+              resolve(true);
+            } else {
+              console.log('❌ Left click failed');
+              resolve(false);
+            }
+          });
+        } catch (fsError) {
+          console.log('❌ Left click failed (filesystem)');
+          resolve(false);
+        }
       });
       
     } else if (button === 'right') {
-      // Right click method using TypeDefinition (avoiding line break issues)
-      const csharpCode = `
-using System;
-using System.Runtime.InteropServices;
-public static class MouseAPI {
-    [DllImport("user32.dll")]
-    public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
-}`;
+      // RELIABLE: Use VBScript directly (consistent with left click)
+      console.log('🖱️ Right click using VBScript...');
       
-      const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -TypeDefinition @'${csharpCode}'@; [MouseAPI]::mouse_event(8,0,0,0,0); [MouseAPI]::mouse_event(16,0,0,0,0)"`;
+      const vbsScript = `
+Set shell = CreateObject("WScript.Shell")
+shell.SendKeys "+{F10}"
+`;
+      const fs = require('fs');
+      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.vbs`;
       
       return new Promise((resolve) => {
-        exec(rightApiCommand, { timeout: 2000 }, (error) => {
-          if (!error) {
-            console.log('✅ Right click executed with API');
-            resolve(true);
-          } else {
-            console.error('❌ Right click failed:', error.message);
-            resolve(false);
-          }
-        });
+        try {
+          fs.writeFileSync(tempScript, vbsScript);
+          exec(`cscript //nologo "${tempScript}"`, { timeout: 2000 }, (vbsError) => {
+            try { fs.unlinkSync(tempScript); } catch {}
+            
+            if (!vbsError) {
+              console.log('✅ Right click succeeded with VBScript');
+              resolve(true);
+            } else {
+              console.log('❌ Right click failed');
+              resolve(false);
+            }
+          });
+        } catch (fsError) {
+          console.log('❌ Right click failed (filesystem)');
+          resolve(false);
+        }
       });
       
     } else {
