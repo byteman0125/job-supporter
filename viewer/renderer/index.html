@@ -403,7 +403,7 @@
         let isConnected = false;
         let isControlMode = false;
         let lastMouseMoveTime = 0;
-        let mouseMoveThrottle = 5; // Send mouse move every 5ms for ultra-smooth control
+        let mouseMoveThrottle = 33; // Send mouse move every 33ms for 30 FPS smooth control
 
         // Prevent window fullscreen on double-click
         document.addEventListener('dblclick', (e) => {

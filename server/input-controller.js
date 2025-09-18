@@ -9,7 +9,7 @@ class InputController {
     this.lastMouseTime = 0;
     this.maxActionsPerSecond = 20; // Rate limiting
     this.maxKeysPerSecond = 100;   // Much faster rate for keyboard (10ms between keys)
-    this.maxMousePerSecond = 120;  // Much faster rate for smooth mouse (8ms between actions)
+    this.maxMousePerSecond = 30;   // 30 FPS mouse rate (33ms between actions)
     
     // Keyboard queue for sequential processing
     this.keyboardQueue = [];
