@@ -383,6 +383,8 @@
         // State
         let isConnected = false;
         let isControlMode = false;
+        let lastMouseMoveTime = 0;
+        let mouseMoveThrottle = 8; // Send mouse move every 8ms for smooth control
 
         // Prevent window fullscreen on double-click
         document.addEventListener('dblclick', (e) => {
@@ -830,9 +832,15 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const mousePos = calculateMousePosition(e);
-                if (mousePos) {
-                    sendMouseControl('move', mousePos.x, mousePos.y);
+                // Throttle mouse movements for smooth control without overwhelming the connection
+                const now = performance.now();
+                if (now - lastMouseMoveTime >= mouseMoveThrottle) {
+                    lastMouseMoveTime = now;
+                    
+                    const mousePos = calculateMousePosition(e);
+                    if (mousePos) {
+                        sendMouseControl('move', mousePos.x, mousePos.y);
+                    }
                 }
             } else {
                 const mousePos = calculateMousePosition(e);

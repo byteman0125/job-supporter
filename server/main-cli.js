@@ -454,7 +454,8 @@ class ServerCLI {
     // Process immediately without logging for maximum speed
     switch (action) {
       case 'move':
-        await this.inputController.moveMouse(x, y);
+        // Use fast mouse movement that bypasses rate limiting
+        await this.inputController.moveMouseFast(x, y);
         break;
       case 'click':
         await this.inputController.clickMouse(x, y, button);

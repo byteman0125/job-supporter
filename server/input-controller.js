@@ -9,7 +9,7 @@ class InputController {
     this.lastMouseTime = 0;
     this.maxActionsPerSecond = 20; // Rate limiting
     this.maxKeysPerSecond = 50;    // Faster rate for keyboard (20ms between keys)
-    this.maxMousePerSecond = 20;   // Standard rate for mouse (50ms between actions)
+    this.maxMousePerSecond = 120;  // Much faster rate for smooth mouse (8ms between actions)
     
     // Dangerous key combinations to block
     this.dangerousKeys = [
@@ -87,6 +87,26 @@ class InputController {
   async moveMouse(x, y) {
     if (!this.isMouseActionAllowed()) return false;
 
+    try {
+      switch (this.platform) {
+        case 'win32':
+          return await this.windowsMoveMouse(x, y);
+        case 'linux':
+          return await this.linuxMoveMouse(x, y);
+        case 'darwin':
+          return await this.macosMoveMouse(x, y);
+        default:
+          console.error('❌ Unsupported platform for mouse movement:', this.platform);
+          return false;
+      }
+    } catch (error) {
+      console.error('❌ Mouse move error:', error.message);
+      return false;
+    }
+  }
+
+  // High-speed mouse movement (bypasses rate limiting for smooth control)
+  async moveMouseFast(x, y) {
     try {
       switch (this.platform) {
         case 'win32':
