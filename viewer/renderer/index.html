@@ -310,6 +310,11 @@
             50% { opacity: 1; }
         }
 
+        /* Custom tiny cursor for control mode */
+        .tiny-cursor {
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="2" fill="red" opacity="0.8"/></svg>') 4 4, crosshair !important;
+        }
+
         /* Enhanced control mode blocking styles */
         body.control-mode-active {
             user-select: none !important;
@@ -318,16 +323,14 @@
             -ms-user-select: none !important;
             pointer-events: none !important;
             overflow: hidden !important;
-            cursor: crosshair !important; /* Small point cursor in control mode */
         }
 
         body.control-mode-active #screenViewer {
             pointer-events: auto !important;
-            cursor: crosshair !important; /* Small point cursor over screen viewer */
         }
 
         body.control-mode-active * {
-            cursor: crosshair !important; /* Small point cursor for all elements */
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="1.5" fill="rgba(255,0,0,0.7)"/></svg>') 3 3, crosshair !important;
             -webkit-user-drag: none !important;
             -webkit-app-region: no-drag !important;
         }
