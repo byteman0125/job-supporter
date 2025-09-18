@@ -93,7 +93,6 @@ class InputController {
 
   // Mouse movement (no rate limiting - already throttled on client at 60 FPS)
   async moveMouse(x, y) {
-    console.log(`🖱️ Moving mouse to: (${x}, ${y})`);
     try {
       let result;
       switch (this.platform) {
@@ -111,9 +110,8 @@ class InputController {
           return false;
       }
       
-      if (result) {
-        console.log(`🖱️✅ Mouse moved to: (${x}, ${y})`);
-      } else {
+      // Only log failures to reduce spam
+      if (!result) {
         console.log(`🖱️❌ Mouse move failed: (${x}, ${y})`);
       }
       
@@ -259,17 +257,29 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Alternative approach using Windows Forms (more reliable)
-    const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})"`;
+    // Try multiple approaches for reliable mouse movement
+    
+    // Approach 1: Windows Forms (primary)
+    const formsCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = [System.Drawing.Point]::new(${x}, ${y}) } catch { exit 1 }"`;
     
     return new Promise((resolve) => {
-      exec(command, { timeout: 500 }, (error) => {
-        if (error) {
-          console.error('❌ Windows mouse move failed:', error.message);
-          resolve(false);
-        } else {
+      exec(formsCommand, { timeout: 1000 }, (error) => {
+        if (!error) {
           resolve(true);
+          return;
         }
+        
+        // Approach 2: SetCursorPos API fallback
+        const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern bool SetCursorPos(int x,int y);' -Name Mouse -Namespace Win32; [Win32.Mouse]::SetCursorPos(${x},${y}) } catch { exit 1 }"`;
+        
+        exec(apiCommand, { timeout: 1000 }, (apiError) => {
+          if (apiError) {
+            console.error('❌ Windows mouse move failed (all methods):', apiError.message);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
       });
     });
   }
@@ -278,17 +288,28 @@ class InputController {
     // Since right click works well, let's use a dedicated approach for each button
     
     if (button === 'left') {
-      // Left click: Try mouse_event API specifically for left click
-      const leftClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);' -Name Mouse -Namespace Win32; [Win32.Mouse]::mouse_event(2,0,0,0,0); Start-Sleep -Milliseconds 10; [Win32.Mouse]::mouse_event(4,0,0,0,0) } catch { Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(' ') }"`;
+      // Left click: Simplified approach using Windows API
+      const leftClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
       
       return new Promise((resolve) => {
-        exec(leftClickCommand, { timeout: 1000 }, (error) => {
-          if (error) {
-            console.error('❌ Windows left click failed:', error.message);
-            resolve(false);
-          } else {
+        exec(leftClickCommand, { timeout: 2000 }, (error) => {
+          if (!error) {
             resolve(true);
+            return;
           }
+          
+          console.log('🔄 Left click API failed, trying SendKeys...');
+          // Fallback: Simple space key
+          const spaceCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(' ')"`;
+          exec(spaceCommand, { timeout: 1000 }, (spaceError) => {
+            if (spaceError) {
+              console.error('❌ Windows left click failed (all methods):', spaceError.message);
+              resolve(false);
+            } else {
+              console.log('✅ Left click succeeded with SendKeys fallback');
+              resolve(true);
+            }
+          });
         });
       });
       
