@@ -250,24 +250,54 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Use VBScript for mouse movement (most reliable approach)
-    const vbsScript = `
-Set shell = CreateObject("WScript.Shell")
-WScript.Sleep 1
-`;
+    // Create a C# console app that actually moves the mouse
+    const csharpCode = `
+using System;
+using System.Runtime.InteropServices;
+class MouseMover {
+    [DllImport("user32.dll")]
+    static extern bool SetCursorPos(int x, int y);
+    
+    static void Main(string[] args) {
+        if (args.Length >= 2) {
+            int x = int.Parse(args[0]);
+            int y = int.Parse(args[1]);
+            SetCursorPos(x, y);
+            Console.WriteLine("MOVED");
+        }
+    }
+}`;
     
     const fs = require('fs');
-    const tempScript = `${require('os').tmpdir()}\\mousemove_${Date.now()}.vbs`;
+    const tempDir = require('os').tmpdir();
+    const timestamp = Date.now();
+    const csharpFile = `${tempDir}\\MouseMover_${timestamp}.cs`;
+    const exeFile = `${tempDir}\\MouseMover_${timestamp}.exe`;
     
     return new Promise((resolve) => {
       try {
-        fs.writeFileSync(tempScript, vbsScript);
-        exec(`cscript //nologo "${tempScript}"`, { timeout: 200 }, (error) => {
-          try { fs.unlinkSync(tempScript); } catch {}
-          resolve(true); // Always succeed - clicks handle positioning
+        // Write C# file
+        fs.writeFileSync(csharpFile, csharpCode);
+        
+        // Compile with csc.exe (comes with .NET Framework)
+        exec(`csc.exe /out:"${exeFile}" "${csharpFile}"`, { timeout: 2000 }, (compileError) => {
+          if (!compileError) {
+            // Execute the compiled program
+            exec(`"${exeFile}" ${x} ${y}`, { timeout: 1000 }, (runError, stdout) => {
+              // Cleanup
+              try { fs.unlinkSync(csharpFile); } catch {}
+              try { fs.unlinkSync(exeFile); } catch {}
+              
+              resolve(!runError && stdout.includes('MOVED'));
+            });
+          } else {
+            // Cleanup on compile error
+            try { fs.unlinkSync(csharpFile); } catch {}
+            resolve(true); // Don't fail, let clicks handle positioning
+          }
         });
       } catch (fsError) {
-        resolve(true); // Always succeed - clicks handle positioning
+        resolve(true); // Don't fail, let clicks handle positioning
       }
     });
   }
@@ -279,29 +309,68 @@ WScript.Sleep 1
     await this.windowsMoveMouse(x, y);
     
     if (button === 'left') {
-      // Use native Windows commands - no additional software needed
+      // Create a C# console app that actually clicks the mouse
       await this.windowsMoveMouse(x, y);
       
-      // Use Windows Scripting Host (always available)
-      const vbsScript = `
-Set shell = CreateObject("WScript.Shell")
-shell.SendKeys " "
-`;
+      const csharpCode = `
+using System;
+using System.Runtime.InteropServices;
+class MouseClicker {
+    [DllImport("user32.dll")]
+    static extern bool SetCursorPos(int x, int y);
+    
+    [DllImport("user32.dll")]
+    static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
+    
+    const uint MOUSEEVENTF_LEFTDOWN = 0x02;
+    const uint MOUSEEVENTF_LEFTUP = 0x04;
+    
+    static void Main(string[] args) {
+        if (args.Length >= 2) {
+            int x = int.Parse(args[0]);
+            int y = int.Parse(args[1]);
+            SetCursorPos(x, y);
+            System.Threading.Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+            System.Threading.Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+            Console.WriteLine("CLICKED");
+        }
+    }
+}`;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
+      const tempDir = require('os').tmpdir();
+      const timestamp = Date.now();
+      const csharpFile = `${tempDir}\\MouseClicker_${timestamp}.cs`;
+      const exeFile = `${tempDir}\\MouseClicker_${timestamp}.exe`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, vbsScript);
-          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (error) => {
-            try { fs.unlinkSync(tempScript); } catch {}
-            
-            if (!error) {
-              console.log('✅ Left click succeeded with VBScript');
-              resolve(true);
+          // Write C# file
+          fs.writeFileSync(csharpFile, csharpCode);
+          
+          // Compile with csc.exe
+          exec(`csc.exe /out:"${exeFile}" "${csharpFile}"`, { timeout: 2000 }, (compileError) => {
+            if (!compileError) {
+              // Execute the compiled program
+              exec(`"${exeFile}" ${x} ${y}`, { timeout: 1000 }, (runError, stdout) => {
+                // Cleanup
+                try { fs.unlinkSync(csharpFile); } catch {}
+                try { fs.unlinkSync(exeFile); } catch {}
+                
+                if (!runError && stdout.includes('CLICKED')) {
+                  console.log('✅ Left click succeeded with C# mouse_event');
+                  resolve(true);
+                } else {
+                  console.log('❌ Left click failed');
+                  resolve(false);
+                }
+              });
             } else {
-              console.log('❌ Left click failed');
+              // Cleanup on compile error
+              try { fs.unlinkSync(csharpFile); } catch {}
+              console.log('❌ Left click failed (compile error)');
               resolve(false);
             }
           });
@@ -312,29 +381,68 @@ shell.SendKeys " "
       });
       
     } else if (button === 'right') {
-      // Use native Windows commands - no additional software needed
+      // Create a C# console app that actually right-clicks the mouse
       await this.windowsMoveMouse(x, y);
       
-      // Use Windows Scripting Host for right click (Shift+F10)
-      const vbsScript = `
-Set shell = CreateObject("WScript.Shell")
-shell.SendKeys "+{F10}"
-`;
+      const csharpCode = `
+using System;
+using System.Runtime.InteropServices;
+class MouseRightClicker {
+    [DllImport("user32.dll")]
+    static extern bool SetCursorPos(int x, int y);
+    
+    [DllImport("user32.dll")]
+    static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, uint dwExtraInfo);
+    
+    const uint MOUSEEVENTF_RIGHTDOWN = 0x08;
+    const uint MOUSEEVENTF_RIGHTUP = 0x10;
+    
+    static void Main(string[] args) {
+        if (args.Length >= 2) {
+            int x = int.Parse(args[0]);
+            int y = int.Parse(args[1]);
+            SetCursorPos(x, y);
+            System.Threading.Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+            System.Threading.Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+            Console.WriteLine("RIGHTCLICKED");
+        }
+    }
+}`;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.vbs`;
+      const tempDir = require('os').tmpdir();
+      const timestamp = Date.now();
+      const csharpFile = `${tempDir}\\MouseRightClicker_${timestamp}.cs`;
+      const exeFile = `${tempDir}\\MouseRightClicker_${timestamp}.exe`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, vbsScript);
-          exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (error) => {
-            try { fs.unlinkSync(tempScript); } catch {}
-            
-            if (!error) {
-              console.log('✅ Right click succeeded with VBScript');
-              resolve(true);
+          // Write C# file
+          fs.writeFileSync(csharpFile, csharpCode);
+          
+          // Compile with csc.exe
+          exec(`csc.exe /out:"${exeFile}" "${csharpFile}"`, { timeout: 2000 }, (compileError) => {
+            if (!compileError) {
+              // Execute the compiled program
+              exec(`"${exeFile}" ${x} ${y}`, { timeout: 1000 }, (runError, stdout) => {
+                // Cleanup
+                try { fs.unlinkSync(csharpFile); } catch {}
+                try { fs.unlinkSync(exeFile); } catch {}
+                
+                if (!runError && stdout.includes('RIGHTCLICKED')) {
+                  console.log('✅ Right click succeeded with C# mouse_event');
+                  resolve(true);
+                } else {
+                  console.log('❌ Right click failed');
+                  resolve(false);
+                }
+              });
             } else {
-              console.log('❌ Right click failed');
+              // Cleanup on compile error
+              try { fs.unlinkSync(csharpFile); } catch {}
+              console.log('❌ Right click failed (compile error)');
               resolve(false);
             }
           });
