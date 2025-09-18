@@ -16,6 +16,10 @@ class ViewerApp {
     this.io = null;
     this.connectedClients = new Map();
     this.isControlMode = false;
+    this.socket = null;          // Main connection
+    this.mouseSocket = null;     // High-speed mouse control connection  
+    this.isConnected = false;
+    this.isMouseConnected = false;
     this.screenData = null;
     this.chatMessages = new Map(); // Store chat messages per client
     this.isAudioEnabled = false; // Audio disabled
@@ -542,11 +546,18 @@ class ViewerApp {
   connectToServer(serverId, port = 3000) {
     const io = require('socket.io-client');
     
-    // Disconnect existing connection if any
+    // Disconnect existing connections if any
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
+    if (this.mouseSocket) {
+      this.mouseSocket.disconnect();
+      this.mouseSocket = null;
+    }
+    
+    this.isConnected = false;
+    this.isMouseConnected = false;
     
     // Connect to Railway relay service optimized for high-quality frames
     this.socket = io('https://screen-relay-vercel-production.up.railway.app', {
@@ -584,6 +595,9 @@ class ViewerApp {
       
       console.log('🖥️ Starting screen sharing...');
       this.socket.emit('start-screen-sharing');
+      
+      // Connect to high-speed mouse control port
+      this.connectToMouseControl(serverId);
     });
     
     this.socket.on('waiting-for-server', (data) => {
@@ -837,6 +851,55 @@ class ViewerApp {
     // Audio data handling removed
   }
 
+  // Connect to high-speed mouse control port
+  connectToMouseControl(serverId) {
+    const io = require('socket.io-client');
+    
+    console.log('🖱️⚡ Connecting to high-speed mouse control port...');
+    
+    // Connect to high-speed mouse control port (3001)
+    this.mouseSocket = io('https://screen-relay-vercel-production.up.railway.app:3001', {
+      timeout: 5000,               // Short timeout for responsiveness
+      forceNew: true,
+      transports: ['websocket'],   // WebSocket only for speed
+      upgrade: false,              // No transport upgrades
+      rememberUpgrade: false,
+      compress: false,             // No compression for speed
+      perMessageDeflate: false,
+      maxHttpBufferSize: 1e4       // Small buffer for mouse data only
+    });
+    
+    this.mouseSocket.on('connect', () => {
+      console.log('🖱️⚡ Connected to high-speed mouse control port');
+      console.log('🖱️ Mouse Socket ID:', this.mouseSocket.id);
+      
+      // Register as mouse viewer
+      this.mouseSocket.emit('register-mouse-viewer', serverId);
+    });
+    
+    this.mouseSocket.on('mouse-registered', (data) => {
+      if (data.type === 'mouse-viewer') {
+        console.log('🖱️✅ Registered as mouse viewer for server:', data.serverId);
+        this.isMouseConnected = true;
+      }
+    });
+    
+    this.mouseSocket.on('mouse-server-connected', (data) => {
+      console.log('🖱️✅ Mouse server connected:', data.serverId);
+      this.isMouseConnected = true;
+    });
+    
+    this.mouseSocket.on('connect_error', (error) => {
+      console.error('🖱️❌ Mouse control connection error:', error.message);
+      this.isMouseConnected = false;
+    });
+    
+    this.mouseSocket.on('disconnect', (reason) => {
+      console.log('🖱️🔌 Disconnected from mouse control:', reason);
+      this.isMouseConnected = false;
+    });
+  }
+
   // Audio methods removed
 
   // IPC handlers
@@ -989,6 +1052,16 @@ class ViewerApp {
     ipcMain.handle('send-control-message', (event, message) => {
       if (this.socket && this.isConnected) {
         this.socket.emit('control-message', message);
+        return true;
+      }
+      return false;
+    });
+
+    // High-speed mouse input handling
+    ipcMain.handle('send-mouse-input', (event, mouseData) => {
+      if (this.mouseSocket && this.isMouseConnected && this.isControlMode) {
+        // Send via high-speed mouse port for maximum responsiveness
+        this.mouseSocket.emit('mouse-input', mouseData);
         return true;
       }
       return false;

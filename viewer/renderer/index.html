@@ -606,17 +606,21 @@
                 type: 'control-mouse',
                 action: action, // 'move', 'click', 'scroll'
                 x: x,
-                y: y
+                y: y,
+                timestamp: performance.now() // Add high-precision timestamp
             };
             
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            ipcRenderer.invoke('send-control-message', mouseData).then(success => {
+            // Use high-speed mouse connection for better responsiveness
+            ipcRenderer.invoke('send-mouse-input', mouseData).then(success => {
                 if (success) {
-                    console.log('🖱️ ✅ Sent mouse:', mouseData);
+                    console.log('🖱️⚡ High-speed mouse sent:', action, `(${x}, ${y})`);
                 } else {
-                    console.log('🖱️ ❌ Failed to send mouse:', mouseData);
+                    // Fallback to regular control message if high-speed fails
+                    console.log('🖱️ ⚠️ High-speed failed, using fallback');
+                    ipcRenderer.invoke('send-control-message', mouseData);
                 }
             });
         }

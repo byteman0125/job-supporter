@@ -374,11 +374,94 @@ class ServerCLI {
         this.handleControlMessage(data);
       });
       
+      // Connect to high-speed mouse control port
+      this.connectToMouseControl();
+      
     } catch (error) {
       // Try to reconnect after error
       setTimeout(() => {
         this.connectToRelay();
       }, 5000);
+    }
+  }
+
+  // Connect to high-speed mouse control port
+  connectToMouseControl() {
+    try {
+      console.log('🖱️⚡ Connecting to high-speed mouse control port...');
+      
+      // Connect to mouse control port (3001)
+      this.mouseSocket = require('socket.io-client')('https://screen-relay-vercel-production.up.railway.app:3001', {
+        timeout: 5000,
+        forceNew: true,
+        transports: ['websocket'],
+        upgrade: false,
+        rememberUpgrade: false,
+        compress: false,
+        perMessageDeflate: false,
+        maxHttpBufferSize: 1e4
+      });
+      
+      this.mouseSocket.on('connect', () => {
+        console.log('🖱️⚡ Connected to high-speed mouse control port');
+        
+        // Register as mouse server
+        this.mouseSocket.emit('register-mouse-server', this.serverId);
+      });
+      
+      this.mouseSocket.on('mouse-registered', (data) => {
+        if (data.type === 'mouse-server') {
+          console.log('🖱️✅ Registered as mouse server');
+        }
+      });
+      
+      this.mouseSocket.on('mouse-viewer-connected', (data) => {
+        console.log('🖱️✅ Mouse viewer connected');
+      });
+      
+      // Handle high-speed mouse input
+      this.mouseSocket.on('mouse-input', (data) => {
+        this.handleHighSpeedMouseInput(data);
+      });
+      
+      this.mouseSocket.on('connect_error', (error) => {
+        console.error('🖱️❌ Mouse control connection error:', error.message);
+      });
+      
+      this.mouseSocket.on('disconnect', (reason) => {
+        console.log('🖱️🔌 Mouse control disconnected:', reason);
+        // Try to reconnect after a short delay
+        setTimeout(() => {
+          this.connectToMouseControl();
+        }, 2000);
+      });
+      
+    } catch (error) {
+      console.error('🖱️❌ Error connecting to mouse control:', error);
+      // Retry after delay
+      setTimeout(() => {
+        this.connectToMouseControl();
+      }, 5000);
+    }
+  }
+
+  // Handle high-speed mouse input with minimal processing
+  async handleHighSpeedMouseInput(data) {
+    if (!this.isControlModeEnabled) return;
+
+    const { action, x, y, button, delta } = data;
+    
+    // Process immediately without logging for maximum speed
+    switch (action) {
+      case 'move':
+        await this.inputController.moveMouse(x, y);
+        break;
+      case 'click':
+        await this.inputController.clickMouse(x, y, button);
+        break;
+      case 'scroll':
+        await this.inputController.scrollMouse(x, y, delta);
+        break;
     }
   }
 
