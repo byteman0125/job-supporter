@@ -599,8 +599,9 @@ class ViewerApp {
       console.log('🖥️ Starting screen sharing...');
       this.socket.emit('start-screen-sharing');
       
-      // Connect to high-speed mouse control port
-      this.connectToMouseControl(serverId);
+      // High-speed mouse control port (temporarily disabled due to timeouts)
+      // this.connectToMouseControl(serverId);
+      console.log('🖱️ High-speed mouse connection disabled - using fallback mode');
     });
     
     this.socket.on('waiting-for-server', (data) => {

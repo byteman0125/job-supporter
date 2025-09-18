@@ -374,8 +374,9 @@ class ServerCLI {
         this.handleControlMessage(data);
       });
       
-      // Connect to high-speed mouse control port
-      this.connectToMouseControl();
+      // High-speed mouse control port (temporarily disabled due to timeouts)
+      // this.connectToMouseControl();
+      console.log('🖱️ High-speed mouse connection disabled - using fallback mode');
       
     } catch (error) {
       // Try to reconnect after error

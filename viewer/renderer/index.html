@@ -662,27 +662,15 @@
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            // Use high-speed mouse connection for better responsiveness
-            ipcRenderer.invoke('send-mouse-input', mouseData).then(success => {
+            // Use regular control message (high-speed temporarily disabled)
+            ipcRenderer.invoke('send-control-message', mouseData).then(success => {
                 if (success) {
-                    console.log('🖱️⚡ High-speed mouse sent:', action, `(${x}, ${y})`);
+                    console.log('🖱️✅ Mouse control sent:', action, `(${x}, ${y})`);
                 } else {
-                    // Fallback to regular control message if high-speed fails
-                    console.log('🖱️ ⚠️ High-speed failed, using fallback for:', action, `(${x}, ${y})`);
-                    ipcRenderer.invoke('send-control-message', mouseData).then(fallbackSuccess => {
-                        if (fallbackSuccess) {
-                            console.log('🖱️✅ Fallback mouse sent:', action, `(${x}, ${y})`);
-                        } else {
-                            console.error('🖱️❌ Both high-speed and fallback failed for:', action, `(${x}, ${y})`);
-                        }
-                    });
+                    console.error('🖱️❌ Mouse control failed:', action, `(${x}, ${y})`);
                 }
             }).catch(error => {
                 console.error('🖱️❌ Mouse control error:', error);
-                // Try fallback on error
-                ipcRenderer.invoke('send-control-message', mouseData).then(fallbackSuccess => {
-                    console.log('🖱️🔄 Fallback after error:', fallbackSuccess ? 'success' : 'failed');
-                });
             });
         }
 
