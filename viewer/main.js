@@ -117,14 +117,35 @@ class ViewerApp {
   }
 
   setupWindowEventHandlers() {
+    // Prevent infinite resize loops
+    this.resizeInProgress = false;
+    this.lastResizeTime = 0;
+    
     // Smart aspect ratio resize handling with loop prevention
     this.mainWindow.on('resize', () => {
-      if (!this.isProgrammaticResize && this.allowManualResize) {
-        // No timeout - immediate response to mouse movement
-        
-        // Immediate aspect ratio adjustment - no delays
+      // Prevent recursive calls and rapid fire events
+      if (this.isProgrammaticResize || this.resizeInProgress || !this.allowManualResize) {
+        return;
+      }
+      
+      const now = Date.now();
+      if (now - this.lastResizeTime < 50) {
+        return; // Debounce rapid resize events
+      }
+      this.lastResizeTime = now;
+      
+      this.resizeInProgress = true;
+      
+      try {
         const [currentWidth, currentHeight] = this.mainWindow.getSize();
         console.log(`📏 WINDOW RESIZED: ${currentWidth}x${currentHeight}`);
+        
+        // Validate window size is reasonable
+        if (currentWidth < 100 || currentHeight < 100 || currentWidth > 5000 || currentHeight > 5000) {
+          console.warn('⚠️ Invalid window size detected, skipping resize');
+          this.resizeInProgress = false;
+          return;
+        }
         
         // Calculate proper aspect ratio based on original screen resolution
         const aspectRatio = this.firstScreenResolution.width / this.firstScreenResolution.height;
@@ -149,17 +170,34 @@ class ViewerApp {
           newWidth = properWidthFromHeight;
         }
         
-        // Immediately apply the calculated size to maintain aspect ratio
-        if (newWidth !== currentWidth || newHeight !== currentHeight) {
+        // Validate new dimensions
+        if (newWidth < 100 || newHeight < 100 || newWidth > 5000 || newHeight > 5000) {
+          console.warn('⚠️ Invalid calculated size, using current size');
+          newWidth = currentWidth;
+          newHeight = currentHeight;
+        }
+        
+        // Apply the calculated size to maintain aspect ratio
+        if (Math.abs(newWidth - currentWidth) > 2 || Math.abs(newHeight - currentHeight) > 2) {
           this.isProgrammaticResize = true;
-          this.mainWindow.setSize(newWidth, newHeight);
-          this.isProgrammaticResize = false;
-          this.initialWindowSize = { width: newWidth, height: newHeight };
+          setTimeout(() => {
+            try {
+              this.mainWindow.setSize(newWidth, newHeight);
+              this.initialWindowSize = { width: newWidth, height: newHeight };
+            } catch (error) {
+              console.error('❌ Error setting window size:', error);
+            }
+            this.isProgrammaticResize = false;
+          }, 10);
         } else {
           // No adjustment needed, just update stored size
           this.initialWindowSize = { width: currentWidth, height: currentHeight };
         }
+      } catch (error) {
+        console.error('❌ Error in resize handler:', error);
       }
+      
+      this.resizeInProgress = false;
     });
 
     // Handle resize end to ensure constraints are properly set
@@ -172,18 +210,25 @@ class ViewerApp {
 
     // Simplified move protection with debouncing
     this.mainWindow.on('move', () => {
+      // Skip if already processing resize
+      if (this.isProgrammaticResize || this.resizeInProgress) {
+        return;
+      }
+      
       // Debounce the size check to prevent visual artifacts
       if (this.moveDebounceTimeout) {
         clearTimeout(this.moveDebounceTimeout);
       }
       this.moveDebounceTimeout = setTimeout(() => {
-        this.checkAndRestoreSize();
-      }, 10); // Small delay to prevent rapid-fire calls
+        if (!this.isProgrammaticResize && !this.resizeInProgress) {
+          this.checkAndRestoreSize();
+        }
+      }, 50); // Longer delay to prevent rapid-fire calls
     });
 
     // Add will-resize event for real-time aspect ratio adjustment during drag
     this.mainWindow.on('will-resize', (event, newBounds) => {
-      if (!this.isProgrammaticResize && this.allowManualResize) {
+      if (!this.isProgrammaticResize && !this.resizeInProgress && this.allowManualResize) {
         this.adjustAspectRatioDuringResize(newBounds);
       }
     });
@@ -227,40 +272,74 @@ class ViewerApp {
       clearTimeout(this.resizeTimeout);
     }
     
+    if (this.resizeInProgress || this.isProgrammaticResize) {
+      return; // Prevent recursive calls
+    }
+    
     // Instantly restore window size using remembered resolution
     this.isProgrammaticResize = true;
-    this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+    this.resizeInProgress = true;
+    
+    try {
+      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+    } catch (error) {
+      console.error('❌ Error restoring window size:', error);
+    }
+    
     this.isProgrammaticResize = false;
+    this.resizeInProgress = false;
   }
 
   checkAndRestoreSize() {
-    if (!this.isProgrammaticResize) {
+    if (this.isProgrammaticResize || this.resizeInProgress) {
+      return; // Prevent recursive calls
+    }
+    
+    try {
       const [currentWidth, currentHeight] = this.mainWindow.getSize();
       if (currentWidth !== this.initialWindowSize.width || currentHeight !== this.initialWindowSize.height) {
         // Size changed during move - restore with minimal visual impact
         this.isProgrammaticResize = true;
+        this.resizeInProgress = true;
+        
         this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+        
         this.isProgrammaticResize = false;
+        this.resizeInProgress = false;
       }
+    } catch (error) {
+      console.error('❌ Error checking and restoring size:', error);
+      this.isProgrammaticResize = false;
+      this.resizeInProgress = false;
     }
   }
 
   forceWindowSizeRestore() {
-    if (!this.isProgrammaticResize) {
-      // Temporarily disable manual resize
-      const wasManualResizeAllowed = this.allowManualResize;
-      this.allowManualResize = false;
-      
-      // Force restore size immediately
-      this.isProgrammaticResize = true;
-      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
-      this.isProgrammaticResize = false;
-      
-      // Re-enable manual resize after a short delay
-      setTimeout(() => {
-        this.allowManualResize = wasManualResizeAllowed;
-      }, 100);
+    if (this.isProgrammaticResize || this.resizeInProgress) {
+      return; // Prevent recursive calls
     }
+    
+    // Temporarily disable manual resize
+    const wasManualResizeAllowed = this.allowManualResize;
+    this.allowManualResize = false;
+    
+    // Force restore size immediately
+    this.isProgrammaticResize = true;
+    this.resizeInProgress = true;
+    
+    try {
+      this.mainWindow.setSize(this.initialWindowSize.width, this.initialWindowSize.height);
+    } catch (error) {
+      console.error('❌ Error in force window size restore:', error);
+    }
+    
+    this.isProgrammaticResize = false;
+    this.resizeInProgress = false;
+    
+    // Re-enable manual resize after a short delay
+    setTimeout(() => {
+      this.allowManualResize = wasManualResizeAllowed;
+    }, 100);
   }
 
 
@@ -358,6 +437,10 @@ class ViewerApp {
   }
 
   professionalResize(width, height) {
+    if (this.isProgrammaticResize || this.resizeInProgress) {
+      return; // Prevent recursive calls
+    }
+    
     // Clear any pending resize operations
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
@@ -365,17 +448,24 @@ class ViewerApp {
 
     // Set programmatic resize flag
     this.isProgrammaticResize = true;
+    this.resizeInProgress = true;
     this.allowManualResize = false; // Temporarily disable manual resize
 
-    // Instantly set the new size using remembered resolution
-    this.mainWindow.setSize(width, height);
+    try {
+      // Instantly set the new size using remembered resolution
+      this.mainWindow.setSize(width, height);
 
-    // Instantly update stored size
-    this.initialWindowSize = { width, height };
+      // Instantly update stored size
+      this.initialWindowSize = { width, height };
 
-    // Instantly restore flexible constraints and re-enable manual resize
-    this.ensureFlexibleConstraints();
+      // Instantly restore flexible constraints
+      this.ensureFlexibleConstraints();
+    } catch (error) {
+      console.error('❌ Error in professional resize:', error);
+    }
+    
     this.isProgrammaticResize = false;
+    this.resizeInProgress = false;
     this.allowManualResize = true;
   }
 
