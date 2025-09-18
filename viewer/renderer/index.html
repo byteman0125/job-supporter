@@ -602,7 +602,7 @@
             
             ipcRenderer.invoke('send-control-message', keyData).then(success => {
                 if (success) {
-                    console.log('⌨️ ✅ Sent keyboard:', e.type, keyData.key, keyData.modifiers);
+                    console.log('⌨️ ✅ Sent keyboard:', e.type, `"${keyData.key}"`, 'Code:', keyData.code, 'Modifiers:', keyData.modifiers);
                 } else {
                     console.log('⌨️ ❌ Failed to send keyboard:', keyData);
                 }

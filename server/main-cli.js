@@ -591,9 +591,9 @@ class ServerCLI {
         .map(([mod, _]) => mod)
         .join('+');
       
-      console.log(`⌨️ Key executed: ${modifierStr ? modifierStr + '+' : ''}${key}`);
+      console.log(`⌨️ Key executed: ${modifierStr ? modifierStr + '+' : ''}"${key}" (action: ${action})`);
     } else {
-      console.log(`⌨️ ❌ Key failed: ${key}`);
+      console.log(`⌨️ ❌ Key failed: "${key}" (action: ${action})`);
     }
   }
 }

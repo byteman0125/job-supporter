@@ -236,6 +236,15 @@ class InputController {
     
     let keyString = specialKeys[key] || key;
     
+    // For regular characters, escape SendKeys special characters
+    if (!specialKeys[key]) {
+      // SendKeys treats these as special: + ^ % ~ { } [ ] ( )
+      keyString = keyString.replace(/[\+\^\%\~\{\}\[\]\(\)]/g, '{$&}');
+      
+      // Debug logging for character keys
+      console.log(`🔤 Processing character: "${key}" -> "${keyString}"`);
+    }
+    
     // Build modifier prefix (order matters in SendKeys: +^%key)
     let modifierPrefix = '';
     if (modifiers.shift) modifierPrefix += '+';
@@ -245,8 +254,8 @@ class InputController {
     // Combine modifiers with key
     const finalKeyString = modifierPrefix + keyString;
     
-    // Escape special characters for PowerShell
-    const escapedKey = finalKeyString.replace(/['"]/g, '`$&');
+    // Escape quotes and backticks for PowerShell command
+    const escapedKey = finalKeyString.replace(/['"]/g, '`$&').replace(/`/g, '``');
     
     const command = `powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('${escapedKey}')"`;
     
@@ -254,6 +263,7 @@ class InputController {
       exec(command, (error) => {
         if (error) {
           console.error('❌ Windows key send failed:', error.message, 'Key:', finalKeyString);
+          console.error('Command was:', command);
           resolve(false);
         } else {
           resolve(true);
