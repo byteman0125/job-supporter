@@ -454,8 +454,17 @@
             if (e.ctrlKey && e.key === '`' && !isControlMode && isConnected) {
                 e.preventDefault();
                 console.log('🎮 Ctrl+~ detected - entering control mode');
+                console.log('🔍 Current state: isControlMode =', isControlMode, 'isConnected =', isConnected);
                 enterControlMode();
                 return;
+            }
+            
+            // Debug other key combinations for testing
+            if (e.ctrlKey && e.key === '`') {
+                console.log('🔍 Ctrl+~ pressed but conditions not met:');
+                console.log('  - isControlMode:', isControlMode);
+                console.log('  - isConnected:', isConnected);
+                console.log('  - Both should be false/true respectively');
             }
             
             // Legacy mode - only send specific keys without modifiers
@@ -540,13 +549,19 @@
 
         // Control Mode Functions
         function enterControlMode() {
+            console.log('🎮 enterControlMode() called');
+            console.log('🔍 Connection status check: isConnected =', isConnected);
+            
             if (!isConnected) {
                 console.log('❌ Cannot enter control mode - not connected');
                 return;
             }
             
             console.log('🎮 Entering control mode...');
+            console.log('🔍 Setting isControlMode = true');
             isControlMode = true;
+            
+            console.log('🔍 Adding CSS classes...');
             controlModeIndicator.classList.add('active');
             screenViewer.classList.add('control-mode');
             document.body.classList.add('control-mode-active');
@@ -558,11 +573,15 @@
             console.log('🔒 Control mode CSS blocking enabled');
             
             // Notify main process
+            console.log('🔍 Notifying main process...');
             ipcRenderer.invoke('set-control-mode', true).then(success => {
-                console.log('🎮 Main process notified:', success);
+                console.log('🎮 Main process notified result:', success);
+            }).catch(error => {
+                console.error('🎮 ❌ Main process notification failed:', error);
             });
             
             // Send control mode message to server
+            console.log('🔍 Sending control message to server...');
             ipcRenderer.invoke('send-control-message', {
                 type: 'control-mode',
                 action: 'enter'
@@ -574,6 +593,8 @@
                 } else {
                     console.log('🎮 ❌ Control mode FAILED - server not notified');
                 }
+            }).catch(error => {
+                console.error('🎮 ❌ Control message failed:', error);
             });
         }
 
