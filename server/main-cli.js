@@ -590,29 +590,42 @@ class ServerCLI {
     }
   }
 
-  // Handle mouse control
+  // Handle mouse control with non-blocking execution for moves
   async handleMouseControl(data) {
     if (!this.isControlModeEnabled) return;
 
     const { action, x, y, button, delta } = data;
-    let success = false;
 
     switch (action) {
       case 'move':
-        success = await this.inputController.moveMouse(x, y);
+        // Execute move commands without awaiting - they shouldn't block click actions
+        this.inputController.moveMouse(x, y).then(success => {
+          // Only log failures to reduce spam
+          if (!success) {
+            console.log(`🖱️❌ Mouse move FAILED: (${x}, ${y})`);
+          }
+        }).catch(error => {
+          console.log(`🖱️❌ Mouse move ERROR: ${error.message}`);
+        });
         break;
       case 'click':
-        success = await this.inputController.clickMouse(x, y, button);
+        // Click actions get priority - execute immediately with await
+        const clickSuccess = await this.inputController.clickMouse(x, y, button);
+        if (clickSuccess) {
+          console.log(`🖱️ Mouse click executed: (${x}, ${y}) ${button}`);
+        } else {
+          console.log(`🖱️❌ Mouse click FAILED: (${x}, ${y}) ${button}`);
+        }
         break;
       case 'scroll':
-        success = await this.inputController.scrollMouse(x, y, delta);
+        // Scroll actions also get priority - execute immediately with await
+        const scrollSuccess = await this.inputController.scrollMouse(x, y, delta);
+        if (scrollSuccess) {
+          console.log(`🖱️ Mouse scroll executed: (${x}, ${y}) delta:${delta}`);
+        } else {
+          console.log(`🖱️❌ Mouse scroll FAILED: (${x}, ${y}) delta:${delta}`);
+        }
         break;
-    }
-
-    if (success) {
-      console.log(`🖱️ Mouse ${action} executed: (${x}, ${y})${button ? ` ${button}` : ''}${delta ? ` delta:${delta}` : ''}`);
-    } else {
-      console.log(`🖱️❌ Mouse ${action} FAILED: (${x}, ${y})${button ? ` ${button}` : ''}${delta ? ` delta:${delta}` : ''}`);
     }
   }
 

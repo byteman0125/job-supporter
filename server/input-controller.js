@@ -106,18 +106,11 @@ class InputController {
           result = await this.macosMoveMouse(x, y);
           break;
         default:
-          console.error('❌ Unsupported platform for mouse movement:', this.platform);
           return false;
-      }
-      
-      // Only log failures to reduce spam
-      if (!result) {
-        console.log(`🖱️❌ Mouse move failed: (${x}, ${y})`);
       }
       
       return result;
     } catch (error) {
-      console.error('❌ Mouse move error:', error.message);
       return false;
     }
   }
