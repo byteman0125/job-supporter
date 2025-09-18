@@ -96,7 +96,6 @@ class ViewerApp {
     this.firstScreenResolution = { width: screenWidth, height: screenHeight };
     
     // Log initial window size
-    console.log(`📏 INITIAL WINDOW SIZE: ${windowWidth}x${windowHeight}`);
     
     // Smart window management
     this.isProgrammaticResize = false;
@@ -597,12 +596,10 @@ class ViewerApp {
         const currentX = (data.mouseX * windowWidth) / this.screenWidth;
         const currentY = (data.mouseY * windowHeight) / this.screenHeight;
         
-        console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
         
         // Calculate and show scale rate
         const scaleRateX = (windowWidth / this.screenWidth) * 100;
         const scaleRateY = (windowHeight / this.screenHeight) * 100;
-        console.log(`📊 SCALE RATE: ${scaleRateX.toFixed(1)}% x ${scaleRateY.toFixed(1)}%`);
       }
       
       // Calculate cursor position for screen data
@@ -650,7 +647,6 @@ class ViewerApp {
         const currentY = (data.mouseY * windowHeight) / this.screenHeight;
         
         // Single log with all required info
-        console.log(`📏 WINDOW SIZE: ${windowWidth}x${windowHeight}`);
       }
       
       // Calculate final cursor position for renderer

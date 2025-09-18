@@ -390,7 +390,7 @@
             e.stopPropagation();
         }, true); // Use capture phase to catch early
 
-        // Keyboard Shortcuts
+        // Keyboard Shortcuts and Input Handler
         document.addEventListener('keydown', (e) => {
             // Connection modal shortcut
             if (e.ctrlKey && e.shiftKey && e.key === 'H') {
@@ -406,10 +406,29 @@
                 return;
             }
             
-            // Send keyboard input if in control mode
-            if (isControlMode && isConnected) {
-                e.preventDefault();
-                sendKeyboardInput(e);
+            // Handle keyboard input based on mode
+            if (isConnected) {
+                if (isControlMode) {
+                    // Control mode - send all keys except exit shortcut
+                    e.preventDefault();
+                    sendKeyboardInput(e);
+                } else {
+                    // Legacy mode - only send specific keys without modifiers
+                    if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+                        // Don't send modifier keys alone
+                        if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                            ipcRenderer.send('send-key-press', { 
+                                key: e.key, 
+                                modifiers: {
+                                    ctrl: e.ctrlKey,
+                                    shift: e.shiftKey,
+                                    alt: e.altKey,
+                                    meta: e.metaKey
+                                }
+                            });
+                        }
+                    }
+                }
             }
         });
 
@@ -446,8 +465,12 @@
 
         // Control Mode Functions
         function enterControlMode() {
-            if (!isConnected) return;
+            if (!isConnected) {
+                console.log('❌ Cannot enter control mode - not connected');
+                return;
+            }
             
+            console.log('🎮 Entering control mode...');
             isControlMode = true;
             controlModeIndicator.classList.add('active');
             screenViewer.classList.add('control-mode');
@@ -456,15 +479,21 @@
             screenViewer.style.cursor = 'crosshair';
             
             // Notify main process
-            ipcRenderer.invoke('set-control-mode', true);
+            ipcRenderer.invoke('set-control-mode', true).then(success => {
+                console.log('🎮 Main process notified:', success);
+            });
             
             // Send control mode message to server
             ipcRenderer.invoke('send-control-message', {
                 type: 'control-mode',
                 action: 'enter'
+            }).then(success => {
+                if (success) {
+                    console.log('🎮 ✅ Control mode ENTERED - server notified');
+                } else {
+                    console.log('🎮 ❌ Control mode FAILED - server not notified');
+                }
             });
-            
-            console.log('🎮 Control mode ENTERED');
         }
 
         function exitControlMode() {
@@ -490,7 +519,10 @@
         }
 
         function sendKeyboardInput(e) {
-            if (!isControlMode || !isConnected) return;
+            if (!isControlMode || !isConnected) {
+                console.log('❌ Cannot send keyboard input - control mode:', isControlMode, 'connected:', isConnected);
+                return;
+            }
             
             const keyData = {
                 type: 'control-keyboard',
@@ -505,12 +537,20 @@
                 }
             };
             
-            ipcRenderer.invoke('send-control-message', keyData);
-            console.log('⌨️ Sent keyboard:', keyData);
+            ipcRenderer.invoke('send-control-message', keyData).then(success => {
+                if (success) {
+                    console.log('⌨️ ✅ Sent keyboard:', keyData);
+                } else {
+                    console.log('⌨️ ❌ Failed to send keyboard:', keyData);
+                }
+            });
         }
 
         function sendMouseControl(action, x, y, button = null, delta = null) {
-            if (!isControlMode || !isConnected) return;
+            if (!isControlMode || !isConnected) {
+                console.log('❌ Cannot send mouse control - control mode:', isControlMode, 'connected:', isConnected);
+                return;
+            }
             
             const mouseData = {
                 type: 'control-mouse',
@@ -522,8 +562,13 @@
             if (button) mouseData.button = button;
             if (delta) mouseData.delta = delta;
             
-            ipcRenderer.invoke('send-control-message', mouseData);
-            console.log('🖱️ Sent mouse:', mouseData);
+            ipcRenderer.invoke('send-control-message', mouseData).then(success => {
+                if (success) {
+                    console.log('🖱️ ✅ Sent mouse:', mouseData);
+                } else {
+                    console.log('🖱️ ❌ Failed to send mouse:', mouseData);
+                }
+            });
         }
 
         // Screen Display
@@ -728,28 +773,7 @@
             }
         });
 
-        // Legacy keyboard input (for non-control mode)
-        document.addEventListener('keydown', (e) => {
-            // Skip if already handled by control mode or shortcuts
-            if (isControlMode || (e.ctrlKey && e.shiftKey && e.key === 'H') || (e.ctrlKey && e.altKey)) {
-                return;
-            }
-            
-            if (isConnected && !e.ctrlKey && !e.shiftKey) {
-                // Don't send modifier keys alone
-                if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                    ipcRenderer.send('send-key-press', { 
-                        key: e.key, 
-                        modifiers: {
-                            ctrl: e.ctrlKey,
-                            shift: e.shiftKey,
-                            alt: e.altKey,
-                            meta: e.metaKey
-                        }
-                    });
-                }
-            }
-        });
+        // Legacy keyboard input (for non-control mode) - handled by first event listener
 
         // Mouse position calculation
         function calculateMousePosition(e) {
