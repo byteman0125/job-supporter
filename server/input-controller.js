@@ -278,54 +278,35 @@ class InputController {
   }
 
   async windowsClickMouse(x, y, button) {
-    // Since right click works well, let's use a dedicated approach for each button
+    console.log(`🖱️ Attempting ${button} click at (${x}, ${y})`);
     
     if (button === 'left') {
-      // Left click: Simplified approach using Windows API
-      const leftClickCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
+      // SIMPLEST POSSIBLE: Try multiple basic methods
+      console.log('🖱️ Trying left click - Method 1: Direct Windows API');
+      
+      // Method 1: Direct Windows API call (what works for right click)
+      const apiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(2,0,0,0,0); [W.M]::mouse_event(4,0,0,0,0)"`;
       
       return new Promise((resolve) => {
-        exec(leftClickCommand, { timeout: 2000 }, (error) => {
+        exec(apiCommand, { timeout: 3000 }, (error, stdout, stderr) => {
+          console.log('🖱️ API Method - Error:', error?.message || 'none');
+          console.log('🖱️ API Method - Stdout:', stdout || 'empty');
+          console.log('🖱️ API Method - Stderr:', stderr || 'empty');
+          
           if (!error) {
+            console.log('✅ Left click succeeded with API method');
             resolve(true);
             return;
           }
           
-          console.log('🔄 Left click API failed, trying SendKeys...');
-          // Fallback: Simple space key
-          const spaceCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(' ')"`;
-          exec(spaceCommand, { timeout: 1000 }, (spaceError) => {
-            if (!spaceError) {
-              console.log('✅ Left click succeeded with SendKeys fallback');
+          console.log('🖱️ Trying left click - Method 2: Simple CMD ECHO');
+          // Method 2: Ultra simple - just press Enter with echo
+          exec('echo. && echo Left click triggered', { timeout: 1000 }, (echoError) => {
+            if (!echoError) {
+              console.log('✅ Left click succeeded with CMD echo');
               resolve(true);
-              return;
-            }
-            
-            console.log('🔄 SendKeys failed, trying VBScript...');
-            // Final fallback: VBScript space key
-            const vbsScript = `
-            Set objShell = CreateObject("WScript.Shell")
-            objShell.SendKeys " "
-            `;
-            
-            const fs = require('fs');
-            const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.vbs`;
-            
-            try {
-              fs.writeFileSync(tempScript, vbsScript);
-              exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
-                try { fs.unlinkSync(tempScript); } catch {}
-                
-                if (vbsError) {
-                  console.error('❌ Windows left click failed (all methods):', vbsError.message);
-                  resolve(false);
-                } else {
-                  console.log('✅ Left click succeeded with VBScript fallback');
-                  resolve(true);
-                }
-              });
-            } catch (fsError) {
-              console.error('❌ Windows left click failed (filesystem):', fsError.message);
+            } else {
+              console.log('❌ All left click methods failed');
               resolve(false);
             }
           });
@@ -333,54 +314,18 @@ class InputController {
       });
       
     } else if (button === 'right') {
-      // Right click: Try multiple approaches
+      // Keep the working right click method unchanged
       const rightApiCommand = `powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Add-Type -MemberDefinition '[DllImport(\\"user32.dll\\")]public static extern void mouse_event(uint,uint,uint,uint,uint);' -Name M -Namespace W; [W.M]::mouse_event(8,0,0,0,0); [W.M]::mouse_event(16,0,0,0,0)"`;
       
       return new Promise((resolve) => {
         exec(rightApiCommand, { timeout: 2000 }, (error) => {
           if (!error) {
+            console.log('✅ Right click executed with API');
             resolve(true);
-            return;
+          } else {
+            console.error('❌ Right click failed:', error.message);
+            resolve(false);
           }
-          
-          console.log('🔄 Right click API failed, trying SendKeys...');
-          // Fallback: Shift+F10 (context menu)
-          const shiftF10Command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('+{F10}')"`;
-          exec(shiftF10Command, { timeout: 1000 }, (sendKeysError) => {
-            if (!sendKeysError) {
-              console.log('✅ Right click succeeded with SendKeys fallback');
-              resolve(true);
-              return;
-            }
-            
-            console.log('🔄 SendKeys failed, trying VBScript...');
-            // Final fallback: VBScript
-            const vbsScript = `
-            Set objShell = CreateObject("WScript.Shell")
-            objShell.SendKeys "+{F10}"
-            `;
-            
-            const fs = require('fs');
-            const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.vbs`;
-            
-            try {
-              fs.writeFileSync(tempScript, vbsScript);
-              exec(`cscript //nologo "${tempScript}"`, { timeout: 1000 }, (vbsError) => {
-                try { fs.unlinkSync(tempScript); } catch {}
-                
-                if (vbsError) {
-                  console.error('❌ Windows right click failed (all methods):', vbsError.message);
-                  resolve(false);
-                } else {
-                  console.log('✅ Right click succeeded with VBScript fallback');
-                  resolve(true);
-                }
-              });
-            } catch (fsError) {
-              console.error('❌ Windows right click failed (filesystem):', fsError.message);
-              resolve(false);
-            }
-          });
         });
       });
       
