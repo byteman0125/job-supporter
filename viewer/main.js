@@ -527,9 +527,15 @@ class ViewerApp {
     // Set window to always be on top to capture input
     this.mainWindow.setAlwaysOnTop(true, 'screen-saver', 1);
     
+    // Disable window movement and resizing
+    this.mainWindow.setMovable(false);
+    this.mainWindow.setResizable(false);
+    
     // Focus the window to ensure it receives all input
     this.mainWindow.focus();
     this.mainWindow.show();
+    
+    console.log('🔒 Window movement and resizing disabled for control mode');
   }
 
   // Re-enable system shortcuts when exiting control mode
@@ -541,6 +547,12 @@ class ViewerApp {
     
     // Remove always on top
     this.mainWindow.setAlwaysOnTop(false);
+    
+    // Re-enable window movement and resizing
+    this.mainWindow.setMovable(true);
+    this.mainWindow.setResizable(true);
+    
+    console.log('🔓 Window movement and resizing re-enabled');
   }
 
   connectToServer(serverId, port = 3000) {

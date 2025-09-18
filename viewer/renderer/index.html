@@ -310,6 +310,25 @@
             50% { opacity: 1; }
         }
 
+        /* Enhanced control mode blocking styles */
+        body.control-mode-active {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            pointer-events: none !important;
+            overflow: hidden !important;
+        }
+
+        body.control-mode-active #screenViewer {
+            pointer-events: auto !important;
+        }
+
+        body.control-mode-active * {
+            -webkit-user-drag: none !important;
+            -webkit-app-region: no-drag !important;
+        }
+
         @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0.3; }
@@ -512,6 +531,8 @@
             exitControlMode(); // Exit control mode when disconnecting
         }
 
+        // CSS-based system blocking is handled by the 'control-mode-active' class on body
+
         // Control Mode Functions
         function enterControlMode() {
             if (!isConnected) {
@@ -523,9 +544,13 @@
             isControlMode = true;
             controlModeIndicator.classList.add('active');
             screenViewer.classList.add('control-mode');
+            document.body.classList.add('control-mode-active');
             
             // Change cursor to indicate control mode
             screenViewer.style.cursor = 'crosshair';
+            
+            // Add global event blocking (CSS-based approach is more reliable)
+            console.log('🔒 Control mode CSS blocking enabled');
             
             // Notify main process
             ipcRenderer.invoke('set-control-mode', true).then(success => {
@@ -553,9 +578,13 @@
             isControlMode = false;
             controlModeIndicator.classList.remove('active');
             screenViewer.classList.remove('control-mode');
+            document.body.classList.remove('control-mode-active');
             
             // Reset cursor
             screenViewer.style.cursor = 'default';
+            
+            // Remove global event blocking (CSS-based approach)
+            console.log('🔓 Control mode CSS blocking disabled');
             
             // Notify main process
             ipcRenderer.invoke('set-control-mode', false);
