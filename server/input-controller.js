@@ -250,36 +250,24 @@ class InputController {
 
   // Windows implementations
   async windowsMoveMouse(x, y) {
-    // Use Python script for reliable mouse movement
-    const pythonScript = `
-import ctypes
-import sys
-try:
-    ctypes.windll.user32.SetCursorPos(${x}, ${y})
-    print("SUCCESS")
-except Exception as e:
-    print(f"ERROR: {e}")
-    sys.exit(1)
+    // Use AutoHotkey script for reliable mouse movement
+    const ahkScript = `
+MouseMove, ${x}, ${y}, 0
 `;
     
     const fs = require('fs');
-    const tempScript = `${require('os').tmpdir()}\\mousemove_${Date.now()}.py`;
+    const tempScript = `${require('os').tmpdir()}\\mousemove_${Date.now()}.ahk`;
     
     return new Promise((resolve) => {
       try {
-        fs.writeFileSync(tempScript, pythonScript);
-        exec(`python "${tempScript}"`, { timeout: 1000 }, (error, stdout) => {
+        fs.writeFileSync(tempScript, ahkScript);
+        exec(`autohotkey "${tempScript}"`, { timeout: 500 }, (error) => {
           try { fs.unlinkSync(tempScript); } catch {}
-          
-          if (!error && stdout.includes('SUCCESS')) {
-            resolve(true);
-          } else {
-            // Fallback: Use VBScript to send arrow keys (approximate movement)
-            resolve(true); // Don't fail mouse movement, let clicks handle positioning
-          }
+          resolve(!error); // Return success if no error
         });
       } catch (fsError) {
-        resolve(true); // Don't fail mouse movement
+        // Fallback: Simple echo command (don't fail)
+        resolve(true);
       }
     });
   }
@@ -291,38 +279,23 @@ except Exception as e:
     await this.windowsMoveMouse(x, y);
     
     if (button === 'left') {
-      // Use Python script for reliable left click
-      const pythonScript = `
-import ctypes
-import time
-import sys
-try:
-    # Move to position first
-    ctypes.windll.user32.SetCursorPos(${x}, ${y})
-    time.sleep(0.01)
-    
-    # Perform left click
-    ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
-    time.sleep(0.01)
-    ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
-    
-    print("SUCCESS")
-except Exception as e:
-    print(f"ERROR: {e}")
-    sys.exit(1)
+      // Use AutoHotkey script for reliable left click
+      const ahkScript = `
+MouseMove, ${x}, ${y}, 0
+Click, ${x}, ${y}
 `;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.py`;
+      const tempScript = `${require('os').tmpdir()}\\leftclick_${Date.now()}.ahk`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, pythonScript);
-          exec(`python "${tempScript}"`, { timeout: 2000 }, (error, stdout) => {
+          fs.writeFileSync(tempScript, ahkScript);
+          exec(`autohotkey "${tempScript}"`, { timeout: 1000 }, (error) => {
             try { fs.unlinkSync(tempScript); } catch {}
             
-            if (!error && stdout.includes('SUCCESS')) {
-              console.log('✅ Left click succeeded with Python');
+            if (!error) {
+              console.log('✅ Left click succeeded with AutoHotkey');
               resolve(true);
             } else {
               console.log('❌ Left click failed');
@@ -336,38 +309,23 @@ except Exception as e:
       });
       
     } else if (button === 'right') {
-      // Use Python script for reliable right click
-      const pythonScript = `
-import ctypes
-import time
-import sys
-try:
-    # Move to position first
-    ctypes.windll.user32.SetCursorPos(${x}, ${y})
-    time.sleep(0.01)
-    
-    # Perform right click
-    ctypes.windll.user32.mouse_event(8, 0, 0, 0, 0)   # MOUSEEVENTF_RIGHTDOWN
-    time.sleep(0.01)
-    ctypes.windll.user32.mouse_event(16, 0, 0, 0, 0)  # MOUSEEVENTF_RIGHTUP
-    
-    print("SUCCESS")
-except Exception as e:
-    print(f"ERROR: {e}")
-    sys.exit(1)
+      // Use AutoHotkey script for reliable right click
+      const ahkScript = `
+MouseMove, ${x}, ${y}, 0
+Click, ${x}, ${y}, Right
 `;
       
       const fs = require('fs');
-      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.py`;
+      const tempScript = `${require('os').tmpdir()}\\rightclick_${Date.now()}.ahk`;
       
       return new Promise((resolve) => {
         try {
-          fs.writeFileSync(tempScript, pythonScript);
-          exec(`python "${tempScript}"`, { timeout: 2000 }, (error, stdout) => {
+          fs.writeFileSync(tempScript, ahkScript);
+          exec(`autohotkey "${tempScript}"`, { timeout: 1000 }, (error) => {
             try { fs.unlinkSync(tempScript); } catch {}
             
-            if (!error && stdout.includes('SUCCESS')) {
-              console.log('✅ Right click succeeded with Python');
+            if (!error) {
+              console.log('✅ Right click succeeded with AutoHotkey');
               resolve(true);
             } else {
               console.log('❌ Right click failed');

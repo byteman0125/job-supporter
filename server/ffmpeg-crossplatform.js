@@ -387,13 +387,14 @@ class FFmpegCrossPlatform {
             this.isCapturing = false;
         });
 
-        // Handle stderr for debugging
+        // Handle stderr for debugging (reduced logging)
         this.ffmpegProcess.stderr.on('data', (data) => {
             const message = data.toString();
-            console.log('📺 FFmpeg output:', message.trim());
-            if (message.includes('error') || message.includes('Error')) {
+            // Only log errors, not regular status updates
+            if (message.includes('error') || message.includes('Error') || message.includes('failed')) {
                 console.log('❌ FFmpeg Error:', message.trim());
             }
+            // Suppress frame rate and normal output
         });
 
         return this.ffmpegProcess;
