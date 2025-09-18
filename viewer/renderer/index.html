@@ -719,11 +719,35 @@
                     console.log('🖱️ NOT DRAWING CURSOR - no cursor data');
                 }
                 
-                // Don't resize window automatically - let image scale within existing window
+                // Resize window to match remote screen aspect ratio on first connection
                 if (!window.hasReceivedScreenData) {
                     window.hasReceivedScreenData = true;
-                    console.log('🖼️ First screen data received - image will scale to fit window');
-                    console.log('📊 Original screen:', originalScreenWidth, 'x', originalScreenHeight, '→ Will scale to fit window');
+                    console.log('🖼️ First screen data received - resizing window to match remote screen');
+                    console.log('📊 Remote screen:', originalScreenWidth, 'x', originalScreenHeight);
+                    
+                    // Calculate optimal window size to show full remote screen
+                    const remoteAspectRatio = originalScreenWidth / originalScreenHeight;
+                    const maxWindowWidth = window.screen.availWidth - 100; // Leave margin
+                    const maxWindowHeight = window.screen.availHeight - 100;
+                    
+                    let newWidth = Math.min(originalScreenWidth, maxWindowWidth);
+                    let newHeight = Math.round(newWidth / remoteAspectRatio);
+                    
+                    // If height is too big, scale down
+                    if (newHeight > maxWindowHeight) {
+                        newHeight = maxWindowHeight;
+                        newWidth = Math.round(newHeight * remoteAspectRatio);
+                    }
+                    
+                    console.log('📐 Resizing viewer window to:', newWidth, 'x', newHeight, 'for optimal viewing');
+                    
+                    // Resize window via IPC
+                    ipcRenderer.send('resize-window-for-screen', {
+                        width: newWidth,
+                        height: newHeight,
+                        remoteWidth: originalScreenWidth,
+                        remoteHeight: originalScreenHeight
+                    });
                 } else {
                     console.log('📺 Screen data update - maintaining current window size');
                 }

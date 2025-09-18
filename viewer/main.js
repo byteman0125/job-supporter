@@ -933,6 +933,23 @@ class ViewerApp {
       }
     });
 
+    ipcMain.on('resize-window-for-screen', (event, { width, height, remoteWidth, remoteHeight }) => {
+      if (this.mainWindow) {
+        console.log('📐 Resizing window for optimal screen viewing:', width, 'x', height);
+        console.log('🖥️ Remote screen:', remoteWidth, 'x', remoteHeight);
+        
+        // Store the remote screen info
+        this.remoteScreenWidth = remoteWidth;
+        this.remoteScreenHeight = remoteHeight;
+        
+        // Resize window to optimal size
+        this.mainWindow.setSize(width, height);
+        this.mainWindow.center(); // Center the resized window
+        
+        console.log('✅ Window resized to show full remote screen');
+      }
+    });
+
     ipcMain.on('reset-window-size', () => {
       if (this.mainWindow) {
         // Instantly calculate optimal size using remembered resolution (default 1200x800)
