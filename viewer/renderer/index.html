@@ -393,6 +393,30 @@
 
         // Keyboard Shortcuts and Input Handler
         document.addEventListener('keydown', (e) => {
+            // In control mode - capture ALL input and prevent system actions
+            if (isControlMode && isConnected) {
+                // Only allow Ctrl+Alt to exit control mode
+                if (e.ctrlKey && e.altKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    console.log('🎮 Ctrl+Alt detected - exiting control mode');
+                    exitControlMode();
+                    return;
+                }
+                
+                // Block ALL other input from affecting local system
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // Send everything to remote PC
+                sendKeyboardInput(e);
+                return;
+            }
+            
+            // Not in control mode - handle local shortcuts
+            
             // Connection modal shortcut
             if (e.ctrlKey && e.shiftKey && e.key === 'H') {
                 e.preventDefault();
@@ -408,39 +432,50 @@
                 return;
             }
             
-            // Exit control mode with Ctrl+Alt
-            if (e.ctrlKey && e.altKey && isControlMode) {
-                e.preventDefault();
-                console.log('🎮 Ctrl+Alt detected - exiting control mode');
-                exitControlMode();
-                return;
-            }
-            
-            // Handle keyboard input based on mode
-            if (isConnected) {
-                if (isControlMode) {
-                    // Control mode - send all keys except control shortcuts
-                    if (!(e.ctrlKey && e.key === '`') && !(e.ctrlKey && e.altKey)) {
-                        e.preventDefault();
-                        sendKeyboardInput(e);
-                    }
-                } else {
-                    // Legacy mode - only send specific keys without modifiers
-                    if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
-                        // Don't send modifier keys alone
-                        if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                            ipcRenderer.send('send-key-press', { 
-                                key: e.key, 
-                                modifiers: {
-                                    ctrl: e.ctrlKey,
-                                    shift: e.shiftKey,
-                                    alt: e.altKey,
-                                    meta: e.metaKey
-                                }
-                            });
+            // Legacy mode - only send specific keys without modifiers
+            if (isConnected && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+                // Don't send modifier keys alone
+                if (e.key.length === 1 || ['Enter', 'Backspace', 'Delete', 'Tab', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    ipcRenderer.send('send-key-press', { 
+                        key: e.key, 
+                        modifiers: {
+                            ctrl: e.ctrlKey,
+                            shift: e.shiftKey,
+                            alt: e.altKey,
+                            meta: e.metaKey
                         }
-                    }
+                    });
                 }
+            }
+        });
+
+        // Handle keyup events in control mode
+        document.addEventListener('keyup', (e) => {
+            // In control mode - capture ALL keyup events and prevent system actions
+            if (isControlMode && isConnected) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                // Send keyup to remote PC
+                const keyData = {
+                    type: 'control-keyboard',
+                    action: 'keyup',
+                    key: e.key,
+                    code: e.code,
+                    modifiers: {
+                        ctrl: e.ctrlKey,
+                        shift: e.shiftKey,
+                        alt: e.altKey,
+                        meta: e.metaKey
+                    }
+                };
+                
+                ipcRenderer.invoke('send-control-message', keyData).then(success => {
+                    if (success) {
+                        console.log('⌨️ ✅ Sent keyup:', keyData);
+                    }
+                });
             }
         });
 
@@ -703,12 +738,19 @@
         screenViewer.addEventListener('click', (e) => {
             if (!isConnected) return;
             
-            if (isControlMode && e.button === 0) { // Control mode - send click
-                const mousePos = calculateMousePosition(e);
-                if (mousePos) {
-                    sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+            if (isControlMode) { 
+                // Control mode - capture and prevent all local actions
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                if (e.button === 0) { // Left click
+                    const mousePos = calculateMousePosition(e);
+                    if (mousePos) {
+                        sendMouseControl('click', mousePos.x, mousePos.y, 'left');
+                    }
                 }
-            } else if (!isControlMode && e.button === 0) { // Normal mode - existing behavior
+            } else if (e.button === 0) { // Normal mode - existing behavior
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     ipcRenderer.send('send-mouse-click', { x: mousePos.x, y: mousePos.y, button: 'left' });
@@ -717,7 +759,7 @@
         });
 
         screenViewer.addEventListener('dblclick', (e) => {
-            // Prevent default behavior and stop propagation to avoid fullscreen
+            // Always prevent default behavior and stop propagation to avoid fullscreen
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
@@ -739,7 +781,11 @@
         });
 
         screenViewer.addEventListener('contextmenu', (e) => {
+            // Always prevent context menu
             e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
             if (!isConnected) return;
             
             if (isControlMode) {
@@ -760,6 +806,10 @@
             if (!isConnected) return;
             
             if (isControlMode) {
+                // Control mode - prevent any local mouse tracking
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     sendMouseControl('move', mousePos.x, mousePos.y);
@@ -775,7 +825,11 @@
         // Mouse wheel for control mode
         screenViewer.addEventListener('wheel', (e) => {
             if (isControlMode && isConnected) {
+                // Control mode - completely prevent local scrolling
                 e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
                 const mousePos = calculateMousePosition(e);
                 if (mousePos) {
                     sendMouseControl('scroll', mousePos.x, mousePos.y, null, e.deltaY);
